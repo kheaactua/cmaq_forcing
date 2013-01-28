@@ -1,51 +1,51 @@
 #!/usr/bin/env python
 
-# the Scientific Python netCDF 3 interface
-# http://dirac.cnrs-orleans.fr/ScientificPython/
-from Scientific.IO.NetCDF import NetCDFFile as Dataset
-# the 'classic' version of the netCDF4 python interface
-# http://code.google.com/p/netcdf4-python/
-#from netCDF4_classic import Dataset
-from numpy import arange, dtype # array module from http://numpy.scipy.org
-
-"""
-This is a very simple example which writes a 2D array of
-sample data. To handle this in netCDF we create two shared
-dimensions, "x" and "y", and a netCDF variable, called "data".
-
-This example demonstrates the netCDF Python API.
-It will work either with the Scientific Python NetCDF version 3 interface
-(http://dirac.cnrs-orleans.fr/ScientificPython/)
-of the 'classic' version of the netCDF4 interface. 
-(http://netcdf4-python.googlecode.com/svn/trunk/docs/netCDF4_classic-module.html)
-To switch from one to another, just comment/uncomment the appropriate
-import statements at the beginning of this file.
-
-Jeff Whitaker <jeffrey.s.whitaker@noaa.gov> 20070201
-"""
-
-# the output array to write will be nx x ny
-nx = 6; ny = 12
-
-# open a new netCDF file for writing.
-ncfile = Dataset('simple_xy.nc','w') 
-
-# create the output data.
-data_out = arange(nx*ny) # 1d array
-data_out.shape = (nx,ny) # reshape to 2d array
-
-# create the x and y dimensions.
-ncfile.createDimension('x',nx)
-ncfile.createDimension('y',ny)
-
-# create the variable (4 byte integer in this case)
-# first argument is name of variable, second is datatype, third is
-# a tuple with the names of dimensions.
-data = ncfile.createVariable('data',dtype('int32').char,('x','y'))
-
-# write data to variable.
-data[:] = data_out
-
-# close the file.
-ncfile.close()
-print '*** SUCCESS writing example file simple_xy.nc!'
+""" http://visitusers.org/index.php?title=Writing_NETCDF_Using_Python """
+from numpy import shape
+from Scientific.IO.NetCDF import NetCDFFile
+import numpy as np
+ 
+# Write a variable with rectilinear coordinates to NETCDF.
+def write_rectilinear(file, var, varname, x_coord, y_coord):
+    nx = len(x_coord)
+    ny = len(y_coord)
+ 
+    # Reshape for 2D
+    my_data = np.reshape(var,(ny,nx),'F')
+ 
+    # Create dimensions:
+    file.createDimension('nx', nx)
+    file.createDimension('ny', ny)
+ 
+    x = file.createVariable('nx', 'd', ('nx',))
+    y = file.createVariable('ny', 'd', ('ny',))
+ 
+    # transfer the coordinate variables:
+    x[:] = x_coord
+    y[:] = y_coord
+ 
+    # Create data variable in NetCDF.
+    data = file.createVariable(varname, 'd', ('ny','nx'))
+ 
+    # transfer the data variables:
+    data[:] = my_data
+ 
+ 
+# coordinate information:
+x_coord = [0,2,4,6,8,10,12] 
+y_coord = [0, 5, 10]
+ 
+# number of points:
+nx = len(x_coord)
+ny = len(y_coord)
+ 
+# Create a nodal data variable
+nodal = []
+for i in range(nx):
+    for j in range(ny):
+        nodal = nodal + [j*nx + i]
+ 
+# Write the file.
+file = NetCDFFile('rectilinear.nc', 'w')
+write_rectilinear(file, nodal, 'data', x_coord, y_coord)
+file.close()
