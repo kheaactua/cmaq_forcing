@@ -2,6 +2,7 @@
 
 HOME_DIR=`dirname $0`
 CUR_DIR=`pwd`
+HOME_DIR=$CUR_DIR
 
 if [[ "$1" == "" ]]; then
 	workdir=$CUR_DIR;
@@ -11,9 +12,9 @@ fi
 echo "Transforming files in dir $workdir"
 cd $workdir
 
-for ext in "*.f90" "*.cdk"; do
-#for ext in "*.test"; do
-	files=`echo $ext`
+for ext in "*.F"; do
+	#files=`echo $ext`
+	files=`find . -iname 'rd_frc.F'`
 	if [ "$files" != "$ext" ]; then
 		for file in $files ; do
 
