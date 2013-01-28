@@ -1,0 +1,9 @@
+major changes in this directory are:
+1) This now uses KPP v2.1 generated files and Integrators. With that comes RK solvers.
+2) This has vadv in tridiagonal matrix format. It doesn't change anything compared to 
+   original code, but it makes it easier to compare with the adjoint/transpose code.
+3) In this version photolysis rates are checkpointed to avoid the bug in phot.F
+5) And I'm sure a couple of other things that I don't rememeber now.
+
+And as usual check for BF perturbations left from previous runs, in routines such 
+as INITSCEN or DRIVER or all process subroutines.
