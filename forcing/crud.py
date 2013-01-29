@@ -49,3 +49,12 @@ for i in range(nx):
 file = NetCDFFile('rectilinear.nc', 'w')
 write_rectilinear(file, nodal, 'data', x_coord, y_coord)
 file.close()
+
+
+# Now, read the info
+
+file = NetCDFFile('rectilinear.nc', 'r')
+data = file.variables['data'][:]
+print "Data:"
+print data
+file.close()
