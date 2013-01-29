@@ -19,6 +19,7 @@ def loadConfFile(name):
 
 
 # MAIN
+# Fake inputs.
 
 #copyIoapiProps('forcing.nc', 'output.nc')
 species_str="O,O3,NO2"
@@ -27,6 +28,10 @@ species=species_str.split(',');
 
 times = [1, 2];
 layers = [1];
+
+files=['conc.nc'];
+
+# Actually do stuff
 
 # Get a validator
 try:
@@ -46,8 +51,10 @@ except ValidationError as e:
 
 # Now, get the forcing object
 dims=Forcing.loadDims('conc.nc')
-print dims
-x = getForcingObject(dims['ni'], dims['nj'], dims['nk'], dims['nt'])
+force = getForcingObject(dims['ni'], dims['nj'], dims['nk'], dims['nt'])
+force.setSpecies(species)
 
-#x = getForcingObject()
-#x.produceForcingField()
+for c in files:
+	o = Forcing.genForceFileName(c)
+	force.produceForcingField(c, o)
+

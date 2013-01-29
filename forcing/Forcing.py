@@ -3,7 +3,7 @@ from numpy import shape
 import numpy as np
 
 def getForcingObject(ni,nj,nk,nt):
-	return Forcing(ni,nj,nk,nt)
+	return ForceOnSpecies(ni,nj,nk,nt)
 
 # Abstract
 class Forcing:
@@ -28,6 +28,11 @@ class Forcing:
 		# Initialize vectors, space is done differently
 		self.times = range(1,nt);
 		self.layers = range(1,nk);
+
+		self.species = []
+
+		# Set a default mask of everything
+		self.space=np.ones((ni,nj));
 
 	@staticmethod
 	def loadDims(filename):
@@ -57,6 +62,23 @@ class Forcing:
 
 		return dims
 
+	@staticmethod
+	def genForceFileName(conc):
+		"""Generate a forcing file name based on the input file name.
+			This is used because often CMAQ is cycled, and files are
+			named something.ACONC.DATE, and forcing files are expected
+			to be in the format something.DATE
+
+		Keyword Arguments:
+		conc -- The name of the concentration file
+
+		Returns:
+		Forcing file name
+		"""
+
+		# Implement this later..
+		return 'OutForcing.nc'
+
 	def maskTimes(self, mask):
 		""" Set time mask
 
@@ -74,8 +96,6 @@ class Forcing:
 
 		self.layers=mask;
 
-	# Mask the grid
-	# mask is a 2D
 	def maskSpace(self, mask):
 		""" Set a grid mask
 
@@ -85,43 +105,97 @@ class Forcing:
 
 		raise NotImplementedError( "Not yet implemented" )
 
-	def produceForcingField():
+	def setSpecies(self,species):
+		""" Specify which species to consider.  How they're considered
+			is contingent on the actual forcing function."""
+
+		self.species=species
+
+
+	def produceForcingField(self, conc_name, force_name):
+		""" Open files, prepare them, and call the writing function
+
+		Keyword Arguments:
+		conc_name  -- File name of concentration
+		force_name -- File name of forcing file
+		"""
+
+		conc  = NetCDFFile(conc_name, 'r')
+		force = NetCDFFile(force_name, 'w')
+
+		# Copy all the attributes over
+		self.copyIoapiProps(conc, force);
+#		# Fix geocode data
+#		# http://svn.asilika.com/svn/school/GEOG%205804%20-%20Introduction%20to%20GIS/Project/webservice/fixIoapiProjection.py
+#		# fixIoapiSpatialInfo
+
+		# Generate forcing field
+		fld = self.generateForcingField(conc);
+
+		# Create the forcing variable in the output file
+		var = force.createVariable('force', 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+
+		# Write forcing field
+		data = zeros(var.shape)   # Make a Numeric array of
+		                          # zeros with the same shape as var 
+		var.assignValue(fld)      # Store the array of zeros in the netCDF variable 
+
+		# Close the file
+		force.close()
+
+	def generateForcingField(self, conc):
 		raise NotImplementedError( "Abstract method" )
 
-	def writeForcingFiles(conc, force_file):
-		raise NotImplementedError( "Abstract method" )
 
+	def copyIoapiProps(self, src, dest):
+		""" Copy I/O Api attributes from NetCDF file into new file
 
-##	def genForcingFiles(conc, output, species, model):
-##		prepIoapiOutput(conc, output);
-##		# Should probably add my fixGeocodingData
-##
-##	def prepIoapiOutput(src, dest):
-##		# Copy props from input to output
-##		copyIoapiProps(conc, output);
-##
-##		# Fix geocode data
-##		# http://svn.asilika.com/svn/school/GEOG%205804%20-%20Introduction%20to%20GIS/Project/webservice/fixIoapiProjection.py
-##		# fixIoapiSpatialInfo
-##
-##	def copyIoapiProps(src, dest):
-##		infile  = NetCDFFile(src, 'r')
-##		outfile = NetCDFFile(dest, 'w')
-##
-##		attrs=["IOAPI_VERSION", "EXEC_ID", "FTYPE", "CDATE", "CTIME", "WDATE", "WTIME", "SDATE", "STIME", "TSTEP", "NTHIK", "NCOLS", "NROWS", "NLAYS", "NVARS", "GDTYP", "P_ALP", "P_BET", "P_GAM", "XCENT", "YCENT", "XORIG", "YORIG", "XCELL", "YCELL", "VGTYP", "VGTOP", "VGLVLS", "GDNAM", "UPNAM", "VAR-LIST", "FILEDESC", "HISTORY"]
-##
-##		for attr in attrs:
-##			# Read the attribute
-##			if hasattr(infile, attr): 
-##				attrVal = getattr(infile, attr);
-##				# Write it to the new file
-##				setattr(outfile, attr, attrVal)
-##			else:
-##				print attr, "does not exist in this netCDF file %s." % src
-##
-##		outfile.sync()
-##		outfile.close()
+		Keyword Arguments:
+		src  -- Open netcdf source file
+		dest -- Open netcdf destination file
+		"""
+
+		# I/O Api attributes
+		attrs=["IOAPI_VERSION", "EXEC_ID", "FTYPE", "CDATE", "CTIME", "WDATE", "WTIME", "SDATE", "STIME", "TSTEP", "NTHIK", "NCOLS", "NROWS", "NLAYS", "NVARS", "GDTYP", "P_ALP", "P_BET", "P_GAM", "XCENT", "YCENT", "XORIG", "YORIG", "XCELL", "YCELL", "VGTYP", "VGTOP", "VGLVLS", "GDNAM", "UPNAM", "VAR-LIST", "FILEDESC", "HISTORY"]
+
+		for attr in attrs:
+			# Read the attribute
+			if hasattr(src, attr): 
+				attrVal = getattr(src, attr);
+				# Write it to the new file
+				setattr(dest, attr, attrVal)
+			else:
+				print attr, "does not exist in this NetCDF file %s." % src
+
+		dest.sync()
 
 class ForceOnSpecies(Forcing):
-	def produceForcingField():
-		raise NotImplementedError( "Abstract method" )
+	def generateForcingField(self, conc):
+		""" Generate a forcing field, for each species, write a
+			field of all 1's (this is a simply case), with respect
+			to all the masks of course."""
+
+		if len(self.species) == 0:
+			raise NoSpeciesException("Must specify species")
+			return
+
+		for s in self.species:
+			data = conc.variables[s]
+			fld  = np.zeros(data.shape)
+
+			# Recall, mask is already considered in these vectors
+			for t in self.times:
+				for k in self.layers:
+					# I think there's a better way to do the next two loops, don't know it though.
+					for i in range(0,self.ni-1):
+						for j in range(0,self.nj-1):
+							if self.space[i][j] == 1:
+								fld[t][k][j][i]=1
+
+		return fld
+
+class ForcingException(Exception):
+	pass
+
+class NoSpeciesException(ForcingException):
+	pass
