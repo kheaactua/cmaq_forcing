@@ -4,6 +4,9 @@ from numpy import shape
 from Scientific.IO.NetCDF import NetCDFFile
 import numpy as np
 
+# Include Forcing.py
+from Forcing import *
+
 def genForcingFiles(conc, output, species, model):
 	copyIoapiProps(conc, output);
 	# Should probably add my fixGeocodingData
@@ -66,6 +69,7 @@ def loadConfFile(name):
 	# Reads in the conf file and sets the UI state
 """
 
+
 # MAIN
 
 #copyIoapiProps('forcing.nc', 'output.nc')
@@ -73,6 +77,9 @@ species="O,O3,NO2"
 species=species.upper()
 invalids=validateSpecies('conc.nc', species)
 if len(invalids)>0:
-	print "There were invalid elements in the list"
+	print "There were invalid elements in the list: ", '[%s]' % ', '.join(map(str, invalids))
 else:
 	print "List was great"
+
+x = Forcing()
+print x.f()
