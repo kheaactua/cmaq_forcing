@@ -141,9 +141,7 @@ class Forcing:
 		var = force.createVariable('force', 'f', tmpDims)
 
 		# Write forcing field
-		data = np.zeros(var.shape)  # Make a Numeric array of
-		                            # zeros with the same shape as var 
-		#var.assignValue(fld)       # Store the array of zeros in the netCDF variable 
+		var.assignValue(fld)
 
 		# Close the file
 		force.close()
@@ -194,7 +192,7 @@ class ForceOnSpecies(Forcing):
 
 		for s in self.species:
 			data = conc.variables[s]
-			fld  = np.zeros(data.shape)
+			fld  = np.zeros(data.shape, dtype=np.float32)
 
 			# Recall, mask is already considered in these vectors
 			for t in self.times:
