@@ -132,21 +132,19 @@ class Forcing:
 #		# http://svn.asilika.com/svn/school/GEOG%205804%20-%20Introduction%20to%20GIS/Project/webservice/fixIoapiProjection.py
 #		# fixIoapiSpatialInfo
 
-		# Generate forcing field
-		fld = self.generateForcingField(conc);
+		# Generate a dict of forcing fields
+		flds = self.generateForcingFields(conc);
 
 		# Create the forcing variable in the output file
-		#var = force.createVariable('force', 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
-		tmpDims=('TSTEP', 'LAY', 'ROW', 'COL', )
-		var = force.createVariable('force', 'f', tmpDims)
-
-		# Write forcing field
-		var.assignValue(fld)
+		for key in flds.keys():
+			var = force.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+			# Write forcing field
+			var.assignValue(flds[key])
 
 		# Close the file
 		force.close()
 
-	def generateForcingField(self, conc):
+	def generateForcingFields(self, conc):
 		raise NotImplementedError( "Abstract method" )
 
 
@@ -181,14 +179,21 @@ class Forcing:
 		dest.sync()
 
 class ForceOnSpecies(Forcing):
-	def generateForcingField(self, conc):
+	def generateForcingFields(self, conc):
 		""" Generate a forcing field, for each species, write a
 			field of all 1's (this is a simply case), with respect
-			to all the masks of course."""
+			to all the masks of course.
+
+		Returns:
+		A dictionary, where key names are variable names, and each
+		contain a float32 3D field.
+		"""
 
 		if len(self.species) == 0:
 			raise NoSpeciesException("Must specify species")
 			return
+
+		flds={}
 
 		for s in self.species:
 			data = conc.variables[s]
@@ -203,7 +208,9 @@ class ForceOnSpecies(Forcing):
 							if self.space[i][j] == 1:
 								fld[t][k][j][i]=1
 
-		return fld
+			flds[s] = fld
+
+		return flds
 
 class ForcingException(Exception):
 	pass
