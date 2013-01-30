@@ -23,7 +23,6 @@ app = wx.App(False)
 #frame = wx.Frame.Create(-1)
 frame = ForcingFrame(None)
 #ForcingFrame(title="")
-panel = ForcingGUI(frame)
 frame.Show()
 app.MainLoop()
 
