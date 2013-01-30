@@ -123,8 +123,11 @@ class Forcing:
 		conc  = NetCDFFile(conc_name, 'r')
 		force = NetCDFFile(force_name, 'w')
 
+		# Copy over dimensions
+		self.copyDims(conc, force)
+
 		# Copy all the attributes over
-		self.copyIoapiProps(conc, force);
+		self.copyIoapiProps(conc, force)
 #		# Fix geocode data
 #		# http://svn.asilika.com/svn/school/GEOG%205804%20-%20Introduction%20to%20GIS/Project/webservice/fixIoapiProjection.py
 #		# fixIoapiSpatialInfo
@@ -133,12 +136,14 @@ class Forcing:
 		fld = self.generateForcingField(conc);
 
 		# Create the forcing variable in the output file
-		var = force.createVariable('force', 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+		#var = force.createVariable('force', 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+		tmpDims=('TSTEP', 'LAY', 'ROW', 'COL', )
+		var = force.createVariable('force', 'f', tmpDims)
 
 		# Write forcing field
-		data = zeros(var.shape)   # Make a Numeric array of
-		                          # zeros with the same shape as var 
-		var.assignValue(fld)      # Store the array of zeros in the netCDF variable 
+		data = np.zeros(var.shape)  # Make a Numeric array of
+		                            # zeros with the same shape as var 
+		#var.assignValue(fld)       # Store the array of zeros in the netCDF variable 
 
 		# Close the file
 		force.close()
@@ -167,6 +172,14 @@ class Forcing:
 			else:
 				print attr, "does not exist in this NetCDF file %s." % src
 
+		dest.sync()
+
+	def copyDims(self, src, dest):
+		""" Copy dimensions from src netcdf file to dest """
+		dims = src.dimensions.keys()
+		for d in dims:
+			v = src.dimensions[d]
+			dest.createDimension(d, v)
 		dest.sync()
 
 class ForceOnSpecies(Forcing):
