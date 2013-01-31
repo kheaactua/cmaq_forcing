@@ -12,7 +12,7 @@ class ForcingFrame(wx.Frame):
 
 	validator=None
 
-	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(400,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
+	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
 		wx.Frame.__init__(self, parent, id=id, title=title, pos=pos, size=size, style=style, name=name)
 
 		randomId = wx.NewId()
@@ -122,8 +122,29 @@ class LoggingPanel(wx.Panel):
 		self.logger = wx.TextCtrl(self, pos=(10,10), size=(fsize[0]-20,190), style=wx.TE_MULTILINE | wx.TE_READONLY)
 		
 class InputsPanel(wx.Panel):
+	parent = None
+
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
+		self.parent = parent
+
+		dline=15
+
+		line1=dline
+		instruct1 = wx.StaticText(self, label="Second, choose the species you will input into the forcing function.", pos=(10,line1))
+
+		# the combobox Control
+		line2=line1+dline
+		lblspecies = wx.StaticText(self, label="Species:", pos=(20, line2))
+		if parent.validator != None:
+			species_list = parent.validator.getSpecies();
+		else:
+			species_list = []
+		self.species = wx.ComboBox(self, pos=(150, line2), size=(95, -1), choices=species_list, style=wx.CB_DROPDOWN)
+		self.species.SetEditable(False)
+		self.Bind(wx.EVT_COMBOBOX, self.EvtComboBox, self.species)
+		self.Bind(wx.EVT_TEXT, self.EvtText,self.species)
+
 
 		# A button
 		self.button =wx.Button(self, label="Save", pos=(200, 325))
@@ -139,7 +160,7 @@ class InputsPanel(wx.Panel):
 		# the combobox Control
 		self.sampleList = ['O3', 'NOx', 'VOCs']
 		self.lblhear = wx.StaticText(self, label="Species", pos=(20, 90))
-		self.edithear = wx.ComboBox(self, pos=(150, 90), size=(95, -1), choices=self.sampleList, style=wx.CB_DROPDOWN)
+		self.edithear = wx.ComboBox(self, pos=(150, 90), size=(95, -1), choices=self.sampleList, style=wx.CB_READONLY)
 		self.Bind(wx.EVT_COMBOBOX, self.EvtComboBox, self.edithear)
 		self.Bind(wx.EVT_TEXT, self.EvtText,self.edithear)
 		
@@ -150,16 +171,35 @@ class InputsPanel(wx.Panel):
 		self.Bind(wx.EVT_RADIOBOX, self.EvtRadioBox, rb)
 
 	def EvtRadioBox(self, event):
-		self.logger.AppendText('EvtRadioBox: %d\n' % event.GetInt())
+		self.parent.debug('EvtRadioBox: %d' % event.GetInt())
 	def EvtComboBox(self, event):
-		self.logger.AppendText('EvtComboBox: %s\n' % event.GetString())
+		self.parent.debug('EvtComboBox: %s' % event.GetString())
 	def OnClick(self,event):
-		self.logger.AppendText(" Click on object with Id %d\n" %event.GetId())
+		self.parent.debug(" Click on object with Id %d" %event.GetId())
 	def EvtText(self, event):
-		self.logger.AppendText('EvtText: %s\n' % event.GetString())
+		self.parent.debug('EvtText: %s' % event.GetString())
 	def EvtChar(self, event):
-		self.logger.AppendText('EvtChar: %d\n' % event.GetKeyCode())
+		self.parent.debug('EvtChar: %d' % event.GetKeyCode())
 		event.Skip()
 	def EvtCheckBox(self, event):
-		self.logger.AppendText('EvtCheckBox: %d\n' % event.Checked())
+		self.parent.debug('EvtCheckBox: %d' % event.Checked())
 
+
+	def Enable(self, doEnable):
+		""" When enabled, populate stuff that was waiting on a concentration file """
+		wx.Panel.Enable(self, doEnable)
+
+		#if self.IsEnabled is True:
+		if doEnable is True:
+			if self.parent.validator != None:
+				species_list = self.parent.validator.getSpecies();
+				self.parent.debug("Received species list: " + '[%s]' % ', '.join(map(str, species_list)))
+			else:
+				self.parent.warn("Cannot load species list!")
+				species_list = []
+
+			self.species.Clear()
+			self.parent.debug("Setting species in combo box")
+			self.species.SetItems(species_list)
+			#for s in species_list:
+			#	self.species.Append(s) # might be SetItems

@@ -22,6 +22,21 @@ class ForcingValidator:
 		self.conc.close();
 		self.conc=NetCDFFile(newfile, 'r')
 
+	def getSpecies(self):
+		"""Return a list of species.  This isn't really a validator, but
+		it shares a lot of the functionality
+
+		Returns:
+		list of species
+		"""
+		vars = self.conc.variables.keys()
+		for i in range(0, len(vars)):
+			vars[i]=vars[i].upper()
+
+
+		return sorted(vars)
+
+
 	# Check to ensure all the chosen species are available 
 	# Species is a string vector
 	def validateSpecies(self, species):
