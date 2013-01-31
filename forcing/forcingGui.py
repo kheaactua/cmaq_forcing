@@ -128,7 +128,7 @@ class InputsPanel(wx.Panel):
 		wx.Panel.__init__(self, parent)
 		self.parent = parent
 
-		dline=15
+		dline=20
 
 		line1=dline
 		instruct1 = wx.StaticText(self, label="Second, choose the species you will input into the forcing function.", pos=(10,line1))
@@ -140,35 +140,30 @@ class InputsPanel(wx.Panel):
 			species_list = parent.validator.getSpecies();
 		else:
 			species_list = []
-		self.species = wx.ComboBox(self, pos=(150, line2), size=(95, -1), choices=species_list, style=wx.CB_DROPDOWN)
-		self.species.SetEditable(False)
-		self.Bind(wx.EVT_COMBOBOX, self.EvtComboBox, self.species)
-		self.Bind(wx.EVT_TEXT, self.EvtText,self.species)
+		#self.species = wx.ComboBox(self, pos=(150, line2), size=(95, -1), choices=species_list, style=wx.CB_DROPDOWN)
+		self.species = wx.CheckListBox(self, pos=(150, line2), size=(150, 4*dline), choices=species_list)#, style=wx.LB_MULTILINE|wx.LB_EXTENDED|wx.LB_NEEDED_SB)
+		self.Bind(wx.EVT_CHECKLISTBOX, self.choseSpecies, self.species)
 
 
-		# A button
-		self.button =wx.Button(self, label="Save", pos=(200, 325))
-		self.Bind(wx.EVT_BUTTON, self.OnClick,self.button)
-		
-		
 		# the edit control - one line version.
-		self.lblname = wx.StaticText(self, label="Mask File :", pos=(20,60))
-		self.editmask = wx.TextCtrl(self, value="Mask file", pos=(150, 60), size=(140,-1))
+		line3=line2+5*dline
+		self.lblname = wx.StaticText(self, label="Mask File :", pos=(20,line3))
+		self.editmask = wx.TextCtrl(self, value="Mask file", pos=(150, line3), size=(140,-1))
 		self.Bind(wx.EVT_TEXT, self.EvtText, self.editmask)
 		self.Bind(wx.EVT_CHAR, self.EvtChar, self.editmask)
-		
-		# the combobox Control
-		self.sampleList = ['O3', 'NOx', 'VOCs']
-		self.lblhear = wx.StaticText(self, label="Species", pos=(20, 90))
-		self.edithear = wx.ComboBox(self, pos=(150, 90), size=(95, -1), choices=self.sampleList, style=wx.CB_READONLY)
-		self.Bind(wx.EVT_COMBOBOX, self.EvtComboBox, self.edithear)
-		self.Bind(wx.EVT_TEXT, self.EvtText,self.edithear)
 		
 		# Radio Boxes
 		radioList = ['Species to Initial Conc', 'Morbidity to Species Conc', 'Morbidity to Species max 8 hour conc']
 		rb = wx.RadioBox(self, label="Forcing Function?", pos=(20, 210), choices=radioList,  majorDimension=1,
 						 style=wx.RA_SPECIFY_COLS)
 		self.Bind(wx.EVT_RADIOBOX, self.EvtRadioBox, rb)
+
+		# A button
+		self.button =wx.Button(self, label="Save", pos=(200, 325))
+		self.Bind(wx.EVT_BUTTON, self.OnClick,self.button)
+
+	def choseSpecies(self, event):
+		self.parent.debug('Chose species: [%s]' % ', '.join(map(str, self.species.GetCheckedStrings())))
 
 	def EvtRadioBox(self, event):
 		self.parent.debug('EvtRadioBox: %d' % event.GetInt())
