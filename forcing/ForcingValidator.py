@@ -39,6 +39,24 @@ class ForcingValidator:
 			layers+=str(l)
 		return layers
 
+	def getTimes(self):
+		"""Return a list of times(hours).  This isn't really a validator, but
+		it shares a lot of the functionality.  Assumes that there's
+		always a ground layer.
+
+		Returns:
+		list of times
+		"""
+
+		shape = conc.variables['TFLAG'].shape
+		nt = shape[0]
+
+		num_layers = self.conc.dimensions['LAY']
+		times=[self.LAY_SURFACE_NAME]
+		for t in range(0, nt):
+			times+=str(t)
+		return times
+
 	def getSpecies(self):
 		"""Return a list of species.  This isn't really a validator, but
 		it shares a lot of the functionality

@@ -129,14 +129,15 @@ class InputsPanel(wx.Panel):
 		self.parent = parent
 
 		dline=18
+		col1=10
 		col2=150
 
 		line=dline
-		instruct1 = wx.StaticText(self, label="Second, choose the species you will input into the forcing function.", pos=(10,line))
+		instruct1 = wx.StaticText(self, label="Second, choose the species you will input into the forcing function.", pos=(col1,line))
 
 		# the combobox Control
 		line+=dline
-		lblspecies = wx.StaticText(self, label="Species:", pos=(20, line))
+		lblspecies = wx.StaticText(self, label="Species:", pos=(col1, line))
 		if parent.validator != None:
 			species_list = parent.validator.getSpecies();
 		else:
@@ -146,7 +147,7 @@ class InputsPanel(wx.Panel):
 
 		# Layer mask
 		line=line+5*dline
-		lbllayers = wx.StaticText(self, label="Use Layers:", pos=(20, line))
+		lbllayers = wx.StaticText(self, label="Use Layers:", pos=(col1, line))
 		if parent.validator != None:
 			layers_list = parent.validator.getLayers();
 		else:
@@ -156,7 +157,17 @@ class InputsPanel(wx.Panel):
 		
 
 		# Time (hour) Mask
-		
+		line=line+5*dline
+		instruct1 = wx.StaticText(self, label="Note, there is currently no functionality to exclude specific days.", pos=(col1,line))
+		line+=dline
+		lbltimes = wx.StaticText(self, label="Use Hours:", pos=(col1, line))
+		if parent.validator != None:
+			times_list = parent.validator.getLayers();
+		else:
+			times_list = []
+		self.times = wx.CheckListBox(self, pos=(col2, line), size=(150, 4*dline), choices=times_list)
+		self.Bind(wx.EVT_CHECKLISTBOX, self.choseTimes, self.times)
+	
 
 
 		# the edit control - one line version.
@@ -180,6 +191,9 @@ class InputsPanel(wx.Panel):
 
 	def choseLayers(self, event):
 		self.parent.debug('Chose layers: [%s]' % ', '.join(map(str, self.layers.GetCheckedStrings())))
+
+	def choseLayers(self, event):
+		self.parent.debug('Chose times: [%s]' % ', '.join(map(str, self.times.GetCheckedStrings())))
 
 	def EvtRadioBox(self, event):
 		self.parent.debug('EvtRadioBox: %d' % event.GetInt())
@@ -226,6 +240,19 @@ class InputsPanel(wx.Panel):
 			self.layers.Clear()
 			self.parent.debug("Setting layers in combo box")
 			self.layers.SetItems(layers_list)
-			self.parent.debug("Layers_list[0] = " + layers_list[0])
 			self.layers.Check(0)
-			
+
+			# Populate layers
+			if self.parent.validator != None:
+				times_list = self.parent.validator.getTimes();
+				self.parent.debug("Received times list: " + '[%s]' % ', '.join(map(str, times_list)))
+			else:
+				self.parent.warn("Cannot load times!")
+				times_list = []
+
+			self.times.Clear()
+			self.parent.debug("Setting times in combo box")
+			self.times.SetItems(times_list)
+			for i in range(0,len(times_list)):
+				self.times.Check(i)
+
