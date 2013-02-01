@@ -119,7 +119,7 @@ class LoggingPanel(wx.Panel):
 
 		# A multiline TextCtrl - This is here to show how the events work in this program, don't pay too much attention to it
 		#self.logger = wx.TextCtrl(self, pos=(10,fsize[1]-200), size=(fsize[0]-20,190), style=wx.TE_MULTILINE | wx.TE_READONLY)
-		self.logger = wx.TextCtrl(self, pos=(10,10), size=(fsize[0]-20,190), style=wx.TE_MULTILINE | wx.TE_READONLY)
+		self.logger = wx.TextCtrl(self, pos=(10,10), size=(fsize[0]-30,190), style=wx.TE_MULTILINE | wx.TE_READONLY)
 		
 class InputsPanel(wx.Panel):
 	parent = None
@@ -128,30 +128,43 @@ class InputsPanel(wx.Panel):
 		wx.Panel.__init__(self, parent)
 		self.parent = parent
 
-		dline=20
+		dline=18
+		col2=150
 
-		line1=dline
-		instruct1 = wx.StaticText(self, label="Second, choose the species you will input into the forcing function.", pos=(10,line1))
+		line=dline
+		instruct1 = wx.StaticText(self, label="Second, choose the species you will input into the forcing function.", pos=(10,line))
 
 		# the combobox Control
-		line2=line1+dline
-		lblspecies = wx.StaticText(self, label="Species:", pos=(20, line2))
+		line+=dline
+		lblspecies = wx.StaticText(self, label="Species:", pos=(20, line))
 		if parent.validator != None:
 			species_list = parent.validator.getSpecies();
 		else:
 			species_list = []
-		#self.species = wx.ComboBox(self, pos=(150, line2), size=(95, -1), choices=species_list, style=wx.CB_DROPDOWN)
-		self.species = wx.CheckListBox(self, pos=(150, line2), size=(150, 4*dline), choices=species_list)#, style=wx.LB_MULTILINE|wx.LB_EXTENDED|wx.LB_NEEDED_SB)
+		self.species = wx.CheckListBox(self, pos=(col2, line), size=(150, 4*dline), choices=species_list)
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseSpecies, self.species)
+
+		# Layer mask
+		line=line+5*dline
+		lbllayers = wx.StaticText(self, label="Use Layers:", pos=(20, line))
+		if parent.validator != None:
+			layers_list = parent.validator.getLayers();
+		else:
+			layers_list = []
+		self.layers = wx.CheckListBox(self, pos=(col2, line), size=(150, 4*dline), choices=layers_list)
+		self.Bind(wx.EVT_CHECKLISTBOX, self.choseLayers, self.layers)
+		
+
+		# Time (hour) Mask
+		
 
 
 		# the edit control - one line version.
-		line3=line2+5*dline
-		self.lblname = wx.StaticText(self, label="Mask File :", pos=(20,line3))
-		self.editmask = wx.TextCtrl(self, value="Mask file", pos=(150, line3), size=(140,-1))
-		self.Bind(wx.EVT_TEXT, self.EvtText, self.editmask)
-		self.Bind(wx.EVT_CHAR, self.EvtChar, self.editmask)
-		
+		line=line+5*dline
+		self.lblname = wx.StaticText(self, label="Spacial Mask (shapefile) :", pos=(20,line))
+		self.editmask = wx.TextCtrl(self, value="Mask file", pos=(col2, line), size=(140,-1))
+		self.editmask.Enable(False)
+
 		# Radio Boxes
 		radioList = ['Species to Initial Conc', 'Morbidity to Species Conc', 'Morbidity to Species max 8 hour conc']
 		rb = wx.RadioBox(self, label="Forcing Function?", pos=(20, 210), choices=radioList,  majorDimension=1,
@@ -164,6 +177,9 @@ class InputsPanel(wx.Panel):
 
 	def choseSpecies(self, event):
 		self.parent.debug('Chose species: [%s]' % ', '.join(map(str, self.species.GetCheckedStrings())))
+
+	def choseLayers(self, event):
+		self.parent.debug('Chose layers: [%s]' % ', '.join(map(str, self.layers.GetCheckedStrings())))
 
 	def EvtRadioBox(self, event):
 		self.parent.debug('EvtRadioBox: %d' % event.GetInt())
@@ -186,6 +202,8 @@ class InputsPanel(wx.Panel):
 
 		#if self.IsEnabled is True:
 		if doEnable is True:
+
+			# Populate species
 			if self.parent.validator != None:
 				species_list = self.parent.validator.getSpecies();
 				self.parent.debug("Received species list: " + '[%s]' % ', '.join(map(str, species_list)))
@@ -196,5 +214,18 @@ class InputsPanel(wx.Panel):
 			self.species.Clear()
 			self.parent.debug("Setting species in combo box")
 			self.species.SetItems(species_list)
-			#for s in species_list:
-			#	self.species.Append(s) # might be SetItems
+
+			# Populate layers
+			if self.parent.validator != None:
+				layers_list = self.parent.validator.getLayers();
+				self.parent.debug("Received layers list: " + '[%s]' % ', '.join(map(str, layers_list)))
+			else:
+				self.parent.warn("Cannot load layer list!")
+				layers_list = []
+
+			self.layers.Clear()
+			self.parent.debug("Setting layers in combo box")
+			self.layers.SetItems(layers_list)
+			self.parent.debug("Layers_list[0] = " + layers_list[0])
+			self.layers.Check(0)
+			

@@ -5,6 +5,8 @@ import numpy as np
 # Validate inputs against the base concentration file
 class ForcingValidator:
 
+	LAY_SURFACE_NAME='Surface'
+
 	def __init__(self,filename):
 		self.conc=NetCDFFile(filename, 'r')
 
@@ -21,6 +23,21 @@ class ForcingValidator:
 	def changeFile(self, newfile):
 		self.conc.close();
 		self.conc=NetCDFFile(newfile, 'r')
+
+	def getLayers(self):
+		"""Return a list of layers.  This isn't really a validator, but
+		it shares a lot of the functionality.  Assumes that there's
+		always a ground layer.
+
+		Returns:
+		list of layers
+		"""
+
+		num_layers = self.conc.dimensions['LAY']
+		layers=[self.LAY_SURFACE_NAME]
+		for l in range(2, num_layers):
+			layers+=str(l)
+		return layers
 
 	def getSpecies(self):
 		"""Return a list of species.  This isn't really a validator, but
