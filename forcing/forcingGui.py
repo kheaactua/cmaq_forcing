@@ -129,6 +129,7 @@ class InputsPanel(wx.Panel):
 		self.parent = parent
 
 		dline=18
+		vspace=3
 		col1=10
 		col2=150
 
@@ -136,7 +137,7 @@ class InputsPanel(wx.Panel):
 		instruct1 = wx.StaticText(self, label="Second, choose the species you will input into the forcing function.", pos=(col1,line))
 
 		# the combobox Control
-		line+=dline
+		line+=dline+vspace
 		lblspecies = wx.StaticText(self, label="Species:", pos=(col1, line))
 		if parent.validator != None:
 			species_list = parent.validator.getSpecies();
@@ -146,7 +147,7 @@ class InputsPanel(wx.Panel):
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseSpecies, self.species)
 
 		# Layer mask
-		line=line+5*dline
+		line=line+5*dline+vspace
 		lbllayers = wx.StaticText(self, label="Use Layers:", pos=(col1, line))
 		if parent.validator != None:
 			layers_list = parent.validator.getLayers();
@@ -157,7 +158,7 @@ class InputsPanel(wx.Panel):
 		
 
 		# Time (hour) Mask
-		line=line+5*dline
+		line=line+5*dline+vspace
 		instruct1 = wx.StaticText(self, label="Note, there is currently no functionality to exclude specific days.", pos=(col1,line))
 		line+=dline
 		lbltimes = wx.StaticText(self, label="Use Hours:", pos=(col1, line))
@@ -178,7 +179,7 @@ class InputsPanel(wx.Panel):
 
 		# Radio Boxes
 		radioList = ['Species to Initial Conc', 'Morbidity to Species Conc', 'Morbidity to Species max 8 hour conc']
-		rb = wx.RadioBox(self, label="Forcing Function?", pos=(20, 210), choices=radioList,  majorDimension=1,
+		rb = wx.RadioBox(self, label="Forcing Function?", pos=(col1, line+100), choices=radioList,  majorDimension=1,
 						 style=wx.RA_SPECIFY_COLS)
 		self.Bind(wx.EVT_RADIOBOX, self.EvtRadioBox, rb)
 
@@ -192,7 +193,7 @@ class InputsPanel(wx.Panel):
 	def choseLayers(self, event):
 		self.parent.debug('Chose layers: [%s]' % ', '.join(map(str, self.layers.GetCheckedStrings())))
 
-	def choseLayers(self, event):
+	def choseTimes(self, event):
 		self.parent.debug('Chose times: [%s]' % ', '.join(map(str, self.times.GetCheckedStrings())))
 
 	def EvtRadioBox(self, event):

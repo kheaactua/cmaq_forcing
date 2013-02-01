@@ -48,13 +48,12 @@ class ForcingValidator:
 		list of times
 		"""
 
-		shape = conc.variables['TFLAG'].shape
+		shape = self.conc.variables['TFLAG'].shape
 		nt = shape[0]
 
-		num_layers = self.conc.dimensions['LAY']
-		times=[self.LAY_SURFACE_NAME]
+		times=list(xrange(nt))
 		for t in range(0, nt):
-			times+=str(t)
+			times[t]=str(t)
 		return times
 
 	def getSpecies(self):
