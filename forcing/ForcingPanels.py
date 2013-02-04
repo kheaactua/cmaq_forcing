@@ -264,7 +264,7 @@ class ForcingPanelRootSquare(ForcingPanel):
 
 		# Options
 		obs_lbl = wx.StaticText(self, label="Observation File")
-		self.obs_lbl = wx.Button(self, label="Browse..")
+		self.obs = wx.Button(self, label="Browse..")
 
 		# Add Options to sizer
 		sizerOpts.Add(obs_lbl)

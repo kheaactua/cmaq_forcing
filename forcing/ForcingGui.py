@@ -152,7 +152,9 @@ class InputsPanel(wx.Panel):
 		wx.Panel.__init__(self, parent)
 		self.parent = parent
 
-		#sizer1 = wx.FlexGridSizer(rows=2, cols=2, vgap=10, hgap=10)
+		sizer = wx.BoxSizer(wx.VERTICAL)
+		sizer1 = wx.FlexGridSizer(rows=2, cols=2, vgap=10, hgap=10)
+		sizer2 = wx.FlexGridSizer(rows=3, cols=2, vgap=10, hgap=5)
 
 
 		dline=18
@@ -162,77 +164,98 @@ class InputsPanel(wx.Panel):
 		col2=input_width+20
 
 		line=dline
-		instruct1 = wx.StaticText(self, label="Second, choose the species you will input into the forcing function.", pos=(col1,line))
-
-		# Next line...
-		line+=dline+vspace
-		hline=line
-		cline=hline+dline
+		instruct1 = wx.StaticText(self, label="Second, choose the species you will input into the forcing function.")
+		sizer.Add(instruct1)
 
 
 		# Species
-		lblspecies = wx.StaticText(self, label="Species:", pos=(col1, hline))
+		lblspecies = wx.StaticText(self, label="Species:")
 		if parent.validator != None:
 			species_list = parent.validator.getSpecies();
 		else:
 			species_list = []
-		self.species = wx.CheckListBox(self, pos=(col1, cline), size=(input_width, 4*dline), choices=species_list)
+		self.species = wx.CheckListBox(self, size=(input_width, 4*dline), choices=species_list)
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseSpecies, self.species)
 
-		# Add to space
-		#sizer1.Add(lblspecies)
-		#sizer1.Add(self.species)
 
 		# Layer mask
-		lbllayers = wx.StaticText(self, label="Use Layers:", pos=(col2, hline))
+		lbllayers = wx.StaticText(self, label="Use Layers:")
 		if parent.validator != None:
 			layers_list = parent.validator.getLayers();
 		else:
 			layers_list = []
-		self.layers = wx.CheckListBox(self, pos=(col2, cline), size=(input_width, 4*dline), choices=layers_list)
+		self.layers = wx.CheckListBox(self, size=(input_width, 4*dline), choices=layers_list)
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseLayers, self.layers)
 
-		# Next line...
-		line+=6*dline+vspace
-		hline=line
-		cline=hline+dline
+		# Add to sizer
+		sizer1.Add(lblspecies)
+		sizer1.Add(lbllayers)
+		sizer1.Add(self.species)
+		sizer1.Add(self.layers)
 
-		lbltimes = wx.StaticText(self, label="Use Hours:", pos=(col1, hline))
+
+
+
+
+		lbltimes = wx.StaticText(self, label="Use Hours:")
 		if parent.validator != None:
 			times_list = parent.validator.getLayers();
 		else:
 			times_list = []
-		self.times = wx.CheckListBox(self, pos=(col1, cline), size=(input_width, 4*dline), choices=times_list)
+		self.times = wx.CheckListBox(self, size=(input_width, 4*dline), choices=times_list)
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseTimes, self.times)
 
-		# Next line...
-		line+=5*dline+vspace
 
 		# Time (hour) Mask
-		wx.StaticText(self, label="Note, there is currently no functionality to exclude specific days.", pos=(col1,line))
+		time_warning=wx.StaticText(self, label="Note, there is currently no functionality to exclude specific days.", pos=(col1,line))
 
-		# Next line...
-		line+=2*dline+vspace
+
+		lblAvg = wx.StaticText(self, label="Averaging Time")
+		avgtimes = ['None', 'Max 1 hr', 'Max 8 hr']
+		#self.avgtimes=wx.RadioBox(self, choices=avgtimes, style=wx.RA_VERTICAL | wx.NO_BORDER)
+		rsizer=wx.BoxSizer(wx.VERTICAL)
+		for lbl in avgtimes:
+			rsizer.Add(wx.RadioButton(self, label=lbl, name="avgtimes"))
+
+		sizer1.Add(lbltimes)
+		sizer1.Add(lblAvg)
+		sizer1.Add(self.times)
+		#sizer1.Add(self.avgtimes)
+		sizer1.Add(rsizer)
+
+		#sizer.Add(time_warning)
+
+
 
 		# the edit control - one line version.
-		wx.StaticText(self, label="Spacial Mask (shapefile)\n(not implemented):", pos=(col1,line))
-		self.editmask = wx.TextCtrl(self, value="Mask file", pos=(col2, line), size=(input_width,-1))
-		self.editmask.Enable(False)
+		lblmask=wx.StaticText(self, label="Spacial Mask (shapefile)\n(not implemented):")
+		self.mask = wx.TextCtrl(self, value="Mask file", size=(input_width,-1))
+		self.mask.Enable(False)
 
-		# Next line...
-		line+=2*dline+vspace
+		sizer2.Add(lblmask)
+		sizer2.Add(self.mask)
 
 		# Forcing Options
-		wx.StaticText(self, label="Forcing Function:", pos=(col1,line))
+		lblforce=wx.StaticText(self, label="Forcing Function:")
 
-		#options = ['Averaging Concentration', 'Mortality/Marginal Damage', 'Root Square']
 		options = self.parent.fpm.getNames()
-		self.forcing = wx.ComboBox(self, value="Choose", pos=(col2, line), choices=options, size=(input_width, -1), style=wx.CB_READONLY)
+		self.forcing = wx.ComboBox(self, value="Choose", choices=options, size=(input_width, -1), style=wx.CB_READONLY)
 		self.Bind(wx.EVT_COMBOBOX, self.chooseForce, self.forcing)
+
+		sizer2.Add(lblforce)
+		sizer2.Add(self.forcing)
 
 		## A button
 		#self.button =wx.Button(self, label="Save", pos=(200, 325))
 		#self.Bind(wx.EVT_BUTTON, self.OnClick,self.button)
+
+
+		sizer.Add(sizer1)
+		sizer.Add(time_warning)
+		sizer.AddSpacer(15)
+		sizer.Add(sizer2)
+		self.SetSizer(sizer)
+
 
 	def choseSpecies(self, event):
 		self.parent.debug('Chose species: [%s]' % ', '.join(map(str, self.species.GetCheckedStrings())))
