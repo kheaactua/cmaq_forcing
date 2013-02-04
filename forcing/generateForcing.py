@@ -2,7 +2,7 @@
 
 # Gui
 import wx
-from forcingGui import *
+from ForcingGui import *
 
 # Include Forcing.py
 from Forcing import *

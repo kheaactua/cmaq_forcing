@@ -3,6 +3,7 @@ import wx
 import os
 
 from ForcingValidator import *
+from ForcingPanels import *
 
 class ForcingFrame(wx.Frame):
 	LOG_ERROR = 1
@@ -12,13 +13,23 @@ class ForcingFrame(wx.Frame):
 
 	validator=None
 
-	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
+	pan_log = None
+	pan_sample_conc = None
+	pan_inputs = None
+	fpm = None
+
+	#def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
+	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=(1000,0), size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
 		wx.Frame.__init__(self, parent, id=id, title=title, pos=pos, size=size, style=style, name=name)
 
 		randomId = wx.NewId()
 		self.Bind(wx.EVT_MENU, self.onKeyCombo, id=randomId)
 		accel_tbl = wx.AcceleratorTable([(wx.ACCEL_CTRL,  ord('W'), randomId), (wx.ACCEL_CTRL,  ord('Q'), randomId)])
 		self.SetAcceleratorTable(accel_tbl)
+
+
+		# Initialize the forcing panel manager
+		self.fpm = ForcingPanelManager()
 
 		# Events Panel
 		self.pan_log = LoggingPanel(self)
@@ -30,19 +41,28 @@ class ForcingFrame(wx.Frame):
 		self.pan_inputs = InputsPanel(self)
 		self.pan_inputs.Enable(False)
 
+		# Forcing Panel
+		self.pan_force = ForcingPanelBlank(self)
+
 		# Add events
-		panels = [self.pan_log, self.pan_sample_conc, self.pan_inputs];
+		panels = [self.pan_log, self.pan_sample_conc, self.pan_inputs, self.pan_force];
 		for p in panels:
 			p.Bind(wx.EVT_MENU, self.onKeyCombo, id=randomId)
 
 		#self.sizer = wx.FlexGridSizer(wx.VERTICAL)
-		self.sizer = wx.FlexGridSizer(rows=3, cols=1)
-		self.sizer.Add(self.pan_sample_conc, 1, wx.EXPAND)
-		self.sizer.Add(self.pan_inputs, 2, wx.EXPAND)
-		self.sizer.Add(self.pan_log, 3, wx.EXPAND)
+		#self.sizer = wx.FlexGridSizer(rows=4, cols=1)
+		self.sizer = wx.FlexGridSizer(wx.VERTICAL)
+		self.sizer.Add(self.pan_sample_conc, wx.EXPAND)
+		self.sizer.Add(self.pan_inputs, wx.EXPAND)
+		self.sizer.Add(self.pan_force, wx.EXPAND)
+		self.sizer.Add(self.pan_log, wx.EXPAND)
 
 		self.SetSizer(self.sizer)
 		self.Fit()
+
+		# TEMP!
+		self.validator = ForcingValidator('conc.nc')
+		self.pan_inputs.Enable(True)
 
 	def onKeyCombo(self, event):
 		self.Close()
@@ -130,62 +150,77 @@ class InputsPanel(wx.Panel):
 
 		dline=18
 		vspace=3
+		input_width=180
 		col1=10
-		col2=150
+		col2=input_width+20
 
 		line=dline
 		instruct1 = wx.StaticText(self, label="Second, choose the species you will input into the forcing function.", pos=(col1,line))
 
-		# the combobox Control
+		# Next line...
 		line+=dline+vspace
-		lblspecies = wx.StaticText(self, label="Species:", pos=(col1, line))
+		hline=line
+		cline=hline+dline
+
+		# Species
+		lblspecies = wx.StaticText(self, label="Species:", pos=(col1, hline))
 		if parent.validator != None:
 			species_list = parent.validator.getSpecies();
 		else:
 			species_list = []
-		self.species = wx.CheckListBox(self, pos=(col2, line), size=(150, 4*dline), choices=species_list)
+		self.species = wx.CheckListBox(self, pos=(col1, cline), size=(input_width, 4*dline), choices=species_list)
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseSpecies, self.species)
 
 		# Layer mask
-		line=line+5*dline+vspace
-		lbllayers = wx.StaticText(self, label="Use Layers:", pos=(col1, line))
+		lbllayers = wx.StaticText(self, label="Use Layers:", pos=(col2, hline))
 		if parent.validator != None:
 			layers_list = parent.validator.getLayers();
 		else:
 			layers_list = []
-		self.layers = wx.CheckListBox(self, pos=(col2, line), size=(150, 4*dline), choices=layers_list)
+		self.layers = wx.CheckListBox(self, pos=(col2, cline), size=(input_width, 4*dline), choices=layers_list)
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseLayers, self.layers)
-		
 
-		# Time (hour) Mask
-		line=line+5*dline+vspace
-		instruct1 = wx.StaticText(self, label="Note, there is currently no functionality to exclude specific days.", pos=(col1,line))
-		line+=dline
-		lbltimes = wx.StaticText(self, label="Use Hours:", pos=(col1, line))
+		# Next line...
+		line+=6*dline+vspace
+		hline=line
+		cline=hline+dline
+
+		lbltimes = wx.StaticText(self, label="Use Hours:", pos=(col1, hline))
 		if parent.validator != None:
 			times_list = parent.validator.getLayers();
 		else:
 			times_list = []
-		self.times = wx.CheckListBox(self, pos=(col2, line), size=(150, 4*dline), choices=times_list)
+		self.times = wx.CheckListBox(self, pos=(col1, cline), size=(input_width, 4*dline), choices=times_list)
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseTimes, self.times)
-	
 
+		# Next line...
+		line+=5*dline+vspace
+
+		# Time (hour) Mask
+		wx.StaticText(self, label="Note, there is currently no functionality to exclude specific days.", pos=(col1,line))
+
+		# Next line...
+		line+=2*dline+vspace
 
 		# the edit control - one line version.
-		line=line+5*dline
-		self.lblname = wx.StaticText(self, label="Spacial Mask (shapefile) :", pos=(20,line))
-		self.editmask = wx.TextCtrl(self, value="Mask file", pos=(col2, line), size=(140,-1))
+		wx.StaticText(self, label="Spacial Mask (shapefile)\n(not implemented):", pos=(col1,line))
+		self.editmask = wx.TextCtrl(self, value="Mask file", pos=(col2, line), size=(input_width,-1))
 		self.editmask.Enable(False)
 
-		# Radio Boxes
-		radioList = ['Species to Initial Conc', 'Morbidity to Species Conc', 'Morbidity to Species max 8 hour conc']
-		rb = wx.RadioBox(self, label="Forcing Function?", pos=(col1, line+100), choices=radioList,  majorDimension=1,
-						 style=wx.RA_SPECIFY_COLS)
-		self.Bind(wx.EVT_RADIOBOX, self.EvtRadioBox, rb)
+		# Next line...
+		line+=2*dline+vspace
 
-		# A button
-		self.button =wx.Button(self, label="Save", pos=(200, 325))
-		self.Bind(wx.EVT_BUTTON, self.OnClick,self.button)
+		# Forcing Options
+		wx.StaticText(self, label="Forcing Function:", pos=(col1,line))
+
+		#options = ['Averaging Concentration', 'Mortality/Marginal Damage', 'Root Square']
+		options = self.parent.fpm.getNames()
+		self.forcing = wx.ComboBox(self, value="Choose", pos=(col2, line), choices=options, size=(input_width, -1), style=wx.CB_READONLY)
+		self.Bind(wx.EVT_COMBOBOX, self.chooseForce, self.forcing)
+
+		## A button
+		#self.button =wx.Button(self, label="Save", pos=(200, 325))
+		#self.Bind(wx.EVT_BUTTON, self.OnClick,self.button)
 
 	def choseSpecies(self, event):
 		self.parent.debug('Chose species: [%s]' % ', '.join(map(str, self.species.GetCheckedStrings())))
@@ -195,6 +230,31 @@ class InputsPanel(wx.Panel):
 
 	def choseTimes(self, event):
 		self.parent.debug('Chose times: [%s]' % ', '.join(map(str, self.times.GetCheckedStrings())))
+
+	def chooseForce(self, event):
+		item_id = event.GetSelection()
+		item = self.forcing.GetValue()
+
+		# Get an object for this panel
+		oldPanForce=self.parent.pan_force
+		newPanForce=ForcingPanelManager.factory(item, self.parent)
+
+		# Replace this in the sizer
+		res=self.parent.sizer.Detach(2)
+		#res=self.parent.sizer.Detach(oldPanForce)
+		print "Panel was detached? ", res
+		oldPanForce.Hide()
+		oldPanForce.Destroy()
+		self.parent.sizer.Insert(2, newPanForce, wx.EXPAND)
+
+		self.parent.pan_force=newPanForce
+
+		# Refresh..
+		self.parent.sizer.Layout()
+		#self.parent.Fit()
+		self.parent.Update()
+
+		self.parent.debug('Chose forcing: [%s]' % item)
 
 	def EvtRadioBox(self, event):
 		self.parent.debug('EvtRadioBox: %d' % event.GetInt())
@@ -256,4 +316,6 @@ class InputsPanel(wx.Panel):
 			self.times.SetItems(times_list)
 			for i in range(0,len(times_list)):
 				self.times.Check(i)
+
+
 
