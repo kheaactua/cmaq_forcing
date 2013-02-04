@@ -51,9 +51,10 @@ class ForcingFrame(wx.Frame):
 
 		#self.sizer = wx.FlexGridSizer(wx.VERTICAL)
 		#self.sizer = wx.FlexGridSizer(rows=4, cols=1)
-		self.sizer = wx.FlexGridSizer(wx.VERTICAL)
+		self.sizer = wx.FlexGridSizer(cols=1, vgap=5)
 		self.sizer.Add(self.pan_sample_conc, wx.EXPAND)
 		self.sizer.Add(self.pan_inputs, wx.EXPAND)
+		self.sizer.AddSpacer(5)
 		self.sizer.Add(self.pan_force, wx.EXPAND)
 		self.sizer.Add(self.pan_log, wx.EXPAND)
 
@@ -140,13 +141,19 @@ class LoggingPanel(wx.Panel):
 		# A multiline TextCtrl - This is here to show how the events work in this program, don't pay too much attention to it
 		#self.logger = wx.TextCtrl(self, pos=(10,fsize[1]-200), size=(fsize[0]-20,190), style=wx.TE_MULTILINE | wx.TE_READONLY)
 		self.logger = wx.TextCtrl(self, pos=(10,10), size=(fsize[0]-30,190), style=wx.TE_MULTILINE | wx.TE_READONLY)
-		
+
+
+
+
 class InputsPanel(wx.Panel):
 	parent = None
 
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
 		self.parent = parent
+
+		#sizer1 = wx.FlexGridSizer(rows=2, cols=2, vgap=10, hgap=10)
+
 
 		dline=18
 		vspace=3
@@ -162,6 +169,7 @@ class InputsPanel(wx.Panel):
 		hline=line
 		cline=hline+dline
 
+
 		# Species
 		lblspecies = wx.StaticText(self, label="Species:", pos=(col1, hline))
 		if parent.validator != None:
@@ -170,6 +178,10 @@ class InputsPanel(wx.Panel):
 			species_list = []
 		self.species = wx.CheckListBox(self, pos=(col1, cline), size=(input_width, 4*dline), choices=species_list)
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseSpecies, self.species)
+
+		# Add to space
+		#sizer1.Add(lblspecies)
+		#sizer1.Add(self.species)
 
 		# Layer mask
 		lbllayers = wx.StaticText(self, label="Use Layers:", pos=(col2, hline))
@@ -316,6 +328,5 @@ class InputsPanel(wx.Panel):
 			self.times.SetItems(times_list)
 			for i in range(0,len(times_list)):
 				self.times.Check(i)
-
 
 

@@ -53,7 +53,7 @@ class ForcingPanelBlank(ForcingPanel):
 	name = "Blank"
 
 	# Whether this should appear in the user selection for forcing functions
-	appearInList=True
+	appearInList=False
 
 	def __init__(self, parent):
 
@@ -144,17 +144,13 @@ class ForcingPanelMortality(ForcingPanel):
 	# Whether this should appear in the user selection for forcing functions
 	appearInList=True
 
-	def createPanel(self, parent):
-		wx.Panel.__init__(self, parent, style=wx.SIMPLE_BORDER)
-		self.parent = parent
-
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent, style=wx.SIMPLE_BORDER)
 		self.parent = parent
 
 		sizer = wx.FlexGridSizer(rows=2, cols=1)
 		sizerHead = wx.BoxSizer(wx.VERTICAL)
-		sizerOpts = wx.BoxSizer(wx.HORIZONTAL)
+		sizerOpts = wx.FlexGridSizer(rows=2, cols=2, vgap=5)
 
 		"""
 		User Edit: Enter the title and description
@@ -176,19 +172,39 @@ class ForcingPanelMortality(ForcingPanel):
 
 		# Add title and description to sizer
 		sizerHead.Add(title, wx.ALL)
-		sizerHead.Add(descrip, wx.EXPAND)
+		sizerHead.Add(descrip)
 
 		"""
 		User Edit: Create options for the forcing function
 		"""
 
 		# Options
-		threshold_lbl = wx.StaticText(self, label="Specify threshold (ppb):")
-		self.threshold = wx.TextCtrl(self, value="Threshold morbid", size=(300,-1))
+		threshold_lbl = wx.StaticText(self, label="Concentration Response Factor:")
+		self.threshold = wx.TextCtrl(self, value="Threshold morbid", size=(100,-1))
+
+		statlife_lbl = wx.StaticText(self, label="Value of statistical life:")
+		self.statlife = wx.TextCtrl(self, value="", size=(100,-1))
+
+		baseline_lbl = wx.StaticText(self, label="Baseline Mortality:")
+		self.baseline = wx.TextCtrl(self, value="", size=(100,-1))
+
+		pop_lbl = wx.StaticText(self, label="Population File Mortality:")
+		self.pop = wx.Button(self, label="Browse..")
+
 
 		# Add Options to sizer
 		sizerOpts.Add(threshold_lbl)
 		sizerOpts.Add(self.threshold)
+
+		sizerOpts.Add(statlife_lbl)
+		sizerOpts.Add(self.statlife)
+
+		sizerOpts.Add(baseline_lbl)
+		sizerOpts.Add(self.baseline)
+
+		sizerOpts.Add(pop_lbl)
+		sizerOpts.Add(self.pop)
+
 
 		"""
 		/User Edit
@@ -201,7 +217,6 @@ class ForcingPanelMortality(ForcingPanel):
 
 		self.SetSizer(sizer)
 
-		
 
 
 class ForcingPanelRootSquare(ForcingPanel):
@@ -213,6 +228,56 @@ class ForcingPanelRootSquare(ForcingPanel):
 	# Whether this should appear in the user selection for forcing functions
 	appearInList=True
 
-	def createPanel(self, parent):
+	def __init__(self, parent):
 		wx.Panel.__init__(self, parent, style=wx.SIMPLE_BORDER)
 		self.parent = parent
+
+		sizer = wx.FlexGridSizer(rows=2, cols=1)
+		sizerHead = wx.BoxSizer(wx.VERTICAL)
+		sizerOpts = wx.FlexGridSizer(rows=2, cols=2, vgap=5)
+
+		"""
+		User Edit: Enter the title and description
+		"""
+
+		# Title
+		title_txt=self.name
+
+		# Description
+		descrip_txt="My description"
+
+
+		"""
+		/User Edit
+		"""
+
+		title=wx.StaticText(self, label=title_txt)
+		descrip=wx.StaticText(self, label=descrip_txt)
+
+		# Add title and description to sizer
+		sizerHead.Add(title, wx.ALL)
+		sizerHead.Add(descrip)
+
+		"""
+		User Edit: Create options for the forcing function
+		"""
+
+		# Options
+		obs_lbl = wx.StaticText(self, label="Observation File")
+		self.obs_lbl = wx.Button(self, label="Browse..")
+
+		# Add Options to sizer
+		sizerOpts.Add(obs_lbl)
+		sizerOpts.Add(self.obs)
+
+
+		"""
+		/User Edit
+		"""
+
+		# Add sizers to main sizer
+		sizer.Add(sizerHead, wx.EXPAND)
+		sizer.AddSpacer(10)
+		sizer.Add(sizerOpts, wx.EXPAND)
+
+		self.SetSizer(sizer)
