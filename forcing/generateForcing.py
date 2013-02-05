@@ -2,11 +2,11 @@
 
 # Gui
 import wx
-from ForcingGui import *
+from gui import *
 
 # Include Forcing.py
-from Forcing import *
-from ForcingValidator import *
+from DoForce import *
+from Validator import *
 
 
 

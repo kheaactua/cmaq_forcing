@@ -2,7 +2,7 @@
 import wx
 import os
 
-from ForcingValidator import *
+from Validator import *
 from ForcingPanels import *
 
 class ForcingFrame(wx.Frame):
