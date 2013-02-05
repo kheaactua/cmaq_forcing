@@ -1,6 +1,8 @@
 from Scientific.IO.NetCDF import NetCDFFile
 from numpy import shape
+from os import listdir
 import numpy as np
+import re
 
 def getForcingObject(ni,nj,nk,nt):
 	return ForceOnSpecies(ni,nj,nk,nt)
@@ -178,4 +180,36 @@ class Forcing:
 			dest.createDimension(d, v)
 		dest.sync()
 
+	@staticmethod
+	def FindFiles(file_format):
+		print "[TODO] Fix path..."
+		files=os.listdir( "./" ) # Obviously change this..
 
+		# Backup
+		reg=file_format
+
+		# Year
+		reg=re.sub(r'YYYY', '\\d{4}', reg) 
+		reg=re.sub(r'MM', '\\d{2}', reg) 
+		reg=re.sub(r'DD', '\\d{2}', reg) 
+		reg=re.sub(r'JJJ', '\\d{3}', reg) 
+		reg=re.sub(r'\*', '.*', reg) 
+
+		files=[]
+
+		for f in files:
+			if re.search(f, reg):
+				files.append(DataFile(f))
+
+class DataFile:
+	""" Used encase we want any more info on the input files.
+	Currently, name, path and date are all we care about
+	"""
+
+	name = None
+	date = None
+	path = None
+
+	def __init__(self, filename, path="./"):
+		self.name=filename
+		self.path=path

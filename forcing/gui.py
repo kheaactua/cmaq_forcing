@@ -108,7 +108,7 @@ class ForcingFrame(wx.Frame):
 	def getLayers(self):
 		pass;
 
-	def getGlob(self):
+	def getFileFormat(self):
 		pass;
 
 	def getAveraging(self):
@@ -214,23 +214,31 @@ class InputsPanel(wx.Panel):
 		sizerMain = wx.BoxSizer(wx.VERTICAL)
 		sizerCombos = wx.FlexGridSizer(rows=3, cols=2, vgap=10, hgap=10)
 		sizerTexts = wx.FlexGridSizer(rows=3, cols=2, vgap=10, hgap=5)
-		sizerGlob = wx.FlexGridSizer(rows=1, cols=3, hgap=10)
+		sizerFormat = wx.FlexGridSizer(rows=1, cols=3, hgap=10)
 		
 		dline=18
 		input_width=180
 
-		instglob = wx.StaticText(self, label="Enter the globbing pattern for input concentration files in the same directory as the sample concentration file input above.  Note files should end with the date in the format YYYYMMDD.  i.e. conc*2007*")
-		instglob.Wrap(mySize[0])
-		sizerMain.Add(instglob)
+		instFormat = wx.StaticText(self, label="Enter the format pattern for input concentration files in the same directory as the sample concentration file input above.  i.e. aconc.*.YYYYJJJ")
+		instFormat.Wrap(mySize[0])
+		sizerMain.Add(instFormat)
 
-		lblglob = wx.StaticText(self, label="Pattern:")
-		sizerGlob.Add(lblglob)
-		self.glob = wx.TextCtrl(self, value="", size=(input_width,-1))
-		sizerGlob.Add(self.glob)
-		testglob = wx.Button(self, label="Test Glob", pos=(200, 325))
-		sizerGlob.Add(testglob)
-		sizerMain.Add(sizerGlob)
+		lblFormat = wx.StaticText(self, label="Format:")
+		sizerFormat.Add(lblFormat)
+		self.Format = wx.TextCtrl(self, value="", size=(input_width,-1))
+		sizerFormat.Add(self.Format)
+		testFormat = wx.Button(self, label="Test Format", pos=(200, 325))
+		sizerFormat.Add(testFormat)
+		sizerMain.Add(sizerFormat)
 
+		#instFormat2 = wx.HyperlinkText(self, id=-1, label="Need help with formats?", url="")
+		instFormat2 = wx.StaticText(self, id=-1, label="Need help with formats?")
+		instFormat2.SetForegroundColour((0,0,255))
+		font=instFormat2.GetFont();
+		font.SetUnderlined(True)
+		instFormat2.SetFont(font)
+		instFormat2.Bind(wx.EVT_LEFT_DOWN, self.ShowFormatHelp)
+		sizerMain.Add(instFormat2)
 
 		line=dline
 		sizerMain.AddSpacer(10)
@@ -327,6 +335,9 @@ class InputsPanel(wx.Panel):
 		sizerMain.Add(sizerTexts)
 		self.SetSizer(sizerMain)
 
+	def ShowFormatHelp(self, event):
+		self.parent.info("To specify a format: year=YYYY (2007) or YY (07), juldate=JJJ, month=MM, day=DD")
+		event.Skip()
 
 	def choseSpecies(self, event):
 		self.parent.debug('Chose species: [%s]' % ', '.join(map(str, self.species.GetCheckedStrings())))

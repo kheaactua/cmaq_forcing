@@ -216,7 +216,7 @@ class ForcingPanelMortality(ForcingPanel):
 		self.statlife = wx.TextCtrl(self, value="", size=(100,-1))
 
 		baseline_lbl = wx.StaticText(self, label="Baseline Mortality:")
-		self.baseline = wx.TextCtrl(self, value="", size=(100,-1))
+		self.baseline = wx.Button(self, label="Browse..")
 
 		pop_lbl = wx.StaticText(self, label="Population File Mortality:")
 		self.pop = wx.Button(self, label="Browse..")
