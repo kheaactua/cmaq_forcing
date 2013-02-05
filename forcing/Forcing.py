@@ -179,6 +179,9 @@ class Forcing:
 		dest.sync()
 
 class ForceOnSpecies(Forcing):
+	""" These are here and not in the panel's such that they can
+	work via the command line """
+
 	def generateForcingFields(self, conc):
 		""" Generate a forcing field, for each species, write a
 			field of all 1's (this is a simply case), with respect

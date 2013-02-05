@@ -46,6 +46,15 @@ class ForcingPanel(wx.Panel):
 	# Store the panel
 	panel = None
 
+	@staticmethod
+	def ProcessCLI():
+		""" Designed to be able to process command line arguments when
+		this whole app is being used through the command line """
+		raise NotImplementedError( "Abstract Method" )
+	@staticmethod
+	def help():
+		""" Return a help message, used for when calling this from the cli """
+
 class ForcingPanelBlank(ForcingPanel):
 	parent = None
 
