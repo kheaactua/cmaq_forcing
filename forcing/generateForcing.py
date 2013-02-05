@@ -8,7 +8,8 @@ from gui import *
 from DoForce import *
 from Validator import *
 
-
+# Widgit inspection tool
+import wx.lib.inspection
 
 """
 def outputConfFile(name):
@@ -21,9 +22,11 @@ def loadConfFile(name):
 
 app = wx.App(False)
 #frame = wx.Frame.Create(-1)
-frame = ForcingFrame(None)
+frame = ForcingFrame(None, name="TopFrame")
 #ForcingFrame(title="")
 frame.Show()
+
+#wx.lib.inspection.InspectionTool().Show()
 app.MainLoop()
 
 ### MAIN

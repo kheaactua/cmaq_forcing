@@ -1,7 +1,9 @@
 import wx
+import ForcingFunctions as f
+
 
 class ForcingPanelManager:
-	panels=['ForcingPanelBlank', 'ForcingPanelAveragingConcentration',
+	panels=['ForcingPanelBlank', 'ForcingPanelAverageConcentration',
 		   'ForcingPanelMortality', 'ForcingPanelRootSquare']
 
 	@staticmethod
@@ -46,6 +48,30 @@ class ForcingPanel(wx.Panel):
 	# Store the panel
 	panel = None
 
+	# Forcing class to use
+	forcingClass=None
+
+	def __init__(self, parent):
+		wx.Panel.__init__(self, parent)
+		self.parent=parent
+
+		#self.Bind(wx.EVT_SIZE, self.OnReSize)
+
+	def OnReSize(self, event):
+		""" Wrap all the static texts
+
+		Doesn't work because the initial wrap put line breaks in the label..
+		"""
+		size=self.GetSize()
+		children=self.GetChildren()
+		for c in children:
+			if isinstance(c, wx.StaticText):
+				print "Resizing: ", c.Label
+				c.Wrap(size[0]*0.9)
+			else:
+				print "Skipping ", c
+		event.Skip()
+
 	@staticmethod
 	def ProcessCLI():
 		""" Designed to be able to process command line arguments when
@@ -56,37 +82,35 @@ class ForcingPanel(wx.Panel):
 		""" Return a help message, used for when calling this from the cli """
 
 class ForcingPanelBlank(ForcingPanel):
-	parent = None
-
 	# The name of the forcing function
 	name = "Blank"
 
 	# Whether this should appear in the user selection for forcing functions
 	appearInList=False
 
-	def __init__(self, parent):
+	def __init__(self, parent, style=wx.TAB_TRAVERSAL):
 
-		wx.Panel.__init__(self, parent, style=wx.SIMPLE_BORDER)
+		#wx.Panel.__init__(self, parent, style=wx.SIMPLE_BORDER)
+		wx.Panel.__init__(self, parent, style)
 		self.parent = parent
 
-		txt=wx.StaticText(self, label="Please choose a forcing function above")
+		txt=wx.StaticText(self, label="Please choose a forcing function on the left panel")
 
 		sizer = wx.BoxSizer(wx.ALIGN_CENTER_VERTICAL)
 		sizer.Add(txt, 0, wx.EXPAND)
 		self.SetSizer(sizer)
 
-class ForcingPanelAveragingConcentration(ForcingPanel):
-	parent = None
-
+class ForcingPanelAverageConcentration(ForcingPanel):
 	# The name of the forcing function
-	name = "Averaging Concentration"
+	name = "Average Concentration"
 
 	# Whether this should appear in the user selection for forcing functions
 	appearInList=True
 
+	forcingCLass=f.ForceOnlAverageConcentration
+
 	def __init__(self, parent):
-		wx.Panel.__init__(self, parent, style=wx.SIMPLE_BORDER)
-		self.parent = parent
+		ForcingPanel.__init__(self, parent)
 
 		mySize=self.parent.GetSize()
 		mySize[0]=mySize[0]*0.98
@@ -145,8 +169,6 @@ class ForcingPanelAveragingConcentration(ForcingPanel):
 		self.SetSizer(sizer)
 
 class ForcingPanelMortality(ForcingPanel):
-	parent = None
-
 	# The name of the forcing function
 	name = "Mortality/Marginal Damage"
 
@@ -154,8 +176,7 @@ class ForcingPanelMortality(ForcingPanel):
 	appearInList=True
 
 	def __init__(self, parent):
-		wx.Panel.__init__(self, parent, style=wx.SIMPLE_BORDER)
-		self.parent = parent
+		ForcingPanel.__init__(self, parent)
 
 		sizer = wx.FlexGridSizer(rows=2, cols=1)
 		sizerHead = wx.BoxSizer(wx.VERTICAL)
@@ -191,7 +212,7 @@ class ForcingPanelMortality(ForcingPanel):
 		threshold_lbl = wx.StaticText(self, label="Concentration Response Factor:")
 		self.threshold = wx.TextCtrl(self, value="Threshold morbid", size=(100,-1))
 
-		statlife_lbl = wx.StaticText(self, label="Value of statistical life:")
+		statlife_lbl = wx.StaticText(self, label="Value of statistical life (M$):")
 		self.statlife = wx.TextCtrl(self, value="", size=(100,-1))
 
 		baseline_lbl = wx.StaticText(self, label="Baseline Mortality:")
@@ -229,8 +250,6 @@ class ForcingPanelMortality(ForcingPanel):
 
 
 class ForcingPanelRootSquare(ForcingPanel):
-	parent = None
-
 	# The name of the forcing function
 	name = "Root Square"
 
@@ -238,8 +257,8 @@ class ForcingPanelRootSquare(ForcingPanel):
 	appearInList=True
 
 	def __init__(self, parent):
-		wx.Panel.__init__(self, parent, style=wx.SIMPLE_BORDER)
-		self.parent = parent
+		#wx.Panel.__init__(self, parent, style=wx.SIMPLE_BORDER)
+		ForcingPanel.__init__(self, parent)
 
 		sizer = wx.FlexGridSizer(rows=2, cols=1)
 		sizerHead = wx.BoxSizer(wx.VERTICAL)

@@ -1,6 +1,6 @@
-#from ForcingPanels import *
+from DoForce import Forcing
 
-class ForceOnSpecies(Forcing):
+class ForceOnlAverageConcentration(Forcing):
 	""" These are here and not in the panel's such that they can
 	work via the command line """
 

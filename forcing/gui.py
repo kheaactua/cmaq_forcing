@@ -5,6 +5,7 @@ import os
 from Validator import *
 from ForcingPanels import *
 
+
 class ForcingFrame(wx.Frame):
 	LOG_ERROR = 1
 	LOG_WARN  = 2
@@ -13,13 +14,12 @@ class ForcingFrame(wx.Frame):
 
 	validator=None
 
-	pan_log = None
 	pan_sample_conc = None
 	pan_inputs = None
 	fpm = None
 
 	#def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
-	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=(1000,0), size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
+	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=(1000,0), size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
 		wx.Frame.__init__(self, parent, id=id, title=title, pos=pos, size=size, style=style, name=name)
 
 		randomId = wx.NewId()
@@ -30,9 +30,6 @@ class ForcingFrame(wx.Frame):
 
 		# Initialize the forcing panel manager
 		self.fpm = ForcingPanelManager()
-
-		# Events Panel
-		self.pan_log = LoggingPanel(self)
 
 		# Sample concentration Panel
 		self.pan_sample_conc = SampleConcPanel(self)
@@ -45,25 +42,77 @@ class ForcingFrame(wx.Frame):
 		self.pan_force = ForcingPanelBlank(self)
 
 		# Add events
-		panels = [self.pan_log, self.pan_sample_conc, self.pan_inputs, self.pan_force];
+		panels = [self.pan_sample_conc, self.pan_inputs, self.pan_force];
 		for p in panels:
 			p.Bind(wx.EVT_MENU, self.onKeyCombo, id=randomId)
 
-		#self.sizer = wx.FlexGridSizer(wx.VERTICAL)
-		#self.sizer = wx.FlexGridSizer(rows=4, cols=1)
-		self.sizer = wx.FlexGridSizer(cols=1, vgap=5)
-		self.sizer.Add(self.pan_sample_conc, wx.EXPAND)
-		self.sizer.Add(self.pan_inputs, wx.EXPAND)
-		self.sizer.AddSpacer(5)
-		self.sizer.Add(self.pan_force, wx.EXPAND)
-		self.sizer.Add(self.pan_log, wx.EXPAND)
 
-		self.SetSizer(self.sizer)
-		self.Fit()
+		#test
+		flagsExpand = wx.SizerFlags(1)
+		flagsExpand.Expand().Border(wx.ALL, 10)
+
+		# Put logger at bottom
+		sizerAll = wx.BoxSizer(wx.VERTICAL)
+
+		# Most inputs go in col1, custom forcing goes into two
+		self.cols = wx.BoxSizer(wx.HORIZONTAL)
+
+		# Left column
+		leftCol = wx.FlexGridSizer(cols=1, vgap=10)
+		leftCol.Add(self.pan_sample_conc, wx.EXPAND)
+		leftCol.AddSpacer(5)
+		leftCol.Add(self.pan_inputs, wx.EXPAND)
+
+		# Right column
+		rightCol = wx.FlexGridSizer(rows=2, cols=1)
+		title=wx.StaticText(self, label="Cost Function")
+		rightCol.Add(title)
+		rightCol.AddSpacer(10)
+		rightCol.AddF(self.pan_force, flagsExpand)
+
+		# Add columsn
+		self.cols.Add(leftCol)
+		self.cols.Add(rightCol)
+
+		# Add columns
+		sizerAll.Add(self.cols)
+		sizerAll.AddSpacer(5)
+		# Add logger
+		print "Forcing frame size: ", self.GetSize()
+		self.logger=wx.TextCtrl(self, size=(-1, 300), style=wx.TE_MULTILINE | wx.TE_READONLY)
+		#sizerAll.Add(self.logger, proportion=1, flag=wx.EXPAND)
+		sizerAll.Add(self.logger, flag=wx.EXPAND)
+
+		#self.SetSizer(sizerAll)
+		#self.Fit()
+		self.SetSizerAndFit(sizerAll)
 
 		# TEMP!
 		self.validator = ForcingValidator('conc.nc')
 		self.pan_inputs.Enable(True)
+
+	"""
+	The following getters are used by the ForcingPanels as they know how to call
+	the specific forcing functions.
+
+	So, the save button tells these panels to go, and they call these getters
+	and call the forcing functions
+	"""
+	def getSpecies(self):
+		print self.species.GetCheckedStrings()
+		return self.species.GetCheckedStrings()
+
+	def getTimes(self):
+		pass;
+
+	def getLayers(self):
+		pass;
+
+	def getGlob(self):
+		pass;
+
+	def getAveraging(self):
+		pass;
 
 	def onKeyCombo(self, event):
 		self.Close()
@@ -82,7 +131,7 @@ class ForcingFrame(wx.Frame):
 			prefix='U'
 
 		full_msg = "[%s] %s"%(prefix, msg)
-		self.pan_log.logger.AppendText(full_msg + "\n")
+		self.logger.AppendText(full_msg + "\n")
 		print full_msg
 	def info(self, msg):
 		self.log(msg,self.LOG_INFO)
@@ -133,14 +182,20 @@ class SampleConcPanel(wx.Panel):
 					self.parent.pan_inputs.Enable(False)
 
 class LoggingPanel(wx.Panel):
+	logger = None
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
+		self.parent = parent
 
 		fsize=parent.GetSize()
 
+		print parent
+		print "Logging Panel [%s]: Parent size: "%parent.GetName(), fsize
+
 		# A multiline TextCtrl - This is here to show how the events work in this program, don't pay too much attention to it
 		#self.logger = wx.TextCtrl(self, pos=(10,fsize[1]-200), size=(fsize[0]-20,190), style=wx.TE_MULTILINE | wx.TE_READONLY)
-		self.logger = wx.TextCtrl(self, pos=(10,10), size=(fsize[0]-30,190), style=wx.TE_MULTILINE | wx.TE_READONLY)
+		self.logger = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY)
+		self.logger.SetSize(fsize)
 
 
 
@@ -152,20 +207,37 @@ class InputsPanel(wx.Panel):
 		wx.Panel.__init__(self, parent)
 		self.parent = parent
 
-		sizer = wx.BoxSizer(wx.VERTICAL)
-		sizer1 = wx.FlexGridSizer(rows=2, cols=2, vgap=10, hgap=10)
-		sizer2 = wx.FlexGridSizer(rows=3, cols=2, vgap=10, hgap=5)
+		mySize=self.parent.GetSize()
+		print "Inputs Panel: Parent size: ", mySize
+		mySize[0]=mySize[0]*0.98
 
-
+		sizerMain = wx.BoxSizer(wx.VERTICAL)
+		sizerCombos = wx.FlexGridSizer(rows=3, cols=2, vgap=10, hgap=10)
+		sizerTexts = wx.FlexGridSizer(rows=3, cols=2, vgap=10, hgap=5)
+		sizerGlob = wx.FlexGridSizer(rows=1, cols=3, hgap=10)
+		
 		dline=18
-		vspace=3
 		input_width=180
-		col1=10
-		col2=input_width+20
+
+		instglob = wx.StaticText(self, label="Enter the globbing pattern for input concentration files in the same directory as the sample concentration file input above.  Note files should end with the date in the format YYYYMMDD.  i.e. conc*2007*")
+		instglob.Wrap(mySize[0])
+		sizerMain.Add(instglob)
+
+		lblglob = wx.StaticText(self, label="Pattern:")
+		sizerGlob.Add(lblglob)
+		self.glob = wx.TextCtrl(self, value="", size=(input_width,-1))
+		sizerGlob.Add(self.glob)
+		testglob = wx.Button(self, label="Test Glob", pos=(200, 325))
+		sizerGlob.Add(testglob)
+		sizerMain.Add(sizerGlob)
+
 
 		line=dline
-		instruct1 = wx.StaticText(self, label="Second, choose the species you will input into the forcing function.")
-		sizer.Add(instruct1)
+		sizerMain.AddSpacer(10)
+		instruct1 = wx.StaticText(self, label="Choose the species you will input into the forcing function.")
+		instruct1.Wrap(mySize[0])
+		sizerMain.Add(instruct1)
+		sizerMain.AddSpacer(10)
 
 
 		# Species
@@ -188,12 +260,10 @@ class InputsPanel(wx.Panel):
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseLayers, self.layers)
 
 		# Add to sizer
-		sizer1.Add(lblspecies)
-		sizer1.Add(lbllayers)
-		sizer1.Add(self.species)
-		sizer1.Add(self.layers)
-
-
+		sizerCombos.Add(lblspecies)
+		sizerCombos.Add(lbllayers)
+		sizerCombos.Add(self.species)
+		sizerCombos.Add(self.layers)
 
 
 
@@ -207,7 +277,7 @@ class InputsPanel(wx.Panel):
 
 
 		# Time (hour) Mask
-		time_warning=wx.StaticText(self, label="Note, there is currently no functionality to exclude specific days.", pos=(col1,line))
+		time_warning=wx.StaticText(self, label="Note, there is currently no functionality to exclude specific days.")
 
 
 		lblAvg = wx.StaticText(self, label="Averaging Time")
@@ -217,23 +287,26 @@ class InputsPanel(wx.Panel):
 		for lbl in avgtimes:
 			rsizer.Add(wx.RadioButton(self, label=lbl, name="avgtimes"))
 
-		sizer1.Add(lbltimes)
-		sizer1.Add(lblAvg)
-		sizer1.Add(self.times)
-		#sizer1.Add(self.avgtimes)
-		sizer1.Add(rsizer)
+		sizerCombos.Add(lbltimes)
+		sizerCombos.Add(lblAvg)
+		sizerCombos.Add(self.times)
+		#sizerCombos.Add(self.avgtimes)
+		sizerCombos.Add(rsizer)
 
-		#sizer.Add(time_warning)
+		#sizerMain.Add(time_warning)
 
+		# Add combos
+		sizerMain.Add(sizerCombos)
+		# Add warning about time below
+		sizerMain.Add(time_warning)
 
-
-		# the edit control - one line version.
-		lblmask=wx.StaticText(self, label="Spacial Mask (shapefile)\n(not implemented):")
+		# Shape file masks
+		lblmask=wx.StaticText(self, label="Special Mask (shapefile)\n(not implemented):")
 		self.mask = wx.TextCtrl(self, value="Mask file", size=(input_width,-1))
 		self.mask.Enable(False)
 
-		sizer2.Add(lblmask)
-		sizer2.Add(self.mask)
+		sizerTexts.Add(lblmask)
+		sizerTexts.Add(self.mask)
 
 		# Forcing Options
 		lblforce=wx.StaticText(self, label="Forcing Function:")
@@ -242,19 +315,17 @@ class InputsPanel(wx.Panel):
 		self.forcing = wx.ComboBox(self, value="Choose", choices=options, size=(input_width, -1), style=wx.CB_READONLY)
 		self.Bind(wx.EVT_COMBOBOX, self.chooseForce, self.forcing)
 
-		sizer2.Add(lblforce)
-		sizer2.Add(self.forcing)
+		sizerTexts.Add(lblforce)
+		sizerTexts.Add(self.forcing)
 
 		## A button
 		#self.button =wx.Button(self, label="Save", pos=(200, 325))
 		#self.Bind(wx.EVT_BUTTON, self.OnClick,self.button)
 
 
-		sizer.Add(sizer1)
-		sizer.Add(time_warning)
-		sizer.AddSpacer(15)
-		sizer.Add(sizer2)
-		self.SetSizer(sizer)
+		sizerMain.AddSpacer(15)
+		sizerMain.Add(sizerTexts)
+		self.SetSizer(sizerMain)
 
 
 	def choseSpecies(self, event):
@@ -274,36 +345,39 @@ class InputsPanel(wx.Panel):
 		oldPanForce=self.parent.pan_force
 		newPanForce=ForcingPanelManager.factory(item, self.parent)
 
+		sizer=self.parent.cols
+		panel_id=1
+
 		# Replace this in the sizer
-		res=self.parent.sizer.Detach(2)
+		res=sizer.Detach(panel_id)
 		#res=self.parent.sizer.Detach(oldPanForce)
 		print "Panel was detached? ", res
 		oldPanForce.Hide()
 		oldPanForce.Destroy()
-		self.parent.sizer.Insert(2, newPanForce, wx.EXPAND)
+		sizer.Insert(panel_id, newPanForce, wx.EXPAND)
 
 		self.parent.pan_force=newPanForce
 
 		# Refresh..
-		self.parent.sizer.Layout()
+		sizer.Layout()
 		#self.parent.Fit()
 		self.parent.Update()
 
 		self.parent.debug('Chose forcing: [%s]' % item)
 
-	def EvtRadioBox(self, event):
-		self.parent.debug('EvtRadioBox: %d' % event.GetInt())
-	def EvtComboBox(self, event):
-		self.parent.debug('EvtComboBox: %s' % event.GetString())
-	def OnClick(self,event):
-		self.parent.debug(" Click on object with Id %d" %event.GetId())
-	def EvtText(self, event):
-		self.parent.debug('EvtText: %s' % event.GetString())
-	def EvtChar(self, event):
-		self.parent.debug('EvtChar: %d' % event.GetKeyCode())
-		event.Skip()
-	def EvtCheckBox(self, event):
-		self.parent.debug('EvtCheckBox: %d' % event.Checked())
+#	def EvtRadioBox(self, event):
+#		self.parent.debug('EvtRadioBox: %d' % event.GetInt())
+#	def EvtComboBox(self, event):
+#		self.parent.debug('EvtComboBox: %s' % event.GetString())
+#	def OnClick(self,event):
+#		self.parent.debug(" Click on object with Id %d" %event.GetId())
+#	def EvtText(self, event):
+#		self.parent.debug('EvtText: %s' % event.GetString())
+#	def EvtChar(self, event):
+#		self.parent.debug('EvtChar: %d' % event.GetKeyCode())
+#		event.Skip()
+#	def EvtCheckBox(self, event):
+#		self.parent.debug('EvtCheckBox: %d' % event.Checked())
 
 
 	def Enable(self, doEnable):
