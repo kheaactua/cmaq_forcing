@@ -94,8 +94,8 @@ class ForcingFrame(wx.Frame):
 		self.SetSizerAndFit(sizerAll)
 
 		# TEMP!
-		self.validator = ForcingValidator('conc.nc')
-		self.pan_inputs.Enable(True)
+		#self.validator = ForcingValidator('conc.nc')
+		#self.pan_inputs.Enable(True)
 
 	"""
 	The following getters are used by the ForcingPanels as they know how to call
@@ -406,20 +406,6 @@ class InputsPanel(wx.Panel):
 		self.parent.Update()
 
 		self.parent.debug('Chose forcing: [%s]' % item)
-
-#	def EvtRadioBox(self, event):
-#		self.parent.debug('EvtRadioBox: %d' % event.GetInt())
-#	def EvtComboBox(self, event):
-#		self.parent.debug('EvtComboBox: %s' % event.GetString())
-#	def OnClick(self,event):
-#		self.parent.debug(" Click on object with Id %d" %event.GetId())
-#	def EvtText(self, event):
-#		self.parent.debug('EvtText: %s' % event.GetString())
-#	def EvtChar(self, event):
-#		self.parent.debug('EvtChar: %d' % event.GetKeyCode())
-#		event.Skip()
-#	def EvtCheckBox(self, event):
-#		self.parent.debug('EvtCheckBox: %d' % event.Checked())
 
 
 	def Enable(self, doEnable):
