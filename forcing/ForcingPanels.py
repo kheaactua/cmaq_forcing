@@ -107,7 +107,7 @@ class ForcingPanelAverageConcentration(ForcingPanel):
 	# Whether this should appear in the user selection for forcing functions
 	appearInList=True
 
-	forcingCLass=f.ForceOnlAverageConcentration
+	forcingCLass=f.ForceOnAverageConcentration
 
 	def __init__(self, parent):
 		ForcingPanel.__init__(self, parent)
