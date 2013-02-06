@@ -4,6 +4,7 @@ from os import listdir
 import numpy as np
 import re
 import dateutil.parser as dparser
+from datetime import *
 
 def getForcingObject(ni,nj,nk,nt):
 	return ForceOnSpecies(ni,nj,nk,nt)
@@ -220,43 +221,102 @@ class DataFile:
 
 		# Try to determine the date
 		try:
-			self.date=dparser.parse(filename, fuzzy=True)
-		except ValueError:
-			# Mask a copy of the string with the file format
-			# so we get conc.YYYYJJJ or something
-			# and then use the positions of YYYY in that string
-			# in the original string to extract the date info.
+			# Should check if day is first
+			day_is_first=None
+			try:
+				day_is_first = file_format.index('MM') > file_format
+			except ValueError:
+				# Meh
+				day_is_first=None
 
+			self.date=dparser.parse(filename, fuzzy=True, dayfirst=day_is_first)
+		except ValueError as e:
+			print "Manually interpreting %s"%filename
 
-#			year = None
-#			month = None
-#			day = None
+			# YYYYMMDD
+			match = re.match(r'.*[^\d]\d{4}\d{2}\d{2}.*', filename)
+			if match:
+				datestr = re.search(r'[^\d](\d{4})(\d{2})(\d{2})', '\1-\2-\3', filename)
+				self.date=dparser.parse(datestr, fuzzy=True, dayfirst=day_is_first)
+				return
+
+			# Is it a julian date?
+			match = re.match('.*[^\d]\d{4}\d{3}.*', filename)
+			print match
+			if match:
+				raise NotImplementedError( "[TODO] Interpreting Julian date is not yet implemented" )
+				return
+
+			print "here11"
+
+			#
+			# This won't work
+#			# Mask a copy of the string with the file format
+#			# so we get conc.YYYYJJJ or something
+#			# and then use the positions of YYYY in that string
+#			# in the original string to extract the date info.
+#
+#			orig=filename
+#			mask=filename
+#
+#			# Ideally, the filename doesn't have YY in it..
+#			mask=re.sub(r'YYYY', '(\\d{4})', mask) 
+#			mask=re.sub(r'MM', '(\\d{2})', mask) 
+#			mask=re.sub(r'DD', '(\\d{2})', mask) 
+#			mask=re.sub(r'JJJ', '(\\d{3})', mask) 
+#
+#			
+#			
+#
+#			year   = None
+#			month  = None
+#			day    = None
 #			julday = None
 #			if len(file_format):
-#				if match = re.search(r'YYYY', filename):
-#					year=match.group(1)
-#				if match = re.search(r'YY', filename):
+#				match = re.search(r'YYYY', mask)
+#				if match:
+#					idx=mask.index('YYYY')
+#					year=orig[idx:idx+4]
+#					print "Found year"
+#				match = re.search(r'YY', filename)
+#				if match:
 #					print "[TODO]: Document this YY thing"
-#					year=match.group(1)
+#					idx=mask.index('YY')
+#					year=orig[idx:idx+2]
 #					if year<50:
 #						year+=2000
 #					else:
 #						year+=1900
 #
-#				if match = re.search(r'JJJ', filename):
-#					julday=match.group(1)
+#					print "Year: %d\n"%year
+#
+#				match = re.search(r'JJJ', filename)
+#				if match:
+#					idx=mask.index('JJJ')
+#					julday=orig[idx:idx+3]
 #				else:
-#					if match = re.search(r'MMM', filename):
+#					match = re.search(r'MMM', filename)
+#					if match:
+#						idx=mask.index('MMM')
+#						month=orig[idx:idx+3]
 #						print "[TODO]: convert to numeric"
-#						month=match.group(1)
-#					elif match = re.search(r'MM', filename):
-#						month.match.group(1)
+#					else:
+#						match = re.search(r'MM', filename)
+#						if match:
+#							idx=mask.index('MM')
+#							month=orig[idx:idx+2]
 #
-#					if match = re.search(r'DD', filename):
-#						day=match.group(1)
+#					match = re.search(r'DD', filename)
+#					if match:
+#						idx=mask.index('DD')
+#						day=orig[idx:idx+2]
 #
-#				# At this point, we should have 
-		
+#				if year is not None:
+#					if julday is not None:
+#						raise NotImplementedError( "[TODO] Interpreting Jul date is not yet implemented" )
+#					else:
+#						self.date=datetime.datetime(year, month, day, 0, 0, 0)
+
 
 	def __str__(self):
 		return self.name
