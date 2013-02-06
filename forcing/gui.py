@@ -48,10 +48,6 @@ class ForcingFrame(wx.Frame):
 			p.Bind(wx.EVT_MENU, self.onKeyCombo, id=randomId)
 
 
-		#test
-		flagsExpand = wx.SizerFlags(1)
-		flagsExpand.Expand().Border(wx.ALL, 10)
-
 		# Put logger at bottom
 		sizerAll = wx.BoxSizer(wx.VERTICAL)
 
@@ -59,21 +55,30 @@ class ForcingFrame(wx.Frame):
 		self.cols = wx.BoxSizer(wx.HORIZONTAL)
 
 		# Left column
-		leftCol = wx.FlexGridSizer(cols=1, vgap=10)
-		leftCol.Add(self.pan_sample_conc, wx.EXPAND)
+		leftCol = wx.BoxSizer(wx.VERTICAL)
+		leftCol.Add(self.pan_sample_conc)
 		leftCol.AddSpacer(5)
-		leftCol.Add(self.pan_inputs, wx.EXPAND)
+		leftCol.Add(self.pan_inputs)
 
 		# Right column
-		rightCol = wx.FlexGridSizer(rows=2, cols=1)
+		rightCol = wx.BoxSizer(wx.VERTICAL)
 		title=wx.StaticText(self, label="Cost Function")
 		rightCol.Add(title)
 		rightCol.AddSpacer(10)
-		rightCol.AddF(self.pan_force, flagsExpand)
+		#self.pan_force.SetSize((-1, self.pan_inputs.GetSize()[1]*.9))
+		rightCol.Add(self.pan_force, flag=wx.EXPAND)
 
-		# Add columsn
+		self.runbtn=wx.Button(self, label="Run", name="runbtn")
+		self.runbtn.Bind(wx.EVT_BUTTON, self.runForce)
+		self.runbtn.Enable(False)
+		rightCol.Add(self.runbtn, flag=wx.ALIGN_BOTTOM|wx.EXPAND)
+
+		# So we can reference it later
+		self.forcingSizer=rightCol
+
+		# Add columns
 		self.cols.Add(leftCol)
-		self.cols.Add(rightCol)
+		self.cols.Add(rightCol, flag=wx.EXPAND)
 
 		# Add columns
 		sizerAll.Add(self.cols)
@@ -142,6 +147,11 @@ class ForcingFrame(wx.Frame):
 		self.log(msg,self.LOG_WARN)
 	def debug(self, msg):
 		self.log(msg,self.LOG_DEBUG)
+
+	def runForce(self, event):
+		""" This is the function that should start everything """
+		event.Skip()
+
 
 #	def Close(self):
 #		wx.Frame.Close(self)
@@ -363,7 +373,7 @@ class InputsPanel(wx.Panel):
 		oldPanForce=self.parent.pan_force
 		newPanForce=ForcingPanelManager.factory(item, self.parent)
 
-		sizer=self.parent.cols
+		sizer=self.parent.forcingSizer
 		panel_id=1
 
 		# Replace this in the sizer
@@ -443,5 +453,8 @@ class InputsPanel(wx.Panel):
 			self.times.SetItems(times_list)
 			for i in range(0,len(times_list)):
 				self.times.Check(i)
+
+			# Enable run button
+			self.parent.runbtn.Enable(True)
 
 

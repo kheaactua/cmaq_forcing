@@ -203,7 +203,7 @@ class Forcing:
 		for f in files:
 			if re.search(reg, f):
 				#print "%s matches"%f
-				cfiles.append(DataFile(f), file_format=file_format)
+				cfiles.append(DataFile(f, file_format=file_format))
 		return sorted(cfiles)
 
 class DataFile:
