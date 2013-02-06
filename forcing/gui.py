@@ -4,6 +4,7 @@ import os
 
 from Validator import *
 from ForcingPanels import *
+from DoForce import *
 
 
 class ForcingFrame(wx.Frame):
@@ -219,15 +220,16 @@ class InputsPanel(wx.Panel):
 		dline=18
 		input_width=180
 
-		instFormat = wx.StaticText(self, label="Enter the format pattern for input concentration files in the same directory as the sample concentration file input above.  i.e. aconc.*.YYYYJJJ")
+		instFormat = wx.StaticText(self, label="Enter the format pattern for input concentration files in the same directory as the sample concentration file input above.  i.e. aconc.*.YYYYJJJ\nNote, the files are searched in the same directory as the sample file input above.")
 		instFormat.Wrap(mySize[0])
 		sizerMain.Add(instFormat)
 
 		lblFormat = wx.StaticText(self, label="Format:")
 		sizerFormat.Add(lblFormat)
-		self.Format = wx.TextCtrl(self, value="", size=(input_width,-1))
+		self.Format = wx.TextCtrl(self, value="CCTM*YYYYMMDD", size=(input_width,-1))
 		sizerFormat.Add(self.Format)
 		testFormat = wx.Button(self, label="Test Format", pos=(200, 325))
+		testFormat.Bind(wx.EVT_BUTTON, self.testFormat)
 		sizerFormat.Add(testFormat)
 		sizerMain.Add(sizerFormat)
 
@@ -334,6 +336,11 @@ class InputsPanel(wx.Panel):
 		sizerMain.AddSpacer(15)
 		sizerMain.Add(sizerTexts)
 		self.SetSizer(sizerMain)
+
+	def testFormat(self, event):
+		files=Forcing.FindFiles(self.Format.GetValue())
+		self.parent.info("Found files: %s" % ', '.join(map(str, files)))
+		event.Skip()
 
 	def ShowFormatHelp(self, event):
 		self.parent.info("To specify a format: year=YYYY (2007) or YY (07), juldate=JJJ, month=MM, day=DD")

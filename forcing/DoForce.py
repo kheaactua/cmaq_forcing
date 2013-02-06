@@ -3,6 +3,7 @@ from numpy import shape
 from os import listdir
 import numpy as np
 import re
+import dateutil.parser as dparser
 
 def getForcingObject(ni,nj,nk,nt):
 	return ForceOnSpecies(ni,nj,nk,nt)
@@ -183,7 +184,7 @@ class Forcing:
 	@staticmethod
 	def FindFiles(file_format):
 		print "[TODO] Fix path..."
-		files=os.listdir( "./" ) # Obviously change this..
+		files=listdir( "/mnt/mediasonic/opt/output/morteza/frc-8h-US/" ) # Obviously change this..
 
 		# Backup
 		reg=file_format
@@ -195,11 +196,14 @@ class Forcing:
 		reg=re.sub(r'JJJ', '\\d{3}', reg) 
 		reg=re.sub(r'\*', '.*', reg) 
 
-		files=[]
+		print "RE: %s"% reg
+		cfiles=[]
 
 		for f in files:
-			if re.search(f, reg):
-				files.append(DataFile(f))
+			if re.search(reg, f):
+				#print "%s matches"%f
+				cfiles.append(DataFile(f), file_format=file_format)
+		return sorted(cfiles)
 
 class DataFile:
 	""" Used encase we want any more info on the input files.
@@ -210,6 +214,49 @@ class DataFile:
 	date = None
 	path = None
 
-	def __init__(self, filename, path="./"):
+	def __init__(self, filename, path="./", file_format=""):
 		self.name=filename
 		self.path=path
+
+		# Try to determine the date
+		try:
+			self.date=dparser.parse(filename, fuzzy=True)
+		except ValueError:
+			# Mask a copy of the string with the file format
+			# so we get conc.YYYYJJJ or something
+			# and then use the positions of YYYY in that string
+			# in the original string to extract the date info.
+
+
+#			year = None
+#			month = None
+#			day = None
+#			julday = None
+#			if len(file_format):
+#				if match = re.search(r'YYYY', filename):
+#					year=match.group(1)
+#				if match = re.search(r'YY', filename):
+#					print "[TODO]: Document this YY thing"
+#					year=match.group(1)
+#					if year<50:
+#						year+=2000
+#					else:
+#						year+=1900
+#
+#				if match = re.search(r'JJJ', filename):
+#					julday=match.group(1)
+#				else:
+#					if match = re.search(r'MMM', filename):
+#						print "[TODO]: convert to numeric"
+#						month=match.group(1)
+#					elif match = re.search(r'MM', filename):
+#						month.match.group(1)
+#
+#					if match = re.search(r'DD', filename):
+#						day=match.group(1)
+#
+#				# At this point, we should have 
+		
+
+	def __str__(self):
+		return self.name
