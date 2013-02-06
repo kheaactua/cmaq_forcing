@@ -287,31 +287,33 @@ class InputsPanel(wx.Panel):
 
 
 
+
+		lblAvg = wx.StaticText(self, label="Averaging Time")
+		avgtimes = ['None', 'Max 1 hr', 'Max 8 hr', 'Max 24 h', 'Local Hours', 'Other']
+		rsizer=wx.BoxSizer(wx.VERTICAL)
+		for lbl in avgtimes:
+			radioinput=wx.RadioButton(self, label=lbl, name="avgtimes")
+			radioinput.Bind(wx.EVT_RADIOBUTTON, self.chooseAveraging, radioinput)
+			rsizer.Add(radioinput)
+
 		lbltimes = wx.StaticText(self, label="Use Hours:")
 		if parent.validator != None:
-			times_list = parent.validator.getLayers();
+			times_list = parent.validator.getTimes();
 		else:
 			times_list = []
-		self.times = wx.CheckListBox(self, size=(input_width, 4*dline), choices=times_list)
+		self.times = wx.CheckListBox(self, size=(input_width, 6*dline), choices=times_list)
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseTimes, self.times)
+		self.times.Enable(False)
 
 
 		# Time (hour) Mask
 		time_warning=wx.StaticText(self, label="Note, there is currently no functionality to exclude specific days.")
 
 
-		lblAvg = wx.StaticText(self, label="Averaging Time")
-		avgtimes = ['None', 'Max 1 hr', 'Max 8 hr']
-		#self.avgtimes=wx.RadioBox(self, choices=avgtimes, style=wx.RA_VERTICAL | wx.NO_BORDER)
-		rsizer=wx.BoxSizer(wx.VERTICAL)
-		for lbl in avgtimes:
-			rsizer.Add(wx.RadioButton(self, label=lbl, name="avgtimes"))
-
-		sizerCombos.Add(lbltimes)
 		sizerCombos.Add(lblAvg)
-		sizerCombos.Add(self.times)
-		#sizerCombos.Add(self.avgtimes)
+		sizerCombos.Add(lbltimes)
 		sizerCombos.Add(rsizer)
+		sizerCombos.Add(self.times)
 
 		#sizerMain.Add(time_warning)
 
@@ -362,8 +364,20 @@ class InputsPanel(wx.Panel):
 	def choseLayers(self, event):
 		self.parent.debug('Chose layers: [%s]' % ', '.join(map(str, self.layers.GetCheckedStrings())))
 
+	def chooseAveraging(self, event):
+		radioSelected = event.GetEventObject()
+		val = radioSelected.GetLabelText()
+		print "Val: %s"%val
+		if val == "Other" or val == "Local Hours":
+			self.times.Enable(True)
+		else:
+			self.times.Enable(False)
+
+		event.Skip()
+
 	def choseTimes(self, event):
 		self.parent.debug('Chose times: [%s]' % ', '.join(map(str, self.times.GetCheckedStrings())))
+		event.Skip()
 
 	def chooseForce(self, event):
 		item_id = event.GetSelection()
