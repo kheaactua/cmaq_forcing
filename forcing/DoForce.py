@@ -247,8 +247,6 @@ class DataFile:
 				raise NotImplementedError( "[TODO] Interpreting Julian date is not yet implemented" )
 				return
 
-			print "here11"
-
 			#
 			# This won't work
 #			# Mask a copy of the string with the file format
