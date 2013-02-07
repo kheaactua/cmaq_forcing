@@ -1,5 +1,6 @@
 import wx
 import ForcingFunctions as f
+import DoForce as df
 
 
 class ForcingPanelManager:
@@ -72,6 +73,15 @@ class ForcingPanel(wx.Panel):
 				print "Skipping ", c
 		event.Skip()
 
+	def runForce(self, common):
+		""" This method passes all the required info to the actual forcing function.
+
+		Keyword Arguments:
+		common The parent frame with all the getters.  If CLI, this could be
+		whatever object has the getters on it.
+		"""
+		raise NotImplementedError( "Abstract Method" )
+
 	@staticmethod
 	def ProcessCLI():
 		""" Designed to be able to process command line arguments when
@@ -107,7 +117,7 @@ class ForcingPanelAverageConcentration(ForcingPanel):
 	# Whether this should appear in the user selection for forcing functions
 	appearInList=True
 
-	forcingCLass=f.ForceOnAverageConcentration
+	forcingClass=f.ForceOnAverageConcentration
 
 	def __init__(self, parent):
 		ForcingPanel.__init__(self, parent)
@@ -167,6 +177,22 @@ class ForcingPanelAverageConcentration(ForcingPanel):
 		sizer.AddSpacer(10)
 		sizer.Add(sizerOpts, wx.EXPAND)
 		self.SetSizer(sizer)
+
+	def runForce(self, common):
+
+		# Forcing class
+		fc = self.forcingClass
+
+		# Get all the info we need
+		fc.maskLayers(common.getLayers())
+		fc.setSpecies(common.getSpecies())
+		fc.setAveraging(common.getAveraging())
+
+		fformat = fc.getFormat()
+
+		concs=fc.FindFiles(fformat)
+		for fname in concs:
+			produceForcingField(fname)
 
 class ForcingPanelMortality(ForcingPanel):
 	# The name of the forcing function

@@ -12,6 +12,8 @@ def getForcingObject(ni,nj,nk,nt):
 # Abstract
 class Forcing:
 
+	avgoptions=['None', 'Max 1 hr', 'Max 8 hr', 'Max 24 h', 'Local Hours', 'Other']
+
 	def __init__(self,ni,nj,nk,nt):
 		"""Initialize Forcing object
 
@@ -83,6 +85,11 @@ class Forcing:
 		# Implement this later..
 		return 'OutForcing.nc'
 
+	def setAveraging(self, option):
+		""" Set averaging option, e.g. max 8-hr, etc """
+		
+		self.averaging=option
+
 	def maskTimes(self, mask):
 		""" Set time mask
 
@@ -116,13 +123,15 @@ class Forcing:
 		self.species=species
 
 
-	def produceForcingField(self, conc_name, force_name):
+	def produceForcingField(self, conc_name):
 		""" Open files, prepare them, and call the writing function
 
 		Keyword Arguments:
 		conc_name  -- File name of concentration
-		force_name -- File name of forcing file
 		"""
+
+		# Generate a file name
+		force_name=self.generateForceFileName(conc_name)
 
 		conc  = NetCDFFile(conc_name, 'r')
 		force = NetCDFFile(force_name, 'w')
@@ -147,6 +156,10 @@ class Forcing:
 
 		# Close the file
 		force.close()
+
+	@staticmethod
+	def generateForceFileName(conc):
+		raise NotImplementedError( "[TODO] Implement this" )
 
 	def generateForcingFields(self, conc):
 		raise NotImplementedError( "Abstract method" )

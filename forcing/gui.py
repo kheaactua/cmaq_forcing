@@ -94,31 +94,40 @@ class ForcingFrame(wx.Frame):
 		self.SetSizerAndFit(sizerAll)
 
 		# TEMP!
-		#self.validator = ForcingValidator('conc.nc')
-		#self.pan_inputs.Enable(True)
+		self.validator = ForcingValidator('conc.nc')
+		self.pan_inputs.Enable(True)
 
 	"""
 	The following getters are used by the ForcingPanels as they know how to call
 	the specific forcing functions.
 
 	So, the save button tells these panels to go, and they call these getters
-	and call the forcing functions
+	and call the forcing functions.
+
+	These getters should be part of an interface
 	"""
 	def getSpecies(self):
-		print self.species.GetCheckedStrings()
-		return self.species.GetCheckedStrings()
-
-	def getTimes(self):
-		pass;
+		rstr=self.pan_inputs.species.GetCheckedStrings()
+		self.debug("Returning species: %s"%rstr)
+		return rstr.split(' ')
 
 	def getLayers(self):
-		pass;
+		rstr=self.pan_inputs.layers.GetCheckedStrings()
+		self.debug("Returning layers: %s"%rstr)
+		return rstr.split(' ')
 
 	def getFileFormat(self):
-		pass;
+		rstr=self.pan_inputs.Format.GetValue()
+		self.debug("Returning layers: %s"%rstr)
+		return rstr.split(' ')
 
 	def getAveraging(self):
-		pass;
+		rstr=self.pan_inputs.avgoption
+		return rstr.split(' ')
+
+	def getTimes(self):
+		rstr=self.pan_inputs.times.GetCheckedStrings()
+		return rstr.split(' ')
 
 	def onKeyCombo(self, event):
 		self.Close()
@@ -151,6 +160,9 @@ class ForcingFrame(wx.Frame):
 	def runForce(self, event):
 		""" This is the function that should start everything """
 		print "[Todo]: call a forcingPanel.run(), which will call the right Forceing class in ForcingFunctions with all the info it needs."
+
+		self.pan_force.runForce(self)
+
 		event.Skip()
 
 
@@ -214,6 +226,8 @@ class LoggingPanel(wx.Panel):
 
 class InputsPanel(wx.Panel):
 	parent = None
+
+	avgoption = None
 
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
@@ -288,11 +302,10 @@ class InputsPanel(wx.Panel):
 
 
 
-
 		lblAvg = wx.StaticText(self, label="Averaging Time")
-		avgtimes = ['None', 'Max 1 hr', 'Max 8 hr', 'Max 24 h', 'Local Hours', 'Other']
+		#avgtimes = ['None', 'Max 1 hr', 'Max 8 hr', 'Max 24 h', 'Local Hours', 'Other']
 		rsizer=wx.BoxSizer(wx.VERTICAL)
-		for lbl in avgtimes:
+		for lbl in Forcing.avgoptions:
 			radioinput=wx.RadioButton(self, label=lbl, name="avgtimes")
 			radioinput.Bind(wx.EVT_RADIOBUTTON, self.chooseAveraging, radioinput)
 			rsizer.Add(radioinput)
@@ -368,11 +381,12 @@ class InputsPanel(wx.Panel):
 	def chooseAveraging(self, event):
 		radioSelected = event.GetEventObject()
 		val = radioSelected.GetLabelText()
-		print "Val: %s"%val
 		if val == "Other" or val == "Local Hours":
 			self.times.Enable(True)
 		else:
 			self.times.Enable(False)
+
+		self.avgoption = Val
 
 		event.Skip()
 

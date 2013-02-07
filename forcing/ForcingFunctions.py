@@ -1,8 +1,12 @@
 from DoForce import Forcing
 
-class ForceOnlAverageConcentration(Forcing):
+class ForceOnAverageConcentration(Forcing):
 	""" These are here and not in the panel's such that they can
 	work via the command line """
+
+	threshold = 0
+	
+	def setThreshold
 
 	def generateForcingFields(self, conc):
 		""" Generate a forcing field, for each species, write a
