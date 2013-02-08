@@ -6,7 +6,8 @@ class ForceOnAverageConcentration(Forcing):
 
 	threshold = 0
 	
-	def setThreshold
+	def setThreshold(self, threshold):
+		self.threshold=threshold
 
 	def generateForcingFields(self, conc):
 		""" Generate a forcing field, for each species, write a
