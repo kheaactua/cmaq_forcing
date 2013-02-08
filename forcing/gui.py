@@ -8,10 +8,11 @@ from DoForce import *
 
 
 class ForcingFrame(wx.Frame):
-	LOG_ERROR = 1
-	LOG_WARN  = 2
-	LOG_INFO  = 3
-	LOG_DEBUG = 4
+	LOG_HELP  = 2
+	LOG_ERROR = 4
+	LOG_WARN  = 8
+	LOG_INFO  = 16
+	LOG_DEBUG = 32
 
 	validator=None
 
@@ -94,8 +95,8 @@ class ForcingFrame(wx.Frame):
 		self.SetSizerAndFit(sizerAll)
 
 		# TEMP!
-		self.validator = ForcingValidator('conc.nc')
-		self.pan_inputs.Enable(True)
+		#self.validator = ForcingValidator('conc.nc')
+		#self.pan_inputs.Enable(True)
 
 	"""
 	The following getters are used by the ForcingPanels as they know how to call
@@ -138,6 +139,8 @@ class ForcingFrame(wx.Frame):
 			prefix='E'
 		elif level == self.LOG_WARN:
 			prefix='W'
+		elif level == self.LOG_HELP:
+			prefix='H'
 		elif level == self.LOG_INFO:
 			prefix='I'
 		elif level == self.LOG_DEBUG:
@@ -156,6 +159,8 @@ class ForcingFrame(wx.Frame):
 		self.log(msg,self.LOG_WARN)
 	def debug(self, msg):
 		self.log(msg,self.LOG_DEBUG)
+	def help(self, msg):
+		self.log(msg,self.LOG_HELP)
 
 	def runForce(self, event):
 		""" This is the function that should start everything """
@@ -304,11 +309,19 @@ class InputsPanel(wx.Panel):
 
 		lblAvg = wx.StaticText(self, label="Averaging Time")
 		#avgtimes = ['None', 'Max 1 hr', 'Max 8 hr', 'Max 24 h', 'Local Hours', 'Other']
-		rsizer=wx.BoxSizer(wx.VERTICAL)
-		for lbl in Forcing.avgoptions:
+		avgtimes=Forcing.avgoptions
+		rsizer=wx.FlexGridSizer(rows=len(avgtimes),cols=2,hgap=5)
+		for lbl in avgtimes:
 			radioinput=wx.RadioButton(self, label=lbl, name="avgtimes")
 			radioinput.Bind(wx.EVT_RADIOBUTTON, self.chooseAveraging, radioinput)
 			rsizer.Add(radioinput)
+			avghelp = wx.StaticText(self, label="Help")
+			avghelp.SetForegroundColour((0,0,255))
+			font=avghelp.GetFont();
+			font.SetUnderlined(True)
+			avghelp.SetFont(font)
+			#avghelp.Bind(wx.EVT_LEFT_DOWN, self.ShowAvgHelp, lbl)
+			rsizer.Add(avghelp)
 
 		lbltimes = wx.StaticText(self, label="Use Hours:")
 		if parent.validator != None:
@@ -368,8 +381,12 @@ class InputsPanel(wx.Panel):
 		self.parent.info("Found files: %s" % ', '.join(map(str, files)))
 		event.Skip()
 
+	def ShowAvgHelp(self, event):
+		#self.parent.info("To specify a format: year=YYYY (2007) or YY (07), juldate=JJJ, month=MM, day=DD")
+		event.Skip()
+
 	def ShowFormatHelp(self, event):
-		self.parent.info("To specify a format: year=YYYY (2007) or YY (07), juldate=JJJ, month=MM, day=DD")
+		self.parent.help("To specify a format: year=YYYY (2007) or YY (07), juldate=JJJ, month=MM, day=DD")
 		event.Skip()
 
 	def choseSpecies(self, event):
