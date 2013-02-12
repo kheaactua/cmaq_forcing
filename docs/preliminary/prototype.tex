@@ -138,6 +138,16 @@ re-compilation for every update, and the process can be implemented in a
 user-friendly graphical user interface using cross-platform compatible
 software.
 
+\begin{figure}
+	\centering
+	\includegraphics[width=1.2\textwidth]{Forcing-Interface-Chart.png}
+	\caption{Digram illustration the different parameters required for each adjoint cost function.}
+	\label{inputs}
+\end{figure}
+
+Figure \ref{inputs} shows that the application would first require domain parameters to be specified, then general inputs (shown in fig. \ref{inputs} in orange), then inputs specific to the chosen adjoint cost function (shown in blue.)
+
+
 \section{Requirements}
 
 Here and after, the process to generate forcing files will be referred to as ``the application''.
@@ -186,60 +196,60 @@ application.  These figures are here to show the ease of use and potential of a
 graphical user interface.  Many features in the specifications are still
 missing in this proposal at this time.
 
-\section{Science Documentation}
+%%\section{Science Documentation}
+%%
+%%Figure \ref{inputs} illustrated the different inputs required for adjoint forcing field generation.
+%%
+%%\begin{figure}
+%%	\centering
+%%	\includegraphics[width=1.2\textwidth]{Forcing-Interface-Chart.png}
+%%	\caption{Digram illustration the different parameters required for each adjoint cost function.}
+%%	\label{inputs}
+%%\end{figure}
+%%
+%%
+%%The forcing interface provides a user-friendly environment for the users to prepare forcing files for their desirable adjoint run. In this interface, the user first specifies general information before setting a specific adjoint cost function. The blue boxes denote inputs only required for the specific adjoint cost function (shown in red.)
 
-Figure \ref{inputs} illustrated the different inputs required for adjoint forcing field generation.
-
-\begin{figure}
-	\centering
-	\includegraphics[width=1.2\textwidth]{Forcing-Interface-Chart.png}
-	\caption{Digram illustration the different parameters required for each adjoint cost function.}
-	\label{inputs}
-\end{figure}
-
-
-The forcing interface provides a user-friendly environment for the users to prepare forcing files for their desirable adjoint run. In this interface, the user first specifies general information before setting a specific adjoint cost function. The blue boxes denote inputs only required for the specific adjoint cost function (shown in red.)
-
-\begin{itemize}
-	\item \textbf{Running period}: which represents the beginning and end time for the run.
-	\item \textbf{Simulation domain}: Domain dimensions, species, layers, time steps. These can be set in the application by pointing at a sample concentration file from the simulation
-	\item \textbf{Adjoint 2D domain}: 2D Sub-domain of simulation domain to run the adjoint cost function on. This can represent a specific city, state, region, etc.
-	\item \textbf{Layers}: It represents layers which the user wants to include in the adjoint cost function (this is the third dimension of the Adjoint 2D domain above). Note that for some particular applications such as mortality only the first (surface) should be selected.
-	\item \textbf{Species}: The adjoint cost function is a function of the selected species.
-\end{itemize}
-
-After specifying the general information, the user can specify the cost function. Some functions are pre-defined in the interface, but the user can define any other cost function. The pre-defined functions include:
-
-\begin{itemize}
-	\item \textbf{Average concentration}: Represents the spatial and temporal average of a particular species for the selected running period and layers in the previous step. The user should specify:
-	\begin{itemize}
-		\item \textbf{Averaging Time}: which defines the averaging time for the concentrations used in the cost function. If none is selected, the averaging time is 24 hours.
-		\item \textbf{Threshold}: which provides a flexibility for users to filter the concentrations more than the specified threshold. For example, if the user wants to see the influences of all emissions sources on grid cells where and where the concentrations violate the standard, he/she can simply set the threshold values to the standard.
-	\end{itemize}
-	\item \textbf{Mortality/Damage function}: which represents the number of deaths (mortality) caused by air pollution, and the corresponding health damage in dollar value (damage function). Note that if the Damage function is chosen as the adjoint cost function, the output of the adjoint model will be spatial and temporal marginal damage of emissions. Marginal damage of emissions is a known concept in environmental economics representing the influence of an additional tonne of emissions on the overall health damage. For this category the following information is required:
-	\begin{itemize}
-	  \item \textbf{Averaging time}: which is used because the damage functions are defined based on different averaging time.
-	  \item \textbf{Concentration Response Factor}: which represents how change in concentrations is related to change in mortality, and should be entered as percentage (e.g. 0.5\%, which is equal to a response factor of 0.005). Note that this factor can be defined constant for all locations, or defined by locations. In the latter case, the user needs to provide an I/O Api file which includes the location-specific response factors.
-	  \item \textbf{Value of Statistical Life}: which is defined in million dollars.
-	  \item \textbf{Baseline mortality}: represents number of non-accidental deaths per a million population. The baseline mortality can also be defined by locations and users can specify an I/O Api file which includes those information.
-	  \item \textbf{Population}: has a default value in the interface, but users can specify their population file in I/O Api format.
-	\end{itemize}
-	\item \textbf{Distance function}: is used for data assimilation to minimize the distance between the model prediction and the actual observations. In this case, the users are required to specify the concentration files as well as the observation files (in I/O Api or text format.)
-	\item \textbf{User Defined}: denotes space for easily added user defined cost functions.
-\end{itemize}
+%%\begin{itemize}
+%%	\item \textbf{Running period}: which represents the beginning and end time for the run.
+%%	\item \textbf{Simulation domain}: Domain dimensions, species, layers, time steps. These can be set in the application by pointing at a sample concentration file from the simulation
+%%	\item \textbf{Adjoint 2D domain}: 2D Sub-domain of simulation domain to run the adjoint cost function on. This can represent a specific city, state, region, etc.
+%%	\item \textbf{Layers}: It represents layers which the user wants to include in the adjoint cost function (this is the third dimension of the Adjoint 2D domain above). Note that for some particular applications such as mortality only the first (surface) should be selected.
+%%	\item \textbf{Species}: The adjoint cost function is a function of the selected species.
+%%\end{itemize}
+%%
+%%After specifying the general information, the user can specify the cost function. Some functions are pre-defined in the interface, but the user can define any other cost function. The pre-defined functions include:
+%%
+%%\begin{itemize}
+%%	\item \textbf{Average concentration}: Represents the spatial and temporal average of a particular species for the selected running period and layers in the previous step. The user should specify:
+%%	\begin{itemize}
+%%		\item \textbf{Averaging Time}: which defines the averaging time for the concentrations used in the cost function. If none is selected, the averaging time is 24 hours.
+%%		\item \textbf{Threshold}: which provides a flexibility for users to filter the concentrations more than the specified threshold. For example, if the user wants to see the influences of all emissions sources on grid cells where and where the concentrations violate the standard, he/she can simply set the threshold values to the standard.
+%%	\end{itemize}
+%%	\item \textbf{Mortality/Damage function}: which represents the number of deaths (mortality) caused by air pollution, and the corresponding health damage in dollar value (damage function). Note that if the Damage function is chosen as the adjoint cost function, the output of the adjoint model will be spatial and temporal marginal damage of emissions. Marginal damage of emissions is a known concept in environmental economics representing the influence of an additional tonne of emissions on the overall health damage. For this category the following information is required:
+%%	\begin{itemize}
+%%	  \item \textbf{Averaging time}: which is used because the damage functions are defined based on different averaging time.
+%%	  \item \textbf{Concentration Response Factor}: which represents how change in concentrations is related to change in mortality, and should be entered as percentage (e.g. 0.5\%, which is equal to a response factor of 0.005). Note that this factor can be defined constant for all locations, or defined by locations. In the latter case, the user needs to provide an I/O Api file which includes the location-specific response factors.
+%%	  \item \textbf{Value of Statistical Life}: which is defined in million dollars.
+%%	  \item \textbf{Baseline mortality}: represents number of non-accidental deaths per a million population. The baseline mortality can also be defined by locations and users can specify an I/O Api file which includes those information.
+%%	  \item \textbf{Population}: has a default value in the interface, but users can specify their population file in I/O Api format.
+%%	\end{itemize}
+%%	\item \textbf{Distance function}: is used for data assimilation to minimize the distance between the model prediction and the actual observations. In this case, the users are required to specify the concentration files as well as the observation files (in I/O Api or text format.)
+%%	\item \textbf{User Defined}: denotes space for easily added user defined cost functions.
+%%\end{itemize}
 
 
-\clearpage
-\section{Software Documentation}
-
-Figure \ref{classdia} shows a partial UML class diagram of the structure of the application to generate adjoint forcing fields.  Missing in this diagram is the ability to save and load application state for easy use on the command line.
-
-\begin{figure}
-	\centering
-	\includegraphics[width=1.2\textwidth]{Forcing_Generator.png}
-	\caption{Partial class diagram of the adjoint forcing field generator.  Post results processing is not included in this diagram.}
-	\label{classdia}
-\end{figure}
+%%\clearpage
+%%\section{Software Documentation}
+%%
+%%Figure \ref{classdia} shows a partial UML class diagram of the structure of the application to generate adjoint forcing fields.  Missing in this diagram is the ability to save and load application state for easy use on the command line.
+%%
+%%\begin{figure}
+%%	\centering
+%%	\includegraphics[width=1.2\textwidth]{Forcing_Generator.png}
+%%	\caption{Partial class diagram of the adjoint forcing field generator.  Post results processing is not included in this diagram.}
+%%	\label{classdia}
+%%\end{figure}
 
 
 \end{document}
