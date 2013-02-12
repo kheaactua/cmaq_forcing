@@ -83,6 +83,7 @@ class Forcing:
 		"""
 
 		# Implement this later..
+		raise NotImplementedError( "[TODO] Implement this" )
 		return 'OutForcing.nc'
 
 	def setAveraging(self, option):
@@ -127,7 +128,7 @@ class Forcing:
 		""" Open files, prepare them, and call the writing function
 
 		Keyword Arguments:
-		conc_name  -- File name of concentration
+		conc_name  -- File name of concentration.  This has to be changed to a dict[today, tomorrow] so we can handle localtimes
 		"""
 
 		# Generate a file name
@@ -157,9 +158,6 @@ class Forcing:
 		# Close the file
 		force.close()
 
-	@staticmethod
-	def generateForceFileName(conc):
-		raise NotImplementedError( "[TODO] Implement this" )
 
 	def generateForcingFields(self, conc):
 		raise NotImplementedError( "Abstract method" )

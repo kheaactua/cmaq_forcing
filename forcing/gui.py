@@ -20,8 +20,12 @@ class ForcingFrame(wx.Frame):
 	pan_inputs = None
 	fpm = None
 
+	# This list is populated upon enable, and read from the ForcingPanels
+	# that require time to be set
+	times_list = []
+
 	#def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
-	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=(1000,0), size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
+	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=(1000,0), size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name="TopFrame"):
 		wx.Frame.__init__(self, parent, id=id, title=title, pos=pos, size=size, style=style, name=name)
 
 		randomId = wx.NewId()
@@ -95,8 +99,8 @@ class ForcingFrame(wx.Frame):
 		self.SetSizerAndFit(sizerAll)
 
 		# TEMP!
-		#self.validator = ForcingValidator('conc.nc')
-		#self.pan_inputs.Enable(True)
+		self.validator = ForcingValidator('conc.nc')
+		self.pan_inputs.Enable(True)
 
 	"""
 	The following getters are used by the ForcingPanels as they know how to call
@@ -120,10 +124,6 @@ class ForcingFrame(wx.Frame):
 	def getFileFormat(self):
 		rstr=self.pan_inputs.Format.GetValue()
 		self.debug("Returning layers: %s"%rstr)
-		return rstr.split(' ')
-
-	def getAveraging(self):
-		rstr=self.pan_inputs.avgoption
 		return rstr.split(' ')
 
 	def getTimes(self):
@@ -243,7 +243,7 @@ class InputsPanel(wx.Panel):
 		mySize[0]=mySize[0]*0.98
 
 		sizerMain = wx.BoxSizer(wx.VERTICAL)
-		sizerCombos = wx.FlexGridSizer(rows=3, cols=2, vgap=10, hgap=10)
+		sizerCombos = wx.FlexGridSizer(rows=2, cols=2, vgap=10, hgap=10)
 		sizerTexts = wx.FlexGridSizer(rows=3, cols=2, vgap=10, hgap=5)
 		sizerFormat = wx.FlexGridSizer(rows=1, cols=3, hgap=10)
 		
@@ -307,47 +307,8 @@ class InputsPanel(wx.Panel):
 
 
 
-		lblAvg = wx.StaticText(self, label="Averaging Time")
-		#avgtimes = ['None', 'Max 1 hr', 'Max 8 hr', 'Max 24 h', 'Local Hours', 'Other']
-		avgtimes=Forcing.avgoptions
-		rsizer=wx.FlexGridSizer(rows=len(avgtimes),cols=2,hgap=5)
-		for lbl in avgtimes:
-			radioinput=wx.RadioButton(self, label=lbl, name="avgtimes")
-			radioinput.Bind(wx.EVT_RADIOBUTTON, self.chooseAveraging, radioinput)
-			rsizer.Add(radioinput)
-			avghelp = wx.StaticText(self, label="Help")
-			avghelp.SetForegroundColour((0,0,255))
-			font=avghelp.GetFont();
-			font.SetUnderlined(True)
-			avghelp.SetFont(font)
-			#avghelp.Bind(wx.EVT_LEFT_DOWN, self.ShowAvgHelp, lbl)
-			rsizer.Add(avghelp)
-
-		lbltimes = wx.StaticText(self, label="Use Hours:")
-		if parent.validator != None:
-			times_list = parent.validator.getTimes();
-		else:
-			times_list = []
-		self.times = wx.CheckListBox(self, size=(input_width, 6*dline), choices=times_list)
-		self.Bind(wx.EVT_CHECKLISTBOX, self.choseTimes, self.times)
-		self.times.Enable(False)
-
-
-		# Time (hour) Mask
-		time_warning=wx.StaticText(self, label="Note, there is currently no functionality to exclude specific days.")
-
-
-		sizerCombos.Add(lblAvg)
-		sizerCombos.Add(lbltimes)
-		sizerCombos.Add(rsizer)
-		sizerCombos.Add(self.times)
-
-		#sizerMain.Add(time_warning)
-
 		# Add combos
 		sizerMain.Add(sizerCombos)
-		# Add warning about time below
-		sizerMain.Add(time_warning)
 
 		# Shape file masks
 		lblmask=wx.StaticText(self, label="Special Mask (shapefile)\n(not implemented):")
@@ -395,21 +356,6 @@ class InputsPanel(wx.Panel):
 	def choseLayers(self, event):
 		self.parent.debug('Chose layers: [%s]' % ', '.join(map(str, self.layers.GetCheckedStrings())))
 
-	def chooseAveraging(self, event):
-		radioSelected = event.GetEventObject()
-		val = radioSelected.GetLabelText()
-		if val == "Other" or val == "Local Hours":
-			self.times.Enable(True)
-		else:
-			self.times.Enable(False)
-
-		self.avgoption = Val
-
-		event.Skip()
-
-	def choseTimes(self, event):
-		self.parent.debug('Chose times: [%s]' % ', '.join(map(str, self.times.GetCheckedStrings())))
-		event.Skip()
 
 	def chooseForce(self, event):
 		item_id = event.GetSelection()
@@ -472,19 +418,21 @@ class InputsPanel(wx.Panel):
 			self.layers.SetItems(layers_list)
 			self.layers.Check(0)
 
-			# Populate layers
+			# Populate times
 			if self.parent.validator != None:
-				times_list = self.parent.validator.getTimes();
+				times_list = self.parent.validator.getTimes()
 				self.parent.debug("Received times list: " + '[%s]' % ', '.join(map(str, times_list)))
 			else:
 				self.parent.warn("Cannot load times!")
 				times_list = []
 
-			self.times.Clear()
-			self.parent.debug("Setting times in combo box")
-			self.times.SetItems(times_list)
-			for i in range(0,len(times_list)):
-				self.times.Check(i)
+			self.times_list = times_list
+
+			#self.times.Clear()
+			#self.parent.debug("Setting times in combo box")
+			#self.times.SetItems(times_list)
+			#for i in range(0,len(times_list)):
+			#	self.times.Check(i)
 
 			# Enable run button
 			self.parent.runbtn.Enable(True)

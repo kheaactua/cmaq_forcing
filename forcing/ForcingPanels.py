@@ -5,7 +5,7 @@ import DoForce as df
 
 class ForcingPanelManager:
 	panels=['ForcingPanelBlank', 'ForcingPanelAverageConcentration',
-		   'ForcingPanelMortality', 'ForcingPanelRootSquare']
+		   'ForcingPanelMortality', 'ForcingPanelDistance']
 
 	@staticmethod
 	def getNames():
@@ -52,9 +52,16 @@ class ForcingPanel(wx.Panel):
 	# Forcing class to use
 	forcingClass=None
 
+	# The main frame
+	top = None
+
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
 		self.parent=parent
+
+		# Find the main frame
+		top = parent.FindWindowByName('TopFrame')
+		#print "\n\nDid we find top? ", top, "\n\n"
 
 		#self.Bind(wx.EVT_SIZE, self.OnReSize)
 
@@ -110,7 +117,99 @@ class ForcingPanelBlank(ForcingPanel):
 		sizer.Add(txt, 0, wx.EXPAND)
 		self.SetSizer(sizer)
 
-class ForcingPanelAverageConcentration(ForcingPanel):
+class ForcingPanelWithAveraging(ForcingPanel):
+	""" Most cost functions require the averaging, so putting this in as a class.
+		If theres another input common to almost all, but could be applied to a
+		class that doesn't need this, then it'll be time to jump into multiple
+		inheritance
+	"""
+
+	# The times CheckListBox
+	times = None
+
+	# Magic number used to size some inputs
+	input_width=180
+	# Magic number used to size line heights
+	dline = 18
+
+	def __init__(self, parent):
+		raise NotImplementedError( "Abstract method" )
+
+	def getAveragingControls(self):
+		""" Creates the averaging controls, and returns a sizer
+
+		Returns:
+		sizer - The controls in a sizer
+		"""
+
+		sizer = wx.BoxSizer(wx.VERTICAL)
+		sizerCombos = wx.FlexGridSizer(rows=1, cols=2, vgap=10, hgap=10)
+
+		lblAvg = wx.StaticText(self, label="Averaging Time")
+		#avgtimes = ['None', 'Max 1 hr', 'Max 8 hr', 'Max 24 h', 'Local Hours', 'Other']
+		avgtimes=df.Forcing.avgoptions
+		rsizer=wx.FlexGridSizer(rows=len(avgtimes),cols=2,hgap=5)
+		for lbl in avgtimes:
+			radioinput=wx.RadioButton(self, label=lbl, name="avgtimes")
+			radioinput.Bind(wx.EVT_RADIOBUTTON, self.chooseAveraging, radioinput)
+			rsizer.Add(radioinput)
+			avghelp = wx.StaticText(self, label="Help")
+			avghelp.SetForegroundColour((0,0,255))
+			font=avghelp.GetFont();
+			font.SetUnderlined(True)
+			avghelp.SetFont(font)
+			#avghelp.Bind(wx.EVT_LEFT_DOWN, self.ShowAvgHelp, lbl)
+			rsizer.Add(avghelp)
+
+		lbltimes = wx.StaticText(self, label="Use Hours:")
+		# HACK
+		# HACK
+		times_list=list(xrange(24))
+		for t in range(0, 24):
+			times_list[t]=str(t)
+		# HACK
+		# HACK
+		self.times = wx.CheckListBox(self, size=(self.input_width, 6*self.dline), choices=times_list)
+		self.Bind(wx.EVT_CHECKLISTBOX, self.choseTimes, self.times)
+		self.times.Enable(False)
+
+		sizerCombos.Add(lblAvg)
+		sizerCombos.Add(lbltimes)
+		sizerCombos.Add(rsizer)
+		sizerCombos.Add(self.times)
+
+		sizer.Add(sizerCombos)
+
+		# Time (hour) Mask
+		time_warning=wx.StaticText(self, label="Note, there is currently no functionality to exclude specific days.")
+
+		sizer.Add(time_warning)
+
+		return sizer
+
+	def getAveraging(self):
+		rstr=self.pan_inputs.avgoption
+		return rstr.split(' ')
+
+	def chooseAveraging(self, event):
+		radioSelected = event.GetEventObject()
+		val = radioSelected.GetLabelText()
+		if val == "Other" or val == "Local Hours":
+			self.times.Enable(True)
+		else:
+			self.times.Enable(False)
+
+		self.avgoption = val
+
+		event.Skip()
+
+	def choseTimes(self, event):
+		self.parent.debug('Chose times: [%s]' % ', '.join(map(str, self.times.GetCheckedStrings())))
+		event.Skip()
+
+
+
+class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 	# The name of the forcing function
 	name = "Average Concentration"
 
@@ -125,11 +224,9 @@ class ForcingPanelAverageConcentration(ForcingPanel):
 		mySize=self.parent.GetSize()
 		mySize[0]=mySize[0]*0.98
 
-		print "Mysize: ", mySize
-
-		sizer = wx.FlexGridSizer(rows=2, cols=1)
+		sizer = wx.FlexGridSizer(rows=3, cols=1)
 		sizerHead = wx.BoxSizer(wx.VERTICAL)
-		sizerOpts = wx.FlexGridSizer(rows=1, cols=2)
+		sizerOpts = wx.GridBagSizer(10,10)
 
 		"""
 		User Edit: Enter the title and description
@@ -139,7 +236,7 @@ class ForcingPanelAverageConcentration(ForcingPanel):
 		title_txt=self.name
 
 		# Description
-		descrip_txt="Nulla eget metus urna, ut convallis elit. Sed vitae sodales sem. Integer fermentum commodo erat sit amet interdum. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Phasellus at mi neque. Vestibulum porttitor elementum risus non auctor."
+		descrip_txt="Represents the spatial and temporal average of a particular species for the selected running period and layers in the previous step. The user should specify"
 
 
 		"""
@@ -164,9 +261,11 @@ class ForcingPanelAverageConcentration(ForcingPanel):
 		self.threshold = wx.TextCtrl(self, value="Threshold avg conc", size=(300,-1))
 
 		# Add Options to sizer
-		sizerOpts.Add(threshold_lbl, 1)
-		sizerOpts.Add(self.threshold, 2)
+		sizerOpts.Add(threshold_lbl, pos=(1,1))
+		sizerOpts.Add(self.threshold, pos=(2,1))
 
+		# Add averaging and time options
+		sizerOpts.Add(self.getAveragingControls(), pos=(3,1), span=(1,2))
 
 		"""
 		/User Edit
@@ -194,7 +293,7 @@ class ForcingPanelAverageConcentration(ForcingPanel):
 		for fname in concs:
 			produceForcingField(fname)
 
-class ForcingPanelMortality(ForcingPanel):
+class ForcingPanelMortality(ForcingPanelWithAveraging):
 	# The name of the forcing function
 	name = "Mortality/Marginal Damage"
 
@@ -275,9 +374,9 @@ class ForcingPanelMortality(ForcingPanel):
 
 
 
-class ForcingPanelRootSquare(ForcingPanel):
+class ForcingPanelDistance(ForcingPanelWithAveraging):
 	# The name of the forcing function
-	name = "Root Square"
+	name = "Distance"
 
 	# Whether this should appear in the user selection for forcing functions
 	appearInList=True
