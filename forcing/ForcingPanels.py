@@ -60,8 +60,7 @@ class ForcingPanel(wx.Panel):
 		self.parent=parent
 
 		# Find the main frame
-		top = parent.FindWindowByName('TopFrame')
-		#print "\n\nDid we find top? ", top, "\n\n"
+		self.top = parent.FindWindowByName('TopFrame')
 
 		#self.Bind(wx.EVT_SIZE, self.OnReSize)
 
@@ -162,13 +161,9 @@ class ForcingPanelWithAveraging(ForcingPanel):
 			rsizer.Add(avghelp)
 
 		lbltimes = wx.StaticText(self, label="Use Hours:")
-		# HACK
-		# HACK
-		times_list=list(xrange(24))
-		for t in range(0, 24):
-			times_list[t]=str(t)
-		# HACK
-		# HACK
+		# Take times from the top frame (it read them from the sample conc file)
+		times_list=self.top.times_list
+		print "Times_list: ", times_list
 		self.times = wx.CheckListBox(self, size=(self.input_width, 6*self.dline), choices=times_list)
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseTimes, self.times)
 		self.times.Enable(False)
@@ -222,7 +217,8 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		ForcingPanel.__init__(self, parent)
 
 		mySize=self.parent.GetSize()
-		mySize[0]=mySize[0]*0.98
+		#mySize[0]=mySize[0]*0.98
+		mySize[0]=300
 
 		sizer = wx.FlexGridSizer(rows=3, cols=1)
 		sizerHead = wx.BoxSizer(wx.VERTICAL)

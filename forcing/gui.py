@@ -90,7 +90,7 @@ class ForcingFrame(wx.Frame):
 		sizerAll.AddSpacer(5)
 		# Add logger
 		print "Forcing frame size: ", self.GetSize()
-		self.logger=wx.TextCtrl(self, size=(-1, 300), style=wx.TE_MULTILINE | wx.TE_READONLY)
+		self.logger=wx.TextCtrl(self, size=(-1, 200), style=wx.TE_MULTILINE | wx.TE_READONLY)
 		#sizerAll.Add(self.logger, proportion=1, flag=wx.EXPAND)
 		sizerAll.Add(self.logger, flag=wx.EXPAND)
 
@@ -157,8 +157,12 @@ class ForcingFrame(wx.Frame):
 		self.log(msg,self.LOG_ERROR)
 	def warn(self, msg):
 		self.log(msg,self.LOG_WARN)
-	def debug(self, msg):
-		self.log(msg,self.LOG_DEBUG)
+	def debug(self, msg, level=0):
+		# HACK
+		# Filter out high level (low importance) debug messages
+		if level<=1:
+		# /HACK
+			self.log(msg,self.LOG_DEBUG)
 	def help(self, msg):
 		self.log(msg,self.LOG_HELP)
 
@@ -396,25 +400,25 @@ class InputsPanel(wx.Panel):
 			# Populate species
 			if self.parent.validator != None:
 				species_list = self.parent.validator.getSpecies();
-				self.parent.debug("Received species list: " + '[%s]' % ', '.join(map(str, species_list)))
+				self.parent.debug("Received species list: " + '[%s]' % ', '.join(map(str, species_list)), 2)
 			else:
 				self.parent.warn("Cannot load species list!")
 				species_list = []
 
 			self.species.Clear()
-			self.parent.debug("Setting species in combo box")
+			self.parent.debug("Setting species in combo box", 2)
 			self.species.SetItems(species_list)
 
 			# Populate layers
 			if self.parent.validator != None:
 				layers_list = self.parent.validator.getLayers();
-				self.parent.debug("Received layers list: " + '[%s]' % ', '.join(map(str, layers_list)))
+				self.parent.debug("Received layers list: " + '[%s]' % ', '.join(map(str, layers_list)), 2)
 			else:
 				self.parent.warn("Cannot load layer list!")
 				layers_list = []
 
 			self.layers.Clear()
-			self.parent.debug("Setting layers in combo box")
+			self.parent.debug("Setting layers in combo box", 2)
 			self.layers.SetItems(layers_list)
 			self.layers.Check(0)
 
@@ -427,6 +431,7 @@ class InputsPanel(wx.Panel):
 				times_list = []
 
 			self.times_list = times_list
+			print "Set self.times_list = ", self.times_list
 
 			#self.times.Clear()
 			#self.parent.debug("Setting times in combo box")
