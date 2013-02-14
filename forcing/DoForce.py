@@ -217,6 +217,37 @@ class Forcing:
 				cfiles.append(DataFile(f, file_format=file_format))
 		return sorted(cfiles)
 
+	@staticmethod
+	def calcMovingAverage(data, winLen):
+		""" Calculate a sliding/moving window average over the data.
+
+		Keywords:
+		data - Data vector, should be (24 + winLen) elements in length
+		winLen - int size of window
+		"""
+
+		hours_in_day=24
+
+		winOverlap=winLen-1
+
+		dl=len(data)
+		proper_data_len=hours_in_day + winLen
+		if dl != proper_data_len:
+			raise RuntimeWarning("Invalid length of data.  Data should be %d elements for an %d-window.  Given %d."%(proper_data_len, winLen, dl))
+
+		y = np.zeros((1, hours_in_day))
+
+		i = winLen
+		j = 0
+		while i < dl:
+			print "i=%d, j=%d\n"%(i, j)
+			print "Window[%d:%d] (or hours [%d:%d]\n\n"%(i-winLen,winLen,i,2*winLen)
+			y[j] = sum(data[i-winLen:winLen])/winLen;
+			i += winLen - winOverlap
+			j=j+1
+
+		return y
+
 class DataFile:
 	""" Used encase we want any more info on the input files.
 	Currently, name, path and date are all we care about
