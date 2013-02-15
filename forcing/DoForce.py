@@ -217,32 +217,81 @@ class Forcing:
 				cfiles.append(DataFile(f, file_format=file_format))
 		return sorted(cfiles)
 
+
 	@staticmethod
-	def calcMovingAverage(data, winLen):
+	def prepareTimeVectorForAvg(yesterday, today, tomorrow, winLen=8, forwards_or_backwards = True):
+		""" Prepare a vector for a sliding window
+
+		Keywords:
+		winLen the size of the window
+		forwards_or_backwards: True means set it up for a forward avg
+		"""
+
+		if forwards_or_backwards:
+			# Forward
+			vec = np.concatenate([today, tomorrow[0:winLen]], axis=1)
+		else:
+			# Backward
+			l = len(yesterday)
+			vec = np.concatenate([yesterday[l:l-winLen], today], axis=1)
+
+		return vec
+
+	@staticmethod
+	def calcMovingAverage(data, winLen = 8, forwards_or_backwards = True):
 		""" Calculate a sliding/moving window average over the data.
 
 		Keywords:
-		data - Data vector, should be (24 + winLen) elements in length
+		data - Data vector.  If calculating forwards, this should have 24+winLen vals
+		                     hours are [0 1 2 3 ... 24 25 26 ..]
+		                     If calculating backwards, this should have winLen+24 vals
+		                     hours are [-3 -2 -1 0 1 2 3 ... 24]
 		winLen - int size of window
 		"""
 
-		hours_in_day=24
+# SHould modify this to use forwards_or_backwards
 
+		hours_in_day=24
+		# The algorithm we use has some options, this is just
+		# setting it to move one at a time
 		winOverlap=winLen-1
+
+
+#		# indexes for going data, loop should iterate only 24 times
+		if True:
+#		if forwards_or_backwards:
+			# Calculating forward
+			idx_start = 0
+#		else:
+#			# Calculating backwards
+#			idx_start = 0
+
+		# Our end index
+		idx_end   = idx_start+hours_in_day
+
 
 		dl=len(data)
 		proper_data_len=hours_in_day + winLen
 		if dl != proper_data_len:
 			raise RuntimeWarning("Invalid length of data.  Data should be %d elements for an %d-window.  Given %d."%(proper_data_len, winLen, dl))
 
-		y = np.zeros((1, hours_in_day))
+		y = []
 
-		i = winLen
+		i = idx_start
 		j = 0
-		while i < dl:
-			print "i=%d, j=%d\n"%(i, j)
-			print "Window[%d:%d] (or hours [%d:%d]\n\n"%(i-winLen,winLen,i,2*winLen)
-			y[j] = sum(data[i-winLen:winLen])/winLen;
+		#print "Data: ", data
+		while i < idx_end:
+			print "i=%0.2d, j=%0.2d"%(i, j)
+			if True:
+#			if forwards_or_backwards:
+				#print "Forward Window[%d:%d] (or hours [%d:%d])\n"%(i,i+winLen, i,i+winLen)
+				vec=data[i:i+winLen]
+				print "Stats of [%s]: Count: %d, Sum: %d, Avg: %f"%(', '.join(map(str, vec)), len(vec), sum(vec), float(sum(vec))/winLen)
+				y.append(float(sum(data[i:i+winLen]))/winLen)
+#			else:
+#				print "Backward Window[%d:%d] (or hours [%d:%d])\n\n"%(i-winLen,winLen,i,2*winLen)
+#				y[j] = sum(data[i-winLen:winLen])/winLen
+			
 			i += winLen - winOverlap
 			j=j+1
 
