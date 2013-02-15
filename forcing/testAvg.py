@@ -43,4 +43,5 @@ print "Compiled vector(len=%d): %s "%(len(vec), ', '.join(map(str, vec)))
 ##	#	print "%d %d"%(excel[i], threedays[j])
 
 avgs = Forcing.calcMovingAverage(vec)
+# Almost right
 print "Averages: ", avgs
