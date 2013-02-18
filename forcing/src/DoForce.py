@@ -11,17 +11,47 @@ def getForcingObject(ni,nj,nk,nt):
 
 # Abstract
 class Forcing:
+	""" Class set up to take in all required inputs and generate forcing fields.
+
+	    This class can handle different time averaging, and layer, [2d] domain, species
+	    and time masks.  This class is designed to be used with a CLI interface of a wxpython GUI.
+
+		Specific forcing functions are implemented by inheriting this class.
+
+		Usage example::
+
+		   f = ForceOnAverageConcentration()
+		   f.loadDims(sample_concentration_file_name)
+		   f.loadConcentrationFiles(concentration_files)
+		   f.maskLayers(layers_to_use)
+		   f.setAveraging("Max 8 hr")
+		   f.setSpecies("O3")
+		   f.produceForcingField()
+
+	"""
 
 	avgoptions=['None', 'Max 1 hr', 'Max 8 hr', 'Max 24 h', 'Local Hours', 'Other']
 
-	def __init__(self,ni,nj,nk,nt):
-		"""Initialize Forcing object
+	conc_files = []
+
+	def __init__(self,ni=0,nj=0,nk=0,nt=0):
+		""" Initialize Forcing object.  The inputs will typically be
+			read from a sample config file using loadDims(), so these
+		    inputs may be left blank.
 
 		Keyword Arguments:
-		ni -- Columns
-		nj -- Rows
-		nk -- Layers
-		nt -- Time steps
+
+		ni:*int*
+		   Columns
+
+		nj:*int*
+		   Rows
+
+		nk:*int*
+		   Layers
+
+		nt:*int*
+		   Time steps
 		"""
 
 		# Set up full dimensions
@@ -32,23 +62,29 @@ class Forcing:
 		self.nt=nt
 
 		# Initialize vectors, space is done differently
-		self.times = range(1,nt);
-		self.layers = range(1,nk);
+		self.times = range(1,nt)
+		self.layers = range(1,nk)
 
 		self.species = []
 
 		# Set a default mask of everything
-		self.space=np.ones((ni,nj));
+		self.space=np.ones((ni,nj))
+
+		# Empty set of concentration files
+		self.conc_files = []
+
 
 	@staticmethod
 	def loadDims(filename):
 		"""Load the dimensions from a netcdf file, then close the file
 
 		Keyword Arguments:
-		filename -- Netcdf file name
+
+		filename:*string*
+		   Netcdf file name
 
 		Returns:
-		dict of ni,nj,nk,nt
+		   dict of ni,nj,nk,nt
 		"""
 
 
@@ -76,18 +112,30 @@ class Forcing:
 			to be in the format something.DATE
 
 		Keyword Arguments:
-		conc -- The name of the concentration file
+
+		conc:*Datafile*
+		   Datafile of the concentration file
 
 		Returns:
-		Forcing file name
+		   Forcing file name
 		"""
 
 		# Implement this later..
 		raise NotImplementedError( "[TODO] Implement this" )
+
+		if not isinstance(conc, Datafile):
+			raise TypeError("Concentration input must be a data file")
+
 		return 'OutForcing.nc'
 
-	def setAveraging(self, option):
-		""" Set averaging option, e.g. max 8-hr, etc """
+	def setAveraging(self, avg):
+		""" Set averaging option, e.g. max 8-hr, etc
+
+		Keyword Arguments:
+
+		avg:*string*
+		   Any of the self.avgoptions values
+		"""
 		
 		self.averaging=option
 
@@ -95,7 +143,9 @@ class Forcing:
 		""" Set time mask
 
 		Keyword arguments:
-		mask -- vector of times that WILL be used
+
+		mask
+		   vector of times that WILL be used
 		"""
 		self.times=mask;
 
@@ -103,7 +153,9 @@ class Forcing:
 		""" Set layer mask
 
 		Keyword arguments:
-		mask -- vector of the layers that WILL be used
+
+		mask
+		   vector of the layers that WILL be used
 		"""
 
 		self.layers=mask;
@@ -112,7 +164,9 @@ class Forcing:
 		""" Set a grid mask
 
 		Keyword arguments:
-		mask -- (ni x nj) binary array.  1 means use, 0 means don't use
+
+		mask:*(ni x nj) binary array*
+		   1 means use, 0 means don't use
 		"""
 
 		raise NotImplementedError( "Not yet implemented" )
@@ -128,6 +182,7 @@ class Forcing:
 		""" Open files, prepare them, and call the writing function
 
 		Keyword Arguments:
+
 		conc_name  -- File name of concentration.  This has to be changed to a dict[today, tomorrow] so we can handle localtimes
 		"""
 
@@ -167,8 +222,11 @@ class Forcing:
 		""" Copy I/O Api attributes from NetCDF file into new file
 
 		Keyword Arguments:
-		src  -- Open netcdf source file
-		dest -- Open netcdf destination file
+
+		src:*string*
+		   Open netcdf source file
+		dest:*string*
+		   Open netcdf destination file
 		"""
 
 		# I/O Api attributes
@@ -194,9 +252,35 @@ class Forcing:
 		dest.sync()
 
 	@staticmethod
-	def FindFiles(file_format):
+	def FindFiles(file_format, date_min=None, date_max=None):
+		""" Find the concentration files that match the pattern/format provided
+
+		Keyword Arguments:
+
+		file_format
+		   A format containing wildcards (*) and date indicators,
+		   i.e. YYYY, YY, MM, DD or JJJ for Julian day
+
+		date_min:*Datetime*
+		   If set, this is the minimum accepted date
+
+		date_max:*Datetime*
+		   If set, this is the maximum accepted date
+
+		Returns:
+
+		*list[DataFile]*
+		   Returns a list of Datafiles
+		"""
+
 		print "[TODO] Fix path..."
 		files=listdir( "/mnt/mediasonic/opt/output/morteza/frc-8h-US/" ) # Obviously change this..
+
+
+		if date_min!=0 and not isinstance(date_min, DateTime):
+			raise TypeError("Minimum date may either be None or a DateTime")
+		if date_max!=0 and not isinstance(date_max, DateTime):
+			raise TypeError("Maximum date may either be None or a DateTime")
 
 		# Backup
 		reg=file_format
@@ -214,8 +298,31 @@ class Forcing:
 		for f in files:
 			if re.search(reg, f):
 				#print "%s matches"%f
-				cfiles.append(DataFile(f, file_format=file_format))
+				df=DataFile(f, file_format=file_format)
+				if date_min == None and date_max == None:
+					cfiles.append(df)
+				elif (date_min != None and df.date > date_min) or (date_max != None and df.date < date_max):
+					cfiles.append(df)
+
 		return sorted(cfiles)
+
+	def loadConcentrationFiles(files):
+		""" Load concentration files.  The old architecture assumed each file
+		    could be processed individually, but time zones and time averaging
+		    requires that "yesterday" and/or "tomorrow" are required, so now
+		    all files are loaded into the object and then iterated on.
+
+		Keyword Arguments:
+
+		files:*Datafile[]
+		   The concentration files to use.  It is assumed that
+		   file[n-1], file[n] and file[n+1] are continuous
+		   (yesterday, today and tomorrow.)  If there are gaps
+		   then the end results will be wrong, as averaging would
+		   not have been aware of the gaps.
+		"""
+
+		self.conc_files = files
 
 
 	@staticmethod
@@ -223,10 +330,14 @@ class Forcing:
 		""" Prepare a vector for a sliding window
 
 		Keywords:
-		yesterday, today, tomorrow - 24 element vectors starting at index 0
-		timezone - Shift the vector to reflect your timezone
-		winLen - the size of the window
-		forwards_or_backwards - True means set it up for a forward avg
+		yesterday[], today[], tomorrow[]
+		   24 element vectors starting at index 0
+		timezone:*int*
+		   Shift the vector to reflect your timezone
+		winLen:*int*
+		   the size of the window
+		forwards_or_backwards:*bool*
+		   True means set it up for a forward avg
 		"""
 
 		daylen=24
@@ -272,11 +383,13 @@ class Forcing:
 		""" Calculate a sliding/moving window average over the data.
 
 		Keywords:
-		data - Data vector.  If calculating forwards, this should have 24+winLen vals
-		                     hours are [0 1 2 3 ... 24 25 26 27 28 29 30]
-		                     If calculating backwards, this should have winLen+24 vals
-		                     hours are [-3 -2 -1 0 1 2 3 ... 23]
-		winLen - int size of window
+		data
+		   Data vector.  If calculating forwards, this should have 24+winLen vals
+		   hours are [0 1 2 3 ... 24 25 26 27 28 29 30]
+		   If calculating backwards, this should have winLen+24 vals
+		   hours are [-3 -2 -1 0 1 2 3 ... 23]
+		winLen:*int*
+		   size of window
 		"""
 
 # SHould modify this to use forwards_or_backwards
