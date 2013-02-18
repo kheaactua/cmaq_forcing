@@ -219,21 +219,22 @@ class Forcing:
 
 
 	@staticmethod
-	def prepareTimeVectorForAvg(yesterday, today, tomorrow, winLen=8, forwards_or_backwards = True):
+	def prepareTimeVectorForAvg(yesterday, today, tomorrow, timezone=0, winLen=8, forwards_or_backwards = True):
 		""" Prepare a vector for a sliding window
 
 		Keywords:
-		winLen the size of the window
-		forwards_or_backwards: True means set it up for a forward avg
+		timezone - Shift the vector to reflect your timezone
+		winLen - the size of the window
+		forwards_or_backwards - True means set it up for a forward avg
 		"""
 
 		if forwards_or_backwards:
 			# Forward
-			vec = np.concatenate([today, tomorrow[0:winLen]], axis=1)
+			vec = np.concatenate([today, tomorrow[0:winLen-1]], axis=1)
 		else:
 			# Backward
 			l = len(yesterday)
-			vec = np.concatenate([yesterday[l:l-winLen], today], axis=1)
+			vec = np.concatenate([yesterday[l-winLen+1:l], today], axis=1)
 
 		return vec
 
@@ -271,7 +272,7 @@ class Forcing:
 
 
 		dl=len(data)
-		proper_data_len=hours_in_day + winLen
+		proper_data_len=hours_in_day + winLen - 1
 		if dl != proper_data_len:
 			raise RuntimeWarning("Invalid length of data.  Data should be %d elements for an %d-window.  Given %d."%(proper_data_len, winLen, dl))
 
@@ -281,12 +282,12 @@ class Forcing:
 		j = 0
 		#print "Data: ", data
 		while i < idx_end:
-			print "i=%0.2d, j=%0.2d"%(i, j)
+			#print "i=%0.2d, j=%0.2d"%(i, j)
 			if True:
 #			if forwards_or_backwards:
 				#print "Forward Window[%d:%d] (or hours [%d:%d])\n"%(i,i+winLen, i,i+winLen)
 				vec=data[i:i+winLen]
-				print "Stats of [%s]: Count: %d, Sum: %d, Avg: %f"%(', '.join(map(str, vec)), len(vec), sum(vec), float(sum(vec))/winLen)
+				#print "Stats of [%s]: Count: %d, Sum: %d, Avg: %f"%(', '.join(map(str, vec)), len(vec), sum(vec), float(sum(vec))/winLen)
 				y.append(float(sum(data[i:i+winLen]))/winLen)
 #			else:
 #				print "Backward Window[%d:%d] (or hours [%d:%d])\n\n"%(i-winLen,winLen,i,2*winLen)
