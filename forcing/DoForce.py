@@ -228,13 +228,41 @@ class Forcing:
 		forwards_or_backwards - True means set it up for a forward avg
 		"""
 
+		daylen=24
+		if len(yesterday)<daylen:
+			print yesterday
+			raise ValueError("\"yesterday\" vector must be 24 elements long.  Given len=%d"%len(yesterday))
+		if len(today)<daylen:
+			raise ValueError("\"today\" vector must be 24 elements long.  Given len=%d"%len(today))
+		if len(tomorrow)<daylen:
+			raise ValueError("\"tomorrow\" vector must be 24 elements long.  Given len=%d"%len(tomorrow))
+
+		data=np.concatenate([yesterday, today, tomorrow])
+		#print "Combined Data:\n%s "%', '.join(map(str, data))
+
 		if forwards_or_backwards:
-			# Forward
-			vec = np.concatenate([today, tomorrow[0:winLen-1]], axis=1)
+			idx_start = 24
+			idx_end = 2*daylen+winLen-1
 		else:
-			# Backward
-			l = len(yesterday)
-			vec = np.concatenate([yesterday[l-winLen+1:l], today], axis=1)
+			idx_start = 24-winLen+1
+			idx_end = 2*daylen-1
+
+		# Apply time zone  i.e. Montreal is -5
+		idx_start = idx_start + timezone
+		idx_end   = idx_end   + timezone
+
+		print "Using indices: [%d, %d]"%(idx_start, idx_end)
+
+		## Old way, can't handle time zones
+		#if forwards_or_backwards:
+		#	# Forward
+		#	vec = np.concatenate([today, tomorrow[0:winLen-1]], axis=1)
+		#else:
+		#	# Backward
+		#	l = len(yesterday)
+		#	vec = np.concatenate([yesterday[l-winLen+1:l], today], axis=1)
+
+		vec = data[idx_start:idx_end]
 
 		return vec
 
@@ -244,9 +272,9 @@ class Forcing:
 
 		Keywords:
 		data - Data vector.  If calculating forwards, this should have 24+winLen vals
-		                     hours are [0 1 2 3 ... 24 25 26 ..]
+		                     hours are [0 1 2 3 ... 24 25 26 27 28 29 30]
 		                     If calculating backwards, this should have winLen+24 vals
-		                     hours are [-3 -2 -1 0 1 2 3 ... 24]
+		                     hours are [-3 -2 -1 0 1 2 3 ... 23]
 		winLen - int size of window
 		"""
 
