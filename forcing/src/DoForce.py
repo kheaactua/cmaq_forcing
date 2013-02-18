@@ -76,7 +76,7 @@ class Forcing:
 
 	@staticmethod
 	def loadDims(filename):
-		"""Load the dimensions from a netcdf file, then close the file
+		""" Load the dimensions from a netcdf file, then close the file
 
 		Keyword Arguments:
 
@@ -106,7 +106,7 @@ class Forcing:
 
 	@staticmethod
 	def genForceFileName(conc):
-		"""Generate a forcing file name based on the input file name.
+		""" Generate a forcing file name based on the input file name.
 			This is used because often CMAQ is cycled, and files are
 			named something.ACONC.DATE, and forcing files are expected
 			to be in the format something.DATE
@@ -178,43 +178,59 @@ class Forcing:
 		self.species=species
 
 
-	def produceForcingField(self, conc_name):
-		""" Open files, prepare them, and call the writing function
+	def produceForcingField(self):
+		""" Iterate through concentration files, create forcing output netcdf files, prepare them, and call the writing function """
+
+		#
+		# Iterate through concentration files
+
+		# Index of concentration file
+		i = 0
+		for conc in self.conc_files:
+
+			# Generate a file name
+			force_name=self.generateForceFileName(conc.name)
+
+			conc  = NetCDFFile(conc.name, 'r')
+			force = NetCDFFile(force_name, 'w')
+
+			# Copy over dimensions
+			self.copyDims(conc, force)
+
+			# Copy all the attributes over
+			self.copyIoapiProps(conc.name, force)
+	#		# Fix geocode data
+	#		# http://svn.asilika.com/svn/school/GEOG%205804%20-%20Introduction%20to%20GIS/Project/webservice/fixIoapiProjection.py
+	#		# fixIoapiSpatialInfo
+
+			# Generate a dict of forcing fields
+			flds = self.generateForcingFields(conc_idx=i);
+
+			# Create the forcing variable in the output file
+			for key in flds.keys():
+				var = force.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+				# Write forcing field
+				var.assignValue(flds[key])
+
+			# Close the file
+			force.close()
+
+			i++
+
+			# TEMP HACK
+			if i<2 or i>2:
+				break
+
+
+	def generateForcingFields(self, conc_idx):
+		""" Generate a forcing field.  *Abstract*
 
 		Keyword Arguments:
 
-		conc_name  -- File name of concentration.  This has to be changed to a dict[today, tomorrow] so we can handle localtimes
+		conc_idx:*int*
+		   Index of the concentration file in self.conc_files
+
 		"""
-
-		# Generate a file name
-		force_name=self.generateForceFileName(conc_name)
-
-		conc  = NetCDFFile(conc_name, 'r')
-		force = NetCDFFile(force_name, 'w')
-
-		# Copy over dimensions
-		self.copyDims(conc, force)
-
-		# Copy all the attributes over
-		self.copyIoapiProps(conc, force)
-#		# Fix geocode data
-#		# http://svn.asilika.com/svn/school/GEOG%205804%20-%20Introduction%20to%20GIS/Project/webservice/fixIoapiProjection.py
-#		# fixIoapiSpatialInfo
-
-		# Generate a dict of forcing fields
-		flds = self.generateForcingFields(conc);
-
-		# Create the forcing variable in the output file
-		for key in flds.keys():
-			var = force.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
-			# Write forcing field
-			var.assignValue(flds[key])
-
-		# Close the file
-		force.close()
-
-
-	def generateForcingFields(self, conc):
 		raise NotImplementedError( "Abstract method" )
 
 
@@ -244,7 +260,16 @@ class Forcing:
 		dest.sync()
 
 	def copyDims(self, src, dest):
-		""" Copy dimensions from src netcdf file to dest """
+		""" Copy dimensions from src netcdf file to dest.
+
+		Keyword Arguments:
+
+		src:*NetCDF*
+		   NetCDF source file
+
+		dest:*NetCDF*
+			NetCDF destinatin file
+		"""
 		dims = src.dimensions.keys()
 		for d in dims:
 			v = src.dimensions[d]
