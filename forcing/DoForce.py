@@ -223,6 +223,7 @@ class Forcing:
 		""" Prepare a vector for a sliding window
 
 		Keywords:
+		yesterday, today, tomorrow - 24 element vectors starting at index 0
 		timezone - Shift the vector to reflect your timezone
 		winLen - the size of the window
 		forwards_or_backwards - True means set it up for a forward avg
@@ -251,7 +252,7 @@ class Forcing:
 		idx_start = idx_start + timezone
 		idx_end   = idx_end   + timezone
 
-		print "Using indices: [%d, %d]"%(idx_start, idx_end)
+		#print "Using indices: [%d, %d]"%(idx_start, idx_end)
 
 		## Old way, can't handle time zones
 		#if forwards_or_backwards:
