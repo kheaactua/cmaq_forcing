@@ -1,6 +1,6 @@
 from Scientific.IO.NetCDF import NetCDFFile
 from numpy import shape
-from os import listdir
+import os
 import numpy as np
 import re
 import dateutil.parser as dparser
@@ -32,7 +32,11 @@ class Forcing:
 
 	avgoptions=['None', 'Max 1 hr', 'Max 8 hr', 'Max 24 h', 'Local Hours', 'Other']
 
+	# Concentration files
 	conc_files = []
+
+	# Concentration file path
+	conc_path = None
 
 	def __init__(self,ni=0,nj=0,nk=0,nt=0):
 		""" Initialize Forcing object.  The inputs will typically be
@@ -72,6 +76,7 @@ class Forcing:
 
 		# Empty set of concentration files
 		self.conc_files = []
+		self.conc_path  = None
 
 
 	@staticmethod
@@ -128,6 +133,10 @@ class Forcing:
 
 		return 'OutForcing.nc'
 
+	def setPath(self, path):
+		""" Path that'll be used to look for concentration files """
+		self.conc_path = path
+
 	def setAveraging(self, avg):
 		""" Set averaging option, e.g. max 8-hr, etc
 
@@ -178,8 +187,21 @@ class Forcing:
 		self.species=species
 
 
-	def produceForcingField(self):
-		""" Iterate through concentration files, create forcing output netcdf files, prepare them, and call the writing function """
+#	def produceForcingField(self, progressWindow = None, progress_callback = None):
+	def produceForcingField(self, progress_callback = None, dryrun = False):
+		""" Iterate through concentration files, create forcing output netcdf files, prepare them, and call the writing function
+
+		Keyword Arguments:
+
+		progressWindow:*ProgressFrame*
+
+		progress_callback:*function*
+		   Used to send back progress information.
+		   It'll call::
+
+		     progressWindow.progress_callback(percent_progress:float, current_file:Datafile)
+
+		"""
 
 		#
 		# Iterate through concentration files
@@ -191,31 +213,36 @@ class Forcing:
 			# Generate a file name
 			force_name=self.generateForceFileName(conc.name)
 
-			conc  = NetCDFFile(conc.name, 'r')
-			force = NetCDFFile(force_name, 'w')
+			if not dryrun:
+				conc  = NetCDFFile(conc.name, 'r')
+				force = NetCDFFile(force_name, 'w')
 
-			# Copy over dimensions
-			self.copyDims(conc, force)
+				# Copy over dimensions
+				self.copyDims(conc, force)
 
-			# Copy all the attributes over
-			self.copyIoapiProps(conc.name, force)
-	#		# Fix geocode data
-	#		# http://svn.asilika.com/svn/school/GEOG%205804%20-%20Introduction%20to%20GIS/Project/webservice/fixIoapiProjection.py
-	#		# fixIoapiSpatialInfo
+				# Copy all the attributes over
+				self.copyIoapiProps(conc.name, force)
+		#		# Fix geocode data
+		#		# http://svn.asilika.com/svn/school/GEOG%205804%20-%20Introduction%20to%20GIS/Project/webservice/fixIoapiProjection.py
+		#		# fixIoapiSpatialInfo
 
-			# Generate a dict of forcing fields
-			flds = self.generateForcingFields(conc_idx=i);
+				# Generate a dict of forcing fields
+				flds = self.generateForcingFields(conc_idx=i);
 
-			# Create the forcing variable in the output file
-			for key in flds.keys():
-				var = force.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
-				# Write forcing field
-				var.assignValue(flds[key])
+				# Create the forcing variable in the output file
+				for key in flds.keys():
+					var = force.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+					# Write forcing field
+					var.assignValue(flds[key])
+
+			
+			# Perform a call back to update the progress
+			progress_callback(float(i)/len(self.conc_files), conc)
 
 			# Close the file
 			force.close()
 
-			i++
+			i=i+1
 
 			# TEMP HACK
 			if i<2 or i>2:
@@ -277,12 +304,15 @@ class Forcing:
 		dest.sync()
 
 	@staticmethod
-	def FindFiles(file_format, date_min=None, date_max=None):
+	def FindFiles(path, file_format, date_min=None, date_max=None):
 		""" Find the concentration files that match the pattern/format provided
 
 		Keyword Arguments:
 
-		file_format
+		path:*string*
+			Path to look for files
+
+		file_format:*string*
 		   A format containing wildcards (*) and date indicators,
 		   i.e. YYYY, YY, MM, DD or JJJ for Julian day
 
@@ -298,8 +328,8 @@ class Forcing:
 		   Returns a list of Datafiles
 		"""
 
-		print "[TODO] Fix path..."
-		files=listdir( "/mnt/mediasonic/opt/output/morteza/frc-8h-US/" ) # Obviously change this..
+		#files=os.listdir( "/mnt/mediasonic/opt/output/morteza/frc-8h-US/" ) # Obviously change this..
+		files=os.listdir(path)
 
 
 		if date_min!=0 and not isinstance(date_min, DateTime):

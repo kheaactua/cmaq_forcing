@@ -24,6 +24,13 @@ class ForcingFrame(wx.Frame):
 	# that require time to be set
 	times_list = []
 
+	# Path where concnetration files can be found
+	conc_path = None
+
+	# Boundary dates on concentration files
+	date_min = None
+	date_max = None
+
 	#def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
 	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=(1000,0), size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name="TopFrame"):
 		wx.Frame.__init__(self, parent, id=id, title=title, pos=pos, size=size, style=style, name=name)
@@ -112,14 +119,16 @@ class ForcingFrame(wx.Frame):
 	These getters should be part of an interface
 	"""
 	def getSpecies(self):
-		rstr=self.pan_inputs.species.GetCheckedStrings()
-		self.debug("Returning species: %s"%rstr)
-		return rstr.split(' ')
+		species=list(self.pan_inputs.species.GetCheckedStrings())
+		self.debug("Returning species: %s"%', '.join(map(str, species)))
+		return species
 
 	def getLayers(self):
-		rstr=self.pan_inputs.layers.GetCheckedStrings()
-		self.debug("Returning layers: %s"%rstr)
-		return rstr.split(' ')
+		layers=list(self.pan_inputs.layers.GetCheckedStrings())
+		if layers[0] == ForcingValidator.LAY_SURFACE_NAME:
+			layers[0] = 1
+		self.debug("Returning layers: %s"%', '.join(map(str, layers)))
+		return layers
 
 	def getFileFormat(self):
 		rstr=self.pan_inputs.Format.GetValue()
@@ -166,6 +175,22 @@ class ForcingFrame(wx.Frame):
 	def help(self, msg):
 		self.log(msg,self.LOG_HELP)
 
+	#@staticmethod
+	def SimpleProgress(self, prog, filename):
+		""" Simple file to output progress to the logging pane
+
+		Keyword Arguments:
+
+		prog:*float*
+		   Percentage of files processed
+
+		filename:*Datafile*
+		   The file currently being worked on
+		"""
+
+		self.info("Progress: %f, file: %s"%(prog, filename.name))
+		
+
 	def runForce(self, event):
 		""" This is the function that should start everything """
 		print "[Todo]: call a forcingPanel.run(), which will call the right Forceing class in ForcingFunctions with all the info it needs."
@@ -204,6 +229,8 @@ class SampleConcPanel(wx.Panel):
 			paths = dlg.GetPaths()
 			path=paths[0]
 			self.parent.info("Sample concentration file: %s"%path)
+			self.parent.conc_path = os.path.dirname(os.path.abspath(path))
+			self.parent.debug("Concentration Path: %s"%self.parent.conc_path)
 			self.conc_file.SetValue(path)
 			if self.parent.validator == None:
 				try:
