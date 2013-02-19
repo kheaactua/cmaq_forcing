@@ -38,6 +38,9 @@ class Forcing:
 	# Concentration file path
 	conc_path = None
 
+	# True for forward, false for backward
+	default_averaging_direction = False
+
 	def __init__(self,ni=0,nj=0,nk=0,nt=0):
 		""" Initialize Forcing object.  The inputs will typically be
 			read from a sample config file using loadDims(), so these
@@ -385,6 +388,7 @@ class Forcing:
 		""" Prepare a vector for a sliding window
 
 		Keywords:
+
 		yesterday[], today[], tomorrow[]
 		   24 element vectors starting at index 0
 		timezone:*int*
@@ -393,6 +397,10 @@ class Forcing:
 		   the size of the window
 		forwards_or_backwards:*bool*
 		   True means set it up for a forward avg
+
+		Returns:
+
+		*float*[] of length 24+winLen
 		"""
 
 		daylen=24
@@ -480,20 +488,22 @@ class Forcing:
 		#print "Data: ", data
 		while i < idx_end:
 			#print "i=%0.2d, j=%0.2d"%(i, j)
-			if True:
-#			if forwards_or_backwards:
-				#print "Forward Window[%d:%d] (or hours [%d:%d])\n"%(i,i+winLen, i,i+winLen)
-				vec=data[i:i+winLen]
-				#print "Stats of [%s]: Count: %d, Sum: %d, Avg: %f"%(', '.join(map(str, vec)), len(vec), sum(vec), float(sum(vec))/winLen)
-				y.append(float(sum(data[i:i+winLen]))/winLen)
-#			else:
-#				print "Backward Window[%d:%d] (or hours [%d:%d])\n\n"%(i-winLen,winLen,i,2*winLen)
-#				y[j] = sum(data[i-winLen:winLen])/winLen
-			
+			#print "Forward Window[%d:%d] (or hours [%d:%d])\n"%(i,i+winLen, i,i+winLen)
+			vec=data[i:i+winLen]
+			#print "Stats of [%s]: Count: %d, Sum: %d, Avg: %f"%(', '.join(map(str, vec)), len(vec), sum(vec), float(sum(vec))/winLen)
+			y.append(float(sum(data[i:i+winLen]))/winLen)
+
 			i += winLen - winOverlap
 			j=j+1
 
 		return y
+
+	@staticmethod
+	def filterOutToday(vec, winLen = 8, forwards_or_backwards = Forcing.default_averaging_direction):
+		""" prepareTimeVectorForAvg returns a vector of length 24+winLen where today is either
+		    the first or last 24 elements, calcMovingAverage returns
+
+		"""
 
 class DataFile:
 	""" Used encase we want any more info on the input files.
