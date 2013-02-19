@@ -106,6 +106,7 @@ class ForcingFrame(wx.Frame):
 		self.SetSizerAndFit(sizerAll)
 
 		# TEMP!
+		self.conc_path = os.path.dirname(os.path.abspath('concentrations/CCTM.20070101'))
 		self.validator = ForcingValidator('conc.nc')
 		self.pan_inputs.Enable(True)
 
@@ -138,6 +139,10 @@ class ForcingFrame(wx.Frame):
 	def getTimes(self):
 		rstr=self.pan_inputs.times.GetCheckedStrings()
 		return rstr.split(' ')
+
+	def getFormat(self):
+		fmt=self.pan_inputs.Format.GetValue()
+		return fmt
 
 	def onKeyCombo(self, event):
 		self.Close()

@@ -110,7 +110,7 @@ class Forcing:
 		return dims
 
 	@staticmethod
-	def genForceFileName(conc):
+	def generateForceFileName(conc):
 		""" Generate a forcing file name based on the input file name.
 			This is used because often CMAQ is cycled, and files are
 			named something.ACONC.DATE, and forcing files are expected
@@ -146,7 +146,7 @@ class Forcing:
 		   Any of the self.avgoptions values
 		"""
 		
-		self.averaging=option
+		self.averaging=avg
 
 	def maskTimes(self, mask):
 		""" Set time mask
@@ -332,9 +332,9 @@ class Forcing:
 		files=os.listdir(path)
 
 
-		if date_min!=0 and not isinstance(date_min, DateTime):
+		if date_min!=None and not isinstance(date_min, datetime):
 			raise TypeError("Minimum date may either be None or a DateTime")
-		if date_max!=0 and not isinstance(date_max, DateTime):
+		if date_max!=None and not isinstance(date_max, datetime):
 			raise TypeError("Maximum date may either be None or a DateTime")
 
 		# Backup
@@ -361,7 +361,7 @@ class Forcing:
 
 		return sorted(cfiles)
 
-	def loadConcentrationFiles(files):
+	def loadConcentrationFiles(self, files):
 		""" Load concentration files.  The old architecture assumed each file
 		    could be processed individually, but time zones and time averaging
 		    requires that "yesterday" and/or "tomorrow" are required, so now

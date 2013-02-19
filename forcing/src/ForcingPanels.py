@@ -131,6 +131,9 @@ class ForcingPanelWithAveraging(ForcingPanel):
 	# Magic number used to size line heights
 	dline = 18
 
+	# Averaging options
+	avgoption = "None"
+
 	def __init__(self, parent):
 		raise NotImplementedError( "Abstract method" )
 
@@ -183,7 +186,7 @@ class ForcingPanelWithAveraging(ForcingPanel):
 		return sizer
 
 	def getAveraging(self):
-		rstr=self.top.pan_inputs.avgoption
+		rstr=self.avgoption
 		return rstr.split(' ')
 
 	def chooseAveraging(self, event):
@@ -289,13 +292,12 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		fc.setSpecies(common.getSpecies())
 		fc.setAveraging(self.getAveraging())
 
-		fformat = fc.getFormat()
-
+		fformat = common.getFormat()
 		concs=fc.FindFiles(self.top.conc_path, fformat, self.top.date_min, self.top.date_max)
 		fc.loadConcentrationFiles(concs)
 
 		# Produce the forcing feilds
-		produceForcingField(fname, self.top.SimpleProgress, dryrun=True)
+		fc.produceForcingField(self.top.SimpleProgress, dryrun=True)
 
 class ForcingPanelMortality(ForcingPanelWithAveraging):
 	# The name of the forcing function
