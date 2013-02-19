@@ -26,8 +26,17 @@ threedays=yesterday+today+tomorrow
 
 #print "\n" 
 
-vec = Forcing.prepareTimeVectorForAvg(yesterday, today, tomorrow, timezone=-5, forwards_or_backwards=True)
-print "Compiled vector(len=%d): %s "%(len(vec), ', '.join(map(str, vec)))
+#for i in range(0,23):
+#	yesterday[i] =-1*yesterday[i]
+#	tomorrow[i]  =-1*tomorrow[i]
+print "Yest: %s"%(', '.join(map(str, yesterday)))
+print "Toda: %s"%(', '.join(map(str, today)))
+print "Tomo: %s"%(', '.join(map(str, tomorrow)))
+print "\n"
+
+vec = Forcing.prepareTimeVectorForAvg(yesterday, today, tomorrow, timezone=-5)
+#vec = Forcing.prepareTimeVectorForAvg(yesterday, today, tomorrow)
+print "Compiled vector(len=%d): %s \n"%(len(vec), ', '.join(map(str, vec)))
 ##print "Triple check values"
 ##print vec
 ##print excel
@@ -44,5 +53,19 @@ print "Compiled vector(len=%d): %s "%(len(vec), ', '.join(map(str, vec)))
 ##	#	print "%d %d"%(excel[i], threedays[j])
 
 avgs = Forcing.calcMovingAverage(vec)
+if Forcing.default_averaging_direction == False:
+	avgs[0]=100
+
 # Almost right
-print "Averages: \n%s "%'\n'.join(map(str, avgs))
+print "Averages (len=%d):\n%s "%(len(avgs), '\n'.join(map(str, avgs)))
+
+# Where's the max?
+max_val=max(avgs)
+max_idx=avgs.index(max_val)
+
+print "Max: avgs[%d]=%f"%(max_idx, max_val)
+
+fs=Forcing.applyForceToAvgTime(avgs)
+print "Yest: %s"%(', '.join(map(str, fs['yesterday'])))
+print "Toda: %s"%(', '.join(map(str, fs['today'])))
+print "Tomo: %s"%(', '.join(map(str, fs['tomorrow'])))

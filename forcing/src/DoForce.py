@@ -41,6 +41,9 @@ class Forcing:
 	# True for forward, false for backward
 	default_averaging_direction = False
 
+	# Obvious, but used a lot
+	dayLen=24
+
 	def __init__(self,ni=0,nj=0,nk=0,nt=0):
 		""" Initialize Forcing object.  The inputs will typically be
 			read from a sample config file using loadDims(), so these
@@ -384,7 +387,7 @@ class Forcing:
 
 
 	@staticmethod
-	def prepareTimeVectorForAvg(yesterday, today, tomorrow, timezone=0, winLen=8, forwards_or_backwards = True):
+	def prepareTimeVectorForAvg(yesterday, today, tomorrow, timezone=0, winLen=8, forwards_or_backwards = default_averaging_direction):
 		""" Prepare a vector for a sliding window
 
 		Keywords:
@@ -400,49 +403,41 @@ class Forcing:
 
 		Returns:
 
-		*float*[] of length 24+winLen
+		*float*[] of length 24+winLen:
+		   The values to be averaged adjusted for whether we're calculating
+		   forwards or backwards.
 		"""
 
-		daylen=24
-		if len(yesterday)<daylen:
+		if len(yesterday)<Forcing.dayLen:
 			print yesterday
 			raise ValueError("\"yesterday\" vector must be 24 elements long.  Given len=%d"%len(yesterday))
-		if len(today)<daylen:
+		if len(today)<Forcing.dayLen:
 			raise ValueError("\"today\" vector must be 24 elements long.  Given len=%d"%len(today))
-		if len(tomorrow)<daylen:
+		if len(tomorrow)<Forcing.dayLen:
 			raise ValueError("\"tomorrow\" vector must be 24 elements long.  Given len=%d"%len(tomorrow))
 
 		data=np.concatenate([yesterday, today, tomorrow])
 		#print "Combined Data:\n%s "%', '.join(map(str, data))
 
 		if forwards_or_backwards:
-			idx_start = 24
-			idx_end = 2*daylen+winLen-1
+			# Moving forward
+			idx_start = Forcing.dayLen
+			idx_end = 2*Forcing.dayLen+winLen-1
 		else:
-			idx_start = 24-winLen+1
-			idx_end = 2*daylen-1
+			# Moving backward
+			idx_start = Forcing.dayLen-winLen+1
+			idx_end = 2*Forcing.dayLen
 
 		# Apply time zone  i.e. Montreal is -5
 		idx_start = idx_start + timezone
 		idx_end   = idx_end   + timezone
-
-		#print "Using indices: [%d, %d]"%(idx_start, idx_end)
-
-		## Old way, can't handle time zones
-		#if forwards_or_backwards:
-		#	# Forward
-		#	vec = np.concatenate([today, tomorrow[0:winLen-1]], axis=1)
-		#else:
-		#	# Backward
-		#	l = len(yesterday)
-		#	vec = np.concatenate([yesterday[l-winLen+1:l], today], axis=1)
 
 		vec = data[idx_start:idx_end]
 
 		return vec
 
 	@staticmethod
-	def calcMovingAverage(data, winLen = 8, forwards_or_backwards = True):
+	def calcMovingAverage(data, winLen = 8):
 		""" Calculate a sliding/moving window average over the data.
 
 		Keywords:
@@ -453,57 +448,88 @@ class Forcing:
 		   hours are [-3 -2 -1 0 1 2 3 ... 23]
 		winLen:*int*
 		   size of window
+
+		Returns:
+
+		*float*[]: Float representing TODAY's X hour averages.
 		"""
 
-# SHould modify this to use forwards_or_backwards
-
-		hours_in_day=24
 		# The algorithm we use has some options, this is just
 		# setting it to move one at a time
 		winOverlap=winLen-1
 
-
-#		# indexes for going data, loop should iterate only 24 times
-		if True:
-#		if forwards_or_backwards:
-			# Calculating forward
-			idx_start = 0
-#		else:
-#			# Calculating backwards
-#			idx_start = 0
-
-		# Our end index
-		idx_end   = idx_start+hours_in_day
-
-
 		dl=len(data)
-		proper_data_len=hours_in_day + winLen - 1
+		proper_data_len=Forcing.dayLen + winLen - 1
 		if dl != proper_data_len:
 			raise RuntimeWarning("Invalid length of data.  Data should be %d elements for an %d-window.  Given %d."%(proper_data_len, winLen, dl))
 
 		y = []
 
-		i = idx_start
-		j = 0
-		#print "Data: ", data
-		while i < idx_end:
-			#print "i=%0.2d, j=%0.2d"%(i, j)
+		i = 0
+		# Loop over 24 hours.  Recall, prepareTimeVectorForAvg already accounted for wether we are counting
+		# forwards or backwards
+		while i < Forcing.dayLen:
+			#print "i=%0.2d"%(i)
 			#print "Forward Window[%d:%d] (or hours [%d:%d])\n"%(i,i+winLen, i,i+winLen)
 			vec=data[i:i+winLen]
 			#print "Stats of [%s]: Count: %d, Sum: %d, Avg: %f"%(', '.join(map(str, vec)), len(vec), sum(vec), float(sum(vec))/winLen)
 			y.append(float(sum(data[i:i+winLen]))/winLen)
 
 			i += winLen - winOverlap
-			j=j+1
 
 		return y
 
 	@staticmethod
-	def filterOutToday(vec, winLen = 8, forwards_or_backwards = Forcing.default_averaging_direction):
-		""" prepareTimeVectorForAvg returns a vector of length 24+winLen where today is either
-		    the first or last 24 elements, calcMovingAverage returns
+	def applyForceToAvgTime(avgs_today, winLen=8, forwards_or_backwards = default_averaging_direction):
+		""" Apply the forcing terms to the max X-hour average.
 
+		Returns:
+
+		*dict[yesterday[], today[], tomorrow[]]*:
+		   Forcing terms to be applied to yesterday, today and today.  For instance, if the max
+		   occured right in the middle of today, say at noon (and we're calculating forward), then
+		   12:00-20:00 will have a value of 1/8 (say winLen==8)
+		   The max could happen at the start of end of the day, where it would cause forcing in
+		   yesterday or today.. So the outputs (yesterday, tomorrow) can be added to whatever
+		   those values happen to be when this is called.
 		"""
+		   
+
+		#data=np.concatenate([yesterday, today, tomorrow])
+		forcing=np.zeros(Forcing.dayLen*3)
+
+		# Set up 3 day vector of averages, probably a slow way, but
+		# for now will help keep track of indicies
+		avgs=np.zeros(Forcing.dayLen*3)
+		# I know it seems like it should be to Forcing.dayLen*2-1... but the way it is
+		# is myteriously correct..
+		avgs[Forcing.dayLen:Forcing.dayLen*2]=avgs_today
+
+		#print "\n\nTesting.. Averages (len=%d):\n%s "%(len(avgs_today), ', '.join(map(str, avgs_today)))
+		#i = 0
+		#for v in avgs:
+		#	if i%24==0 and i!=0:
+		#		print "\n"
+		#	print "%2d: %2f"%(i,v)
+		#	i = i+1
+
+
+		# Where's the max?
+		#max_val=max(avgs.all())
+		#max_idx=avgs.index(max_val)
+		max_idx=avgs.argmax()	
+
+		if forwards_or_backwards == True:
+			# Moving forward
+			forcing[max_idx-1:max_idx+winLen-1] = float(1)/winLen
+		else:
+			forcing[max_idx-winLen:max_idx] = float(1)/winLen
+
+		yesterday = forcing[0:Forcing.dayLen-1]
+		today = forcing[Forcing.dayLen:Forcing.dayLen*2-1]
+		tomorrow = forcing[Forcing.dayLen*2:]
+
+		return {'yesterday': yesterday, 'today': today, 'tomorrow': tomorrow}
 
 class DataFile:
 	""" Used encase we want any more info on the input files.
