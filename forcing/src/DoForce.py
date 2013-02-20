@@ -554,10 +554,10 @@ class DataFile:
 				# Meh
 				day_is_first=None
 
-			print "Day is first? ", day_is_first
+			#print "Day is first? ", day_is_first
 			self.date=dparser.parse(filename, fuzzy=True, dayfirst=day_is_first)
 		except ValueError as e:
-			print "Manually interpreting %s"%filename
+			print "Manually interpreting %s.  Should probably just open it as a NetCDF file"%filename
 
 			# YYYYMMDD
 			match = re.match(r'.*[^\d]\d{4}\d{2}\d{2}.*', filename)
