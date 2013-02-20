@@ -60,8 +60,7 @@ class ForcingPanel(wx.Panel):
 		self.parent=parent
 
 		# Find the main frame
-		top = parent.FindWindowByName('TopFrame')
-		#print "\n\nDid we find top? ", top, "\n\n"
+		self.top = parent.FindWindowByName('TopFrame')
 
 		#self.Bind(wx.EVT_SIZE, self.OnReSize)
 
@@ -132,6 +131,9 @@ class ForcingPanelWithAveraging(ForcingPanel):
 	# Magic number used to size line heights
 	dline = 18
 
+	# Averaging options
+	avgoption = "None"
+
 	def __init__(self, parent):
 		raise NotImplementedError( "Abstract method" )
 
@@ -162,13 +164,9 @@ class ForcingPanelWithAveraging(ForcingPanel):
 			rsizer.Add(avghelp)
 
 		lbltimes = wx.StaticText(self, label="Use Hours:")
-		# HACK
-		# HACK
-		times_list=list(xrange(24))
-		for t in range(0, 24):
-			times_list[t]=str(t)
-		# HACK
-		# HACK
+		# Take times from the top frame (it read them from the sample conc file)
+		times_list=self.top.times_list
+		print "Times_list: ", times_list
 		self.times = wx.CheckListBox(self, size=(self.input_width, 6*self.dline), choices=times_list)
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseTimes, self.times)
 		self.times.Enable(False)
@@ -188,7 +186,7 @@ class ForcingPanelWithAveraging(ForcingPanel):
 		return sizer
 
 	def getAveraging(self):
-		rstr=self.pan_inputs.avgoption
+		rstr=self.avgoption
 		return rstr.split(' ')
 
 	def chooseAveraging(self, event):
@@ -216,13 +214,17 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 	# Whether this should appear in the user selection for forcing functions
 	appearInList=True
 
-	forcingClass=f.ForceOnAverageConcentration
+	forcingClass = None
 
 	def __init__(self, parent):
 		ForcingPanel.__init__(self, parent)
 
+		# Get an instance of our forcing class
+		self.forcingClass=f.ForceOnAverageConcentration()
+
 		mySize=self.parent.GetSize()
-		mySize[0]=mySize[0]*0.98
+		#mySize[0]=mySize[0]*0.98
+		mySize[0]=300
 
 		sizer = wx.FlexGridSizer(rows=3, cols=1)
 		sizerHead = wx.BoxSizer(wx.VERTICAL)
@@ -283,15 +285,19 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		fc = self.forcingClass
 
 		# Get all the info we need
+		print "fc: ", fc
+		layers = common.getLayers()
+		print "layers: ", layers
 		fc.maskLayers(common.getLayers())
 		fc.setSpecies(common.getSpecies())
-		fc.setAveraging(common.getAveraging())
+		fc.setAveraging(self.getAveraging())
 
-		fformat = fc.getFormat()
+		fformat = common.getFormat()
+		concs=fc.FindFiles(self.top.conc_path, fformat, self.top.date_min, self.top.date_max)
+		fc.loadConcentrationFiles(concs)
 
-		concs=fc.FindFiles(fformat)
-		for fname in concs:
-			produceForcingField(fname)
+		# Produce the forcing feilds
+		fc.produceForcingField(self.top.SimpleProgress, dryrun=True)
 
 class ForcingPanelMortality(ForcingPanelWithAveraging):
 	# The name of the forcing function

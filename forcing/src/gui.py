@@ -24,6 +24,13 @@ class ForcingFrame(wx.Frame):
 	# that require time to be set
 	times_list = []
 
+	# Path where concnetration files can be found
+	conc_path = None
+
+	# Boundary dates on concentration files
+	date_min = None
+	date_max = None
+
 	#def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
 	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=(1000,0), size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name="TopFrame"):
 		wx.Frame.__init__(self, parent, id=id, title=title, pos=pos, size=size, style=style, name=name)
@@ -90,7 +97,7 @@ class ForcingFrame(wx.Frame):
 		sizerAll.AddSpacer(5)
 		# Add logger
 		print "Forcing frame size: ", self.GetSize()
-		self.logger=wx.TextCtrl(self, size=(-1, 300), style=wx.TE_MULTILINE | wx.TE_READONLY)
+		self.logger=wx.TextCtrl(self, size=(-1, 200), style=wx.TE_MULTILINE | wx.TE_READONLY)
 		#sizerAll.Add(self.logger, proportion=1, flag=wx.EXPAND)
 		sizerAll.Add(self.logger, flag=wx.EXPAND)
 
@@ -99,6 +106,7 @@ class ForcingFrame(wx.Frame):
 		self.SetSizerAndFit(sizerAll)
 
 		# TEMP!
+		self.conc_path = os.path.dirname(os.path.abspath('concentrations/CCTM.20070101'))
 		self.validator = ForcingValidator('conc.nc')
 		self.pan_inputs.Enable(True)
 
@@ -112,14 +120,16 @@ class ForcingFrame(wx.Frame):
 	These getters should be part of an interface
 	"""
 	def getSpecies(self):
-		rstr=self.pan_inputs.species.GetCheckedStrings()
-		self.debug("Returning species: %s"%rstr)
-		return rstr.split(' ')
+		species=list(self.pan_inputs.species.GetCheckedStrings())
+		self.debug("Returning species: %s"%', '.join(map(str, species)))
+		return species
 
 	def getLayers(self):
-		rstr=self.pan_inputs.layers.GetCheckedStrings()
-		self.debug("Returning layers: %s"%rstr)
-		return rstr.split(' ')
+		layers=list(self.pan_inputs.layers.GetCheckedStrings())
+		if layers[0] == ForcingValidator.LAY_SURFACE_NAME:
+			layers[0] = 1
+		self.debug("Returning layers: %s"%', '.join(map(str, layers)))
+		return layers
 
 	def getFileFormat(self):
 		rstr=self.pan_inputs.Format.GetValue()
@@ -129,6 +139,10 @@ class ForcingFrame(wx.Frame):
 	def getTimes(self):
 		rstr=self.pan_inputs.times.GetCheckedStrings()
 		return rstr.split(' ')
+
+	def getFormat(self):
+		fmt=self.pan_inputs.Format.GetValue()
+		return fmt
 
 	def onKeyCombo(self, event):
 		self.Close()
@@ -157,10 +171,30 @@ class ForcingFrame(wx.Frame):
 		self.log(msg,self.LOG_ERROR)
 	def warn(self, msg):
 		self.log(msg,self.LOG_WARN)
-	def debug(self, msg):
-		self.log(msg,self.LOG_DEBUG)
+	def debug(self, msg, level=0):
+		# HACK
+		# Filter out high level (low importance) debug messages
+		if level<=1:
+		# /HACK
+			self.log(msg,self.LOG_DEBUG)
 	def help(self, msg):
 		self.log(msg,self.LOG_HELP)
+
+	#@staticmethod
+	def SimpleProgress(self, prog, filename):
+		""" Simple file to output progress to the logging pane
+
+		Keyword Arguments:
+
+		prog:*float*
+		   Percentage of files processed
+
+		filename:*Datafile*
+		   The file currently being worked on
+		"""
+
+		self.info("Progress: %f, file: %s"%(prog, filename.name))
+		
 
 	def runForce(self, event):
 		""" This is the function that should start everything """
@@ -200,6 +234,8 @@ class SampleConcPanel(wx.Panel):
 			paths = dlg.GetPaths()
 			path=paths[0]
 			self.parent.info("Sample concentration file: %s"%path)
+			self.parent.conc_path = os.path.dirname(os.path.abspath(path))
+			self.parent.debug("Concentration Path: %s"%self.parent.conc_path)
 			self.conc_file.SetValue(path)
 			if self.parent.validator == None:
 				try:
@@ -396,25 +432,25 @@ class InputsPanel(wx.Panel):
 			# Populate species
 			if self.parent.validator != None:
 				species_list = self.parent.validator.getSpecies();
-				self.parent.debug("Received species list: " + '[%s]' % ', '.join(map(str, species_list)))
+				self.parent.debug("Received species list: " + '[%s]' % ', '.join(map(str, species_list)), 2)
 			else:
 				self.parent.warn("Cannot load species list!")
 				species_list = []
 
 			self.species.Clear()
-			self.parent.debug("Setting species in combo box")
+			self.parent.debug("Setting species in combo box", 2)
 			self.species.SetItems(species_list)
 
 			# Populate layers
 			if self.parent.validator != None:
 				layers_list = self.parent.validator.getLayers();
-				self.parent.debug("Received layers list: " + '[%s]' % ', '.join(map(str, layers_list)))
+				self.parent.debug("Received layers list: " + '[%s]' % ', '.join(map(str, layers_list)), 2)
 			else:
 				self.parent.warn("Cannot load layer list!")
 				layers_list = []
 
 			self.layers.Clear()
-			self.parent.debug("Setting layers in combo box")
+			self.parent.debug("Setting layers in combo box", 2)
 			self.layers.SetItems(layers_list)
 			self.layers.Check(0)
 
@@ -427,6 +463,7 @@ class InputsPanel(wx.Panel):
 				times_list = []
 
 			self.times_list = times_list
+			print "Set self.times_list = ", self.times_list
 
 			#self.times.Clear()
 			#self.parent.debug("Setting times in combo box")
