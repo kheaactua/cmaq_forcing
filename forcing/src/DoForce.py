@@ -361,9 +361,8 @@ class Forcing:
 		#files=os.listdir( "/mnt/mediasonic/opt/output/morteza/frc-8h-US/" ) # Obviously change this..
 		files=os.listdir(path)
 
-
 		if date_min!=None and not isinstance(date_min, datetime):
-			raise TypeError("Minimum date may either be None or a DateTime")
+			raise TypeError("Minimum date may either be None or a DateTime, currently %s"%datetime)
 		if date_max!=None and not isinstance(date_max, datetime):
 			raise TypeError("Maximum date may either be None or a DateTime")
 
@@ -578,7 +577,7 @@ class DataFile:
 				# Meh
 				day_is_first=None
 
-			print "Day is first? ", day_is_first
+			#print "Day is first? ", day_is_first
 			self.date=dparser.parse(filename, fuzzy=True, dayfirst=day_is_first)
 		except ValueError as e:
 			print "Manually interpreting %s"%filename
