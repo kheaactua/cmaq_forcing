@@ -40,7 +40,7 @@ class ForcingValidator:
 		year=int(str(sdate[0])[:4])
 		jday=int(str(sdate[0])[4:])
 
-		date = datetime.date(year, 1, 1)
+		date = datetime.datetime(year, 1, 1)
 		days = datetime.timedelta(days=jday-1) # -1 because we started at day 1
 		date=date+days
 

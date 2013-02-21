@@ -144,20 +144,26 @@ class Forcing:
 		   Forcing file name
 		"""
 
+		if not isinstance(conc, DataFile):
+			raise TypeError("Concentration input must be a data file")
+
 		if fmt == None:
 			fmt = self.forceFileOutputFormat
 
 		if fmt == None:
 			raise ValueError( "Output file format not specified.")
 
+		# Start replacing stuff..
+		name = conc.name
+		date = conc.date
 
-		# Implement this later..
-		raise NotImplementedError( "[TODO] Implement this" )
+		name = re.sub(r'YYYY', str(date.year), name)
+		name = re.sub(r'YY',   str(date.year)[2:], name)
+		name = re.sub(r'MM',   str(date.month), name)
+		name = re.sub(r'DD',   str(date.month), name)
+		# put jul date in
 
-		if not isinstance(conc, Datafile):
-			raise TypeError("Concentration input must be a data file")
-
-		return 'OutForcing.nc'
+		return name
 
 	def setPath(self, path):
 		""" Path that'll be used to look for concentration files """
@@ -237,11 +243,12 @@ class Forcing:
 		# Iterate through concentration files
 
 		# Index of concentration file
-		i = 0
+		i = 1
+		print "Looping through... ", self.conc_files
 		for conc in self.conc_files:
 
 			# Generate a file name
-			force_name=self.generateForceFileName(conc.name)
+			force_name=self.generateForceFileName(conc)
 
 			if not dryrun:
 				conc  = NetCDFFile(conc.name, 'r')
@@ -265,18 +272,18 @@ class Forcing:
 					# Write forcing field
 					var.assignValue(flds[key])
 
+				# Close the file
+				force.close()
 			
 			# Perform a call back to update the progress
 			progress_callback(float(i)/len(self.conc_files), conc)
 
-			# Close the file
-			force.close()
 
 			i=i+1
 
-			# TEMP HACK
-			if i<2 or i>2:
-				break
+			## TEMP HACK
+			#if i<2 or i>2:
+			#	break
 
 
 	def generateForcingFields(self, conc_idx):
@@ -361,10 +368,10 @@ class Forcing:
 		#files=os.listdir( "/mnt/mediasonic/opt/output/morteza/frc-8h-US/" ) # Obviously change this..
 		files=os.listdir(path)
 
-		if date_min!=None and not isinstance(date_min, datetime):
-			raise TypeError("Minimum date may either be None or a DateTime, currently %s"%datetime)
-		if date_max!=None and not isinstance(date_max, datetime):
-			raise TypeError("Maximum date may either be None or a DateTime")
+		if date_min!=None and not isinstance(date_min, date):
+			raise TypeError("Minimum date may either be None or a date, currently %s, type(date_min)=%s, isinstance(date_min, date)=%s"%(datetime, type(date_min), isinstance(date_min, date)))
+		if date_max!=None and not isinstance(date_max, date):
+			raise TypeError("Maximum date may either be None or a date")
 
 		# Backup
 		reg=file_format
@@ -383,6 +390,7 @@ class Forcing:
 			if re.search(reg, f):
 				#print "%s matches"%f
 				df=DataFile(f, file_format=file_format)
+				print "type(df.date)=%s, type(date_min)=%s"%(type(df.date), type(date_min))
 				if date_min == None and date_max == None:
 					cfiles.append(df)
 				elif (date_min != None and df.date > date_min) or (date_max != None and df.date < date_max):
@@ -598,3 +606,17 @@ class DataFile:
 
 	def __str__(self):
 		return self.name
+
+def datetimeE(datetime):
+	""" Extends datetime.datetime by adding juldate operators """
+
+	_julday = -1
+
+	@property
+	def julday(self):
+		# DEFINITELY NOT DONE
+		return self._julday
+
+	def SetJulDay(self, julday, year):
+		raise NotImplementedError( "Not yet implemented" )
+

@@ -33,6 +33,10 @@ class ForcingFrame(wx.Frame):
 	date_min = None
 	date_max = None
 
+	# Forcing file format
+	OutFormat = "Force.TYPE.YYYYMMDD"
+	
+
 	#def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
 	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=(1000,0), size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name="TopFrame"):
 		wx.Frame.__init__(self, parent, id=id, title=title, pos=pos, size=size, style=style, name=name)
@@ -113,6 +117,7 @@ class ForcingFrame(wx.Frame):
 		self.date_min  = self.validator.getDate()
 		self.date_max  = self.validator.getDate() + datetime.timedelta(days=2)
 		self.debug("Setting min date to sample conc date, i.e. %s"%self.date_min)
+		print "type(self.date_min) = %s "%(type(self.date_min))
 		self.pan_inputs.Enable(True)
 
 	"""
@@ -148,6 +153,9 @@ class ForcingFrame(wx.Frame):
 	def getFormat(self):
 		fmt=self.pan_inputs.Format.GetValue()
 		return fmt
+
+	def getOutputFormat(self):
+		return self.OutFormat
 
 	def onKeyCombo(self, event):
 		self.Close()
@@ -345,7 +353,7 @@ class InputsPanel(wx.Panel):
 		sizerMain.Add(wx.StaticText(self, label="Enter output format"))
 		sizerOFormat = wx.FlexGridSizer(rows=1, cols=2, vgap=5, hgap=5)
 		sizerOFormat.Add(wx.StaticText(self, label="Format:"))
-		self.Out_Format = wx.TextCtrl(self, value="Force.TYPE.YYYYMMDD", size=(input_width,-1))
+		self.Out_Format = wx.TextCtrl(self, value=self.parent.OutFormat, size=(input_width,-1))
 		sizerOFormat.Add(self.Out_Format)
 		sizerMain.Add(sizerOFormat)	
 
