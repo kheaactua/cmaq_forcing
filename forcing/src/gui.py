@@ -211,7 +211,7 @@ class ForcingFrame(wx.Frame):
 
 	def runForce(self, event):
 		""" This is the function that should start everything """
-		print "[Todo]: call a forcingPanel.run(), which will call the right Forceing class in ForcingFunctions with all the info it needs."
+		#print "[Todo]: call a forcingPanel.run(), which will call the right Forcing class in ForcingFunctions with all the info it needs."
 
 		self.pan_force.runForce(self)
 

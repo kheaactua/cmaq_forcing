@@ -30,7 +30,7 @@ class Forcing:
 
 	"""
 
-	avgoptions=['None', 'Max 1 hr', 'Max 8 hr', 'Max 24 h', 'Local Hours', 'Other']
+	avgoptions={'AVG_NONE': 'None', 'AVG_MAX': 'Max 1 hr', 'AVG_MAX8': 'Max 8 hr', 'AVG_MAX24': 'Max 24 h', 'AVG_MASK': 'Local Hours'}
 
 	# Concentration files
 	conc_files = []
@@ -90,7 +90,8 @@ class Forcing:
 
 	@staticmethod
 	def loadDims(filename):
-		""" Load the dimensions from a netcdf file, then close the file
+		""" Load the dimensions from a netcdf file, then close the file.
+		    Validator initializer also does this.
 
 		Keyword Arguments:
 
@@ -141,7 +142,7 @@ class Forcing:
 
 
 		Returns:
-		   Forcing file name
+		   *string* Forcing file name
 		"""
 
 		if not isinstance(conc, Datafile):
@@ -181,8 +182,12 @@ class Forcing:
 		avg:*string*
 		   Any of the self.avgoptions values
 		"""
-		
-		self.averaging=avg
+
+		for key,val in self.avgoptions.items():
+			if avg==val:
+				self.averaging=key
+
+		# Should probably raise an exception if it's not found		
 
 	def maskTimes(self, mask):
 		""" Set time mask
@@ -241,50 +246,99 @@ class Forcing:
 
 		#
 		# Iterate through concentration files
+		conc_yest = None
+		conc_today = None
+		conc_tom = None
+
+		force_yest = None
+		force_today = None
+		force_tom = None
 
 		# Index of concentration file
-		i = 1
-		#print "Looping through... ", self.conc_files
-		for conc in self.conc_files:
+		for conc_idx in range(0, len(self.conc_files)):
 
-			# Generate a file name
-			force_name=self.generateForceFileName(conc)
+			print "conc_idx = %d"%conc_idx
 
 			if not dryrun:
-				conc  = NetCDFFile(conc.name, 'r')
-				force = NetCDFFile(force_name, 'w')
+				if conc_today != None:
+					# Move this to yesterday
+					conc_yest  = conc_today
+					force_yest = force_today
+				if conc_tomorrow != None:
+					# Move this to today
+					conc_today  = conc_tom
+					force_today = force_tom
+				if conc_idx<len(self.conc_files)-1:
+					#conc_tom = self.conc_files[conc_idx+1]
+					conc_tom  = NetCDFFile(self.conc_files[conc_idx+1].name, 'r')
+					# Open and initialize tomorrow's file.  This way it'll be done
+					# on every file but the first (which is taken care of below)
+					force_tom = Forcing.initForceFile(conc_tom, generateForceFileName(self.conc_files[conc_idx+1]))
 
-				# Copy over dimensions
-				self.copyDims(conc, force)
+				if conc_today == None:
+					# If we're here, we're likely in the first iteration
+					conc_today = NetCDFFile(self.conc_files[conc_idx].name, 'r')
 
-				# Copy all the attributes over
-				self.copyIoapiProps(conc.name, force)
-		#		# Fix geocode data
-		#		# http://svn.asilika.com/svn/school/GEOG%205804%20-%20Introduction%20to%20GIS/Project/webservice/fixIoapiProjection.py
-		#		# fixIoapiSpatialInfo
+					# Do this otherwise it'll be skipped over (as the next init
+					# only writes the dims on tomorrow)
+					force_today = Forcing.initForceFile(conc_today, generateForceFileName(self.conc_files[force_idx]))
 
-				# Generate a dict of forcing fields
-				flds = self.generateForcingFields(conc_idx=i);
+
+				# Generate a list[yesterday, today, tomorrow]
+				# where every "day" is a dict with species names for keys, and values
+				# of the domain (ni*nj*nk)
+				flds = self.generateForcingFields(conc_idx=conc_idx,
+				   conc_yest=conc_yest,   conc_today=conc_today,   conc_tom=conc_tom,
+				   force_yest=force_yest, force_today=force_today, force_tom=force_tom)
 
 				# Create the forcing variable in the output file
-				for key in flds.keys():
-					var = force.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
-					# Write forcing field
-					var.assignValue(flds[key])
+				for day in range(1, len(flds)):
+					for key in flds.keys():
+						var = force.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+						# Write forcing field
+						var.assignValue(flds[key])
 
 				# Close the file
 				force.close()
 			
 			# Perform a call back to update the progress
-			progress_callback(float(i)/len(self.conc_files), conc)
+			progress_callback(float(conc_idx)/len(self.conc_files), self.conc_files[conc_idx])
 
 
-			i=i+1
+	@staticmethod
+	def initForceFile(conc, fname):
+		""" Initialize a forcing file.
+			This method opens the NetCDF file in read/write mode, copies the
+			dimensions, copies I/O Api attributes over, and any other common
+		    initialization that should be applied to all files
 
-			## TEMP HACK
-			#if i<2 or i>2:
-			#	break
+		Keyword Arguments:
 
+		conc:*NetCDFFile*
+		   Concentration file to use as a template
+
+		fname:*string*
+		   Name of the forcing file to initialize
+
+		Returns:
+
+		NetCDFFile
+		   Writable NetCDF File
+		"""
+
+		force = NetCDFFile(fname, 'a')
+
+		self.copyDims(conc, force)
+		self.copyIoapiProps(conc, force)
+
+		# Copy all the variables over
+		for key in conc.variables:
+			var = force.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+			#var.assignValue(flds[key])
+
+		## Fix geocode data
+		## http://svn.asilika.com/svn/school/GEOG%205804%20-%20Introduction%20to%20GIS/Project/webservice/fixIoapiProjection.py
+		## fixIoapiSpatialInfo
 
 	def generateForcingFields(self, conc_idx):
 		""" Generate a forcing field.  *Abstract*
@@ -303,9 +357,9 @@ class Forcing:
 
 		Keyword Arguments:
 
-		src:*string*
+		src:*NetCDFFile*
 		   Open netcdf source file
-		dest:*string*
+		dest:*NetCDFFile*
 		   Open netcdf destination file
 		"""
 
@@ -385,7 +439,7 @@ class Forcing:
 		reg=re.sub(r'JJJ', '\\d{3}', reg) 
 		reg=re.sub(r'\*', '.*', reg) 
 
-		print "RE: %s"% reg
+		#print "RE: %s"% reg
 		cfiles=[]
 
 		for f in files:

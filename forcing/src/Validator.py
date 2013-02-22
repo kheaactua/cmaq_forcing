@@ -8,8 +8,28 @@ class ForcingValidator:
 
 	LAY_SURFACE_NAME='Surface'
 
+	ni=None
+	nj=None
+	nk=None
+	ns=None
+	nt=None
+
 	def __init__(self,filename):
 		self.conc=NetCDFFile(filename, 'r')
+
+		self.ni = self.conc.dimensions['COL']
+		self.nj = self.conc.dimensions['ROW']
+		self.nk = self.conc.dimensions['LAY']
+
+		# TSTEP is unlimited, so python has problems reading it
+		# So instead we'll examine the shape of a variable
+		# Let's assume TFLAG exists
+		shape = self.conc.variables['TFLAG'].shape
+		# This first element is TSTEP
+		self.nt = shape[0]
+
+		ns = len(self.conc.variables.keys())
+
 
 	def close(self):
 		try:

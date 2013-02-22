@@ -149,7 +149,7 @@ class ForcingPanelWithAveraging(ForcingPanel):
 
 		lblAvg = wx.StaticText(self, label="Averaging Time")
 		#avgtimes = ['None', 'Max 1 hr', 'Max 8 hr', 'Max 24 h', 'Local Hours', 'Other']
-		avgtimes=df.Forcing.avgoptions
+		avgtimes=df.Forcing.avgoptions.values()
 		rsizer=wx.FlexGridSizer(rows=len(avgtimes),cols=2,hgap=5)
 		for lbl in avgtimes:
 			radioinput=wx.RadioButton(self, label=lbl, name="avgtimes")
@@ -220,7 +220,8 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		ForcingPanel.__init__(self, parent)
 
 		# Get an instance of our forcing class
-		self.forcingClass=f.ForceOnAverageConcentration()
+		tv=self.top.validator
+		self.forcingClass=f.ForceOnAverageConcentration(tv.ni,tv.nj,tv.nk,tv.nt)
 
 		mySize=self.parent.GetSize()
 		#mySize[0]=mySize[0]*0.98
@@ -298,7 +299,7 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		fc.loadConcentrationFiles(concs)
 
 		# Produce the forcing feilds
-		fc.produceForcingField(self.top.SimpleProgress, dryrun=True)
+		fc.produceForcingField(self.top.SimpleProgress, dryrun=False)
 
 class ForcingPanelMortality(ForcingPanelWithAveraging):
 	# The name of the forcing function
