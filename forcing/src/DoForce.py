@@ -44,6 +44,9 @@ class Forcing:
 	# Obvious, but used a lot
 	dayLen=24
 
+	# Output file name format
+	forceFileOutputFormat = None
+
 	def __init__(self,ni=0,nj=0,nk=0,nt=0):
 		""" Initialize Forcing object.  The inputs will typically be
 			read from a sample config file using loadDims(), so these
@@ -115,8 +118,7 @@ class Forcing:
 
 		return dims
 
-	@staticmethod
-	def generateForceFileName(conc):
+		def generateForceFileName(self, conc, fmt = None):
 		""" Generate a forcing file name based on the input file name.
 			This is used because often CMAQ is cycled, and files are
 			named something.ACONC.DATE, and forcing files are expected
@@ -126,10 +128,27 @@ class Forcing:
 
 		conc:*Datafile*
 		   Datafile of the concentration file
+		fmt:*string*
+		   Format of the forcing file.  Replacement strings:
+		   YYYY  - replaced with four digit year
+		   YY    - replaced with two digit year
+		   MM    - replaced with two digit month
+		   DD    - replaced with two digit day
+		   TYPE  - Forcing function type
+
+		   Defaults to the format set on this object
 
 		Returns:
+
 		   Forcing file name
 		"""
+
+		if fmt == None:
+			fmt = self.forceFileOutputFormat
+
+		if fmt == None:
+			raise ValueError( "Output file format not specified.")
+
 
 		# Implement this later..
 		raise NotImplementedError( "[TODO] Implement this" )
@@ -142,6 +161,10 @@ class Forcing:
 	def setPath(self, path):
 		""" Path that'll be used to look for concentration files """
 		self.conc_path = path
+
+	def setOutputFormat(self, fmt):
+		""" Format for output files.  See generateForceFileName for notes on format """
+		self.forceFileOutputFormat=fmt
 
 	def setAveraging(self, avg):
 		""" Set averaging option, e.g. max 8-hr, etc
