@@ -1,6 +1,7 @@
 from numpy import shape
 from Scientific.IO.NetCDF import NetCDFFile
 import numpy as np
+import datetime
 
 # Validate inputs against the base concentration file
 class ForcingValidator:
@@ -23,6 +24,27 @@ class ForcingValidator:
 	def changeFile(self, newfile):
 		self.conc.close();
 		self.conc=NetCDFFile(newfile, 'r')
+
+	def getDate(self):
+		""" Again, not a validator just a getter.  Useful to know the date
+		    of the concentration file being used.  Since we're using an
+		    I/O Api file, we'll look at the SDATE attribute.
+
+		Returns:
+
+		datetime
+		"""
+
+		# Get the sdate, in the format YYYYJJJ
+		sdate=getattr(self.conc, 'SDATE')
+		year=int(str(sdate[0])[:4])
+		jday=int(str(sdate[0])[4:])
+
+		date = datetime.datetime(year, 1, 1)
+		days = datetime.timedelta(days=jday-1) # -1 because we started at day 1
+		date=date+days
+
+		return date
 
 	def getLayers(self):
 		"""Return a list of layers.  This isn't really a validator, but

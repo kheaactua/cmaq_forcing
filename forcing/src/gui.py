@@ -1,11 +1,13 @@
 # GUY Lib
 import wx
+#from wxPython.calendar import *
+#import wxPython.calendar as wxc
 import os
 
 from Validator import *
 from ForcingPanels import *
 from DoForce import *
-
+import datetime
 
 class ForcingFrame(wx.Frame):
 	LOG_HELP  = 2
@@ -30,6 +32,10 @@ class ForcingFrame(wx.Frame):
 	# Boundary dates on concentration files
 	date_min = None
 	date_max = None
+
+	# Forcing file format
+	OutFormat = "Force.TYPE.YYYYMMDD"
+	
 
 	#def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
 	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=(1000,0), size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name="TopFrame"):
@@ -108,6 +114,10 @@ class ForcingFrame(wx.Frame):
 		# TEMP!
 		self.conc_path = os.path.dirname(os.path.abspath('concentrations/CCTM.20070101'))
 		self.validator = ForcingValidator('conc.nc')
+		self.date_min  = self.validator.getDate()
+		self.date_max  = self.validator.getDate() + datetime.timedelta(days=2)
+		self.debug("Setting min date to sample conc date, i.e. %s"%self.date_min)
+		print "type(self.date_min) = %s "%(type(self.date_min))
 		self.pan_inputs.Enable(True)
 
 	"""
@@ -143,6 +153,9 @@ class ForcingFrame(wx.Frame):
 	def getFormat(self):
 		fmt=self.pan_inputs.Format.GetValue()
 		return fmt
+
+	def getOutputFormat(self):
+		return self.OutFormat
 
 	def onKeyCombo(self, event):
 		self.Close()
@@ -238,13 +251,19 @@ class SampleConcPanel(wx.Panel):
 			self.parent.debug("Concentration Path: %s"%self.parent.conc_path)
 			self.conc_file.SetValue(path)
 			if self.parent.validator == None:
-				try:
-					self.parent.validator = ForcingValidator(path)
-					self.parent.pan_inputs.Enable(True)
-				except IOError as e:
-					self.parent.error("I/O error({0}): {1}".format(e.errno, e.strerror))
-					self.parent.validator = None
-					self.parent.pan_inputs.Enable(False)
+				del self.parent.validator
+
+			try:
+				self.parent.validator = ForcingValidator(path)
+				self.parent.date_min  = self.parent.validator.getDate()
+				#self.parent.date_max  = self.validator.getDate() + datetime.timedelta(days=2)
+				self.parent.debug("Setting min date to sample conc date, i.e. %s"%self.parent.date_min)
+				self.parent.pan_inputs.updateDate(self.parent.date_min)
+				self.parent.pan_inputs.Enable(True)
+			except IOError as e:
+				self.parent.error("I/O error({0}): {1}".format(e.errno, e.strerror))
+				self.parent.validator = None
+				self.parent.pan_inputs.Enable(False)
 
 class LoggingPanel(wx.Panel):
 	logger = None
@@ -286,6 +305,7 @@ class InputsPanel(wx.Panel):
 		dline=18
 		input_width=180
 
+		# Input file format
 		instFormat = wx.StaticText(self, label="Enter the format pattern for input concentration files in the same directory as the sample concentration file input above.  i.e. aconc.*.YYYYJJJ\nNote, the files are searched in the same directory as the sample file input above.")
 		instFormat.Wrap(mySize[0])
 		sizerMain.Add(instFormat)
@@ -308,7 +328,36 @@ class InputsPanel(wx.Panel):
 		instFormat2.Bind(wx.EVT_LEFT_DOWN, self.ShowFormatHelp)
 		sizerMain.Add(instFormat2)
 
-		line=dline
+
+		# Input date range
+		sizerMain.AddSpacer(10)
+		instruct_dates = wx.StaticText(self, label="Time frame to process")
+		sizerMain.Add(instruct_dates)
+		sizerDates = wx.FlexGridSizer(rows=2, cols=2, vgap=5, hgap=5)
+
+		sizerDates.Add(wx.StaticText(self, label="Start date"))
+		sizerDates.Add(wx.StaticText(self, label="End date"))
+		md=self.parent.date_min
+		sdate=wx.DateTime.Now()
+		if md != None:
+			sdate.Set(md.day, md.month, md.year)
+		self.date_min = wx.DatePickerCtrl(self, dt=sdate)
+# Matt: Figure out how to get rid of the retarded US format
+		sizerDates.Add(self.date_min)
+		self.date_max = wx.DatePickerCtrl(self)
+		sizerDates.Add(self.date_max)
+		sizerMain.Add(sizerDates)
+
+		# Output format
+		sizerMain.AddSpacer(10)
+		sizerMain.Add(wx.StaticText(self, label="Enter output format"))
+		sizerOFormat = wx.FlexGridSizer(rows=1, cols=2, vgap=5, hgap=5)
+		sizerOFormat.Add(wx.StaticText(self, label="Format:"))
+		self.Out_Format = wx.TextCtrl(self, value=self.parent.OutFormat, size=(input_width,-1))
+		sizerOFormat.Add(self.Out_Format)
+		sizerMain.Add(sizerOFormat)	
+
+
 		sizerMain.AddSpacer(10)
 		instruct1 = wx.StaticText(self, label="Choose the species you will input into the forcing function.")
 		instruct1.Wrap(mySize[0])
@@ -373,12 +422,57 @@ class InputsPanel(wx.Panel):
 		sizerMain.Add(sizerTexts)
 		self.SetSizer(sizerMain)
 
+	def updateDateRange(self, d1, d2):
+		""" Updates the available date ranges """
+
+		sdate=wx.DateTime.Now()
+		if d1 != None:
+			sdate.Set(d1.day, d1.month, d1.year)
+		edate=wx.DateTime.Now()
+		if d2 != None:
+			sdate.Set(d2.day, d2.month, d2.year)
+		self.date_min.SetRange(sdate, edate)
+		self.date_max.SetRange(sdate, edate)
+
+	def updateDate(self, d, mm=0):
+		""" Updates the date choosers
+
+		Keyword Arguments:
+
+			d:*datetime*
+			  Datetime to set it to
+
+			mm:*bool*
+			  False for min date, true for max date
+
+		"""
+		sdate=wx.DateTime.Now()
+		if d != None:
+			sdate.Set(d.day, d.month, d.year)
+		if mm:
+			print "Received %s, Setting date_max to %s"%(d, sdate)
+			self.date_max.SetValue(sdate)
+		else:
+			print "Received %s, Setting date_min to %s"%(d, sdate)
+			self.date_min.SetValue(sdate)
+
 	def testFormat(self, event):
-		files=Forcing.FindFiles(self.Format.GetValue())
+		files=Forcing.FindFiles(self.parent.conc_path, self.Format.GetValue())
 		self.parent.info("Found files: %s" % ', '.join(map(str, files)))
+		# Update date ranges
+		self.parent.date_min=files[0].date
+		self.parent.date_max=files[-1].date
+		self.updateDateRange(self.parent.date_min, self.parent.date_max)
+		self.updateDate(self.parent.date_min)
+		self.updateDate(self.parent.date_max, True)
 		event.Skip()
 
 	def ShowAvgHelp(self, event):
+		# MOVE TO forcingpanel
+		# MOVE TO forcingpanel
+		# MOVE TO forcingpanel
+		# MOVE TO forcingpanel
+		# MOVE TO forcingpanel
 		#self.parent.info("To specify a format: year=YYYY (2007) or YY (07), juldate=JJJ, month=MM, day=DD")
 		event.Skip()
 

@@ -290,6 +290,7 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		print "layers: ", layers
 		fc.maskLayers(common.getLayers())
 		fc.setSpecies(common.getSpecies())
+		fc.setOutputFormat(common.getOutputFormat())
 		fc.setAveraging(self.getAveraging())
 
 		fformat = common.getFormat()

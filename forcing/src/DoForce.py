@@ -118,7 +118,8 @@ class Forcing:
 
 		return dims
 
-		def generateForceFileName(self, conc, fmt = None):
+	@staticmethod
+	def generateForceFileName(conc):
 		""" Generate a forcing file name based on the input file name.
 			This is used because often CMAQ is cycled, and files are
 			named something.ACONC.DATE, and forcing files are expected
@@ -128,27 +129,10 @@ class Forcing:
 
 		conc:*Datafile*
 		   Datafile of the concentration file
-		fmt:*string*
-		   Format of the forcing file.  Replacement strings:
-		   YYYY  - replaced with four digit year
-		   YY    - replaced with two digit year
-		   MM    - replaced with two digit month
-		   DD    - replaced with two digit day
-		   TYPE  - Forcing function type
-
-		   Defaults to the format set on this object
 
 		Returns:
-
 		   Forcing file name
 		"""
-
-		if fmt == None:
-			fmt = self.forceFileOutputFormat
-
-		if fmt == None:
-			raise ValueError( "Output file format not specified.")
-
 
 		# Implement this later..
 		raise NotImplementedError( "[TODO] Implement this" )
@@ -161,10 +145,6 @@ class Forcing:
 	def setPath(self, path):
 		""" Path that'll be used to look for concentration files """
 		self.conc_path = path
-
-	def setOutputFormat(self, fmt):
-		""" Format for output files.  See generateForceFileName for notes on format """
-		self.forceFileOutputFormat=fmt
 
 	def setAveraging(self, avg):
 		""" Set averaging option, e.g. max 8-hr, etc
@@ -577,10 +557,10 @@ class DataFile:
 				# Meh
 				day_is_first=None
 
-			#print "Day is first? ", day_is_first
+			print "Day is first? ", day_is_first
 			self.date=dparser.parse(filename, fuzzy=True, dayfirst=day_is_first)
 		except ValueError as e:
-			print "Manually interpreting %s.  Should probably just open it as a NetCDF file"%filename
+			print "Manually interpreting %s"%filename
 
 			# YYYYMMDD
 			match = re.match(r'.*[^\d]\d{4}\d{2}\d{2}.*', filename)
