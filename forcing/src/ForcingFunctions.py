@@ -85,11 +85,11 @@ class ForceOnAverageConcentration(Forcing):
 						# build a vector of all values for all times at that
 						# cell.  Unfortunately, the data is organized in the 
 						# opposite way as we want (time is the top index..)
-						if self.averaging == AVG_MAX8:
-							vec_yest  = np.zeros(self.dims['nt'], dtype=np.float32)
-							vec_today = np.zeros(self.dims['nt'], dtype=np.float32)
-							vec_tom   = np.zeros(self.dims['nt'], dtype=np.float32)
-							for t in range(0, self.dims['nt']-1):
+						if self.averaging == 'AVG_MAX8':
+							vec_yest  = np.zeros(self.nt, dtype=np.float32)
+							vec_today = np.zeros(self.nt, dtype=np.float32)
+							vec_tom   = np.zeros(self.nt, dtype=np.float32)
+							for t in range(0, self.nt-1):
 								print "Reading %s at (%d,%d) t=%d"%(s,i,j,t)
 								# Make sure I'm not transposing this...
 								vec_yest[t]  = data_yest[t][k][j][i]
