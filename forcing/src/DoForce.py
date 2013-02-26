@@ -137,6 +137,9 @@ class Forcing:
 			named something.ACONC.DATE, and forcing files are expected
 			to be in the format something.DATE
 
+			Warning, if there are search/replace values in the path leading
+		    the file name, they may also be replaced right now.  (Should fix this)
+
 		Keyword Arguments:
 
 		conc:*Datafile*
@@ -157,7 +160,7 @@ class Forcing:
 		   *string* Forcing file name
 		"""
 
-		if not isinstance(conc, Datafile):
+		if not isinstance(conc, DataFile):
 			raise TypeError("Concentration input must be a data file")
 
 		if fmt == None:
@@ -281,24 +284,34 @@ class Forcing:
 					# Move this to yesterday
 					conc_yest  = conc_today
 					force_yest = force_today
-				if conc_tomorrow != None:
+				if conc_tom != None:
 					# Move this to today
 					conc_today  = conc_tom
 					force_today = force_tom
 				if conc_idx<len(self.conc_files)-1:
 					#conc_tom = self.conc_files[conc_idx+1]
-					conc_tom  = NetCDFFile(self.conc_files[conc_idx+1].name, 'r')
+					try:
+						conc_tom  = NetCDFFile(self.conc_files[conc_idx+1].path, 'r')
+					except IOError as ex:
+						print "Could not open %s for reading."%self.conc_files[conc_idx+1].path
+						break
 					# Open and initialize tomorrow's file.  This way it'll be done
 					# on every file but the first (which is taken care of below)
-					force_tom = Forcing.initForceFile(conc_tom, generateForceFileName(self.conc_files[conc_idx+1]))
+					try:
+						force_tom_name=self.generateForceFileName(self.conc_files[conc_idx+1])
+						force_tom = Forcing.initForceFile(conc_tom, force_tom_name)
+					except IOError as ex:
+						print "Error! %s already exists.  Please remove the forcing file and try again."%force_tom_name
+						# TEMP, remove
+						os.remove(force_tom_name)
 
 				if conc_today == None:
 					# If we're here, we're likely in the first iteration
-					conc_today = NetCDFFile(self.conc_files[conc_idx].name, 'r')
+					conc_today = NetCDFFile(self.conc_files[conc_idx].path, 'r')
 
 					# Do this otherwise it'll be skipped over (as the next init
 					# only writes the dims on tomorrow)
-					force_today = Forcing.initForceFile(conc_today, generateForceFileName(self.conc_files[force_idx]))
+					force_today = Forcing.initForceFile(conc_today, self.generateForceFileName(self.conc_files[conc_idx]))
 
 
 				# Generate a list[yesterday, today, tomorrow]
@@ -323,7 +336,7 @@ class Forcing:
 
 
 	@staticmethod
-	def initForceFile(conc, fname):
+	def initForceFile(conc, fpath):
 		""" Initialize a forcing file.
 			This method opens the NetCDF file in read/write mode, copies the
 			dimensions, copies I/O Api attributes over, and any other common
@@ -334,8 +347,8 @@ class Forcing:
 		conc:*NetCDFFile*
 		   Concentration file to use as a template
 
-		fname:*string*
-		   Name of the forcing file to initialize
+		fpath:*string*
+		   Path (dir and name) of the forcing file to initialize
 
 		Returns:
 
@@ -343,10 +356,16 @@ class Forcing:
 		   Writable NetCDF File
 		"""
 
-		force = NetCDFFile(fname, 'a')
+		# fpath should not exist
+		if os.path.exists(fpath):
+			# TEMP, remove
+			os.remove(fpath)
+			#raise IOError("%s already exists."%fpath)
 
-		self.copyDims(conc, force)
-		self.copyIoapiProps(conc, force)
+		force = NetCDFFile(fpath, 'a')
+
+		Forcing.copyDims(conc, force)
+		Forcing.copyIoapiProps(conc, force)
 
 		# Copy all the variables over
 		for key in conc.variables:
@@ -369,7 +388,8 @@ class Forcing:
 		raise NotImplementedError( "Abstract method" )
 
 
-	def copyIoapiProps(self, src, dest):
+	@staticmethod
+	def copyIoapiProps(src, dest):
 		""" Copy I/O Api attributes from NetCDF file into new file
 
 		Keyword Arguments:
@@ -394,7 +414,8 @@ class Forcing:
 
 		dest.sync()
 
-	def copyDims(self, src, dest):
+	@staticmethod
+	def copyDims(src, dest):
 		""" Copy dimensions from src netcdf file to dest.
 
 		Keyword Arguments:
@@ -408,7 +429,10 @@ class Forcing:
 		dims = src.dimensions.keys()
 		for d in dims:
 			v = src.dimensions[d]
-			dest.createDimension(d, v)
+			try:
+				dest.createDimension(d, v)
+			except IOError as ex:
+				print "Cannot create dimension %s"%d, ex
 		dest.sync()
 
 	@staticmethod
@@ -467,11 +491,9 @@ class Forcing:
 		for f in files:
 			if re.search(reg, f):
 				#print "%s matches"%f
-				df=DataFile(f, file_format=file_format)
+				df=DataFile(f, path=path+f, file_format=file_format)
 				#print "type(df.date)=%s, type(date_min)=%s"%(type(df.date), type(date_min))
-				if date_min == None and date_max == None:
-					cfiles.append(df)
-				elif (date_min != None and df.date > date_min) or (date_max != None and df.date < date_max):
+				if (date_min == None and date_max == None) or ( (date_min != None and df.date > date_min) or (date_max != None and df.date < date_max) ):
 					cfiles.append(df)
 
 		return sorted(cfiles)
@@ -645,8 +667,12 @@ class DataFile:
 	Currently, name, path and date are all we care about
 	"""
 
-	name = None
 	date = None
+
+	# Simply the file name (basename)
+	name = None
+
+	# Full path and file name
 	path = None
 
 	def __init__(self, filename, path="./", file_format=""):

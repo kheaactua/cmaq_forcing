@@ -1,4 +1,5 @@
 from DoForce import Forcing
+import numpy as np
 
 class ForceOnAverageConcentration(Forcing):
 	""" These are here and not in the panel's such that they can
@@ -37,7 +38,7 @@ class ForceOnAverageConcentration(Forcing):
 
 		# TEMP HACK!
 		# Assume all timezones are GMT
-		tz = np.zeros((ni,nj))
+		tz = np.zeros((self.ni,self.nj))
 		# /TEMP HACK!
 
 		if len(self.species) == 0:
@@ -49,13 +50,22 @@ class ForceOnAverageConcentration(Forcing):
 		# This is NOT efficient.  Could probably easily make it
 		# more efficient by implementing some sort of cache though..
 		for s in self.species:
-			var_yest  = conc_yest.variables[s]
-			var_today = conc_today.variables[s]
-			var_tom   = conc_tom.variables[s]
+			if conc_yest == None:
+				# If we're on day 1..
+				data_yest = np.zeros((self.ni, self.nj))
+			else:
+				var_yest  = conc_yest.variables[s]
+				data_yest  = var_yest.getValue()
 
-			data_yest  = var_yest.getValue()
+
+			if conc_tom == None:
+				data_tom   = np.zeros((self.ni, self.nj))
+			else:
+				var_tom   = conc_tom.variables[s]
+				data_tom   = var_tom.getValue()
+
+			var_today = conc_today.variables[s]
 			data_today = var_today.getValue()
-			data_tom   = var_tom.getValue()
 
 #			src_yesterday=conc_yest.getValue()
 #			data=np.concatenate([yesterday, today, tomorrow])
