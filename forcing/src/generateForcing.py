@@ -6,12 +6,33 @@ from gui import *
 
 # Include Forcing.py
 from DoForce import *
+import ForcingFunctions as f
 from Validator import *
 
 # Widgit inspection tool
 import wx.lib.inspection
 
+# CLI arguments
+import argparse
+
+# System functions
+import sys
+
+# Date stuff
+from datetime import *
+
+# For now, I'll hard code most of the inputs.  Eventually I'll make a config
+# file, as there are just too many inputs.
+parser = argparse.ArgumentParser(description='Use GUI or CLI?')
+parser.add_argument('--cli', action='store_true', help='Use CLI interface')
+
+args = parser.parse_args()
+#print args
+
 """
+#
+# Can probably delete all this...
+#
 def outputConfFile(name):
 	# Generates a conf file that records the state of the UI
 
@@ -19,52 +40,65 @@ def loadConfFile(name):
 	# Reads in the conf file and sets the UI state
 """
 
+def ProgressBarCLI(prog, filename):
+	print "Progress %f, filename: %s"%(prog, filename)
 
-app = wx.App(False)
-#frame = wx.Frame.Create(-1)
-frame = ForcingFrame(None, name="TopFrame")
-#ForcingFrame(title="")
-frame.Show()
+if args.cli:
 
-#wx.lib.inspection.InspectionTool().Show()
-app.MainLoop()
+	fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
 
-### MAIN
-### Fake inputs.
+	fc.maskLayers([1])
+	fc.setSpecies(['O3'])
+	fc.setOutputFormat('Forcing.TYPE.YYYYMMDD')
+	fc.setAveraging('Max 8 hr')
+
+	date_min = datetime(1999,07,03)
+	date_max = datetime(1999,07,06)
+	fc.conc_path = os.getcwd() + '/concentrations/'
+	#conc_files=f.ForceOnAverageConcentration.FindFiles(file_format="CCTM.YYYYMMDD", date_min=date_min, date_max=date_max)
+	conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
+	fc.loadConcentrationFiles(conc_files)
+
+
+	fc.produceForcingField(ProgressBarCLI, dryrun=True)
+
+
+	## Parse species string
+	#species_str="O,O3,NO2"
+	#species=species_str.upper()
+	#species=species_str.split(',');
+
+	#files=['conc.nc'];
+
+##	# Get a validator
+##	try:
+##		v=ForcingValidator('conc.nc')
+##		v.validateSpecies(species)
 ##
-##species_str="O,O3,NO2"
-##species=species_str.upper()
-##species=species_str.split(',');
+##		if len(layers):
+##			v.validateLayers(layers);
 ##
-##times = [1, 2];
-##layers = [1];
+##		if len(times):
+##			v.validateTimes(times);
 ##
-##files=['conc.nc'];
+##		# If we got here, it means everything validated
+##		v.close();
+##	except ValidationError as e:
+##		print "An exception was raise: ", e
 ##
-### Actually do stuff
-##
-### Get a validator
-##try:
-##	v=ForcingValidator('conc.nc')
-##	v.validateSpecies(species)
-##
-##	if len(layers):
-##		v.validateLayers(layers);
-##
-##	if len(times):
-##		v.validateTimes(times);
-##
-##	# If we got here, it means everything validated
-##	v.close();
-##except ValidationError as e:
-##	print "An exception was raise: ", e
-##
-### Now, get the forcing object
-##dims=Forcing.loadDims('conc.nc')
-##force = getForcingObject(dims['ni'], dims['nj'], dims['nk'], dims['nt'])
-##force.setSpecies(species)
-##
-##for c in files:
-##	o = Forcing.genForceFileName(c)
-##	force.produceForcingField(c, o)
+##	# Now, get the forcing object
+##	dims=Forcing.loadDims('conc.nc')
+##	force = getForcingObject(dims['ni'], dims['nj'], dims['nk'], dims['nt'])
+##	force.setSpecies(species)
+
+else:
+	# Use GUI
+	app = wx.App(False)
+	frame = ForcingFrame(None, name="TopFrame")
+	frame.Show()
+
+	#wx.lib.inspection.InspectionTool().Show()
+	app.MainLoop()
+
+
 

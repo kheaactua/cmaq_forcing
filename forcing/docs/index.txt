@@ -19,6 +19,8 @@ Contents:
 .. autoclass:: Forcing
    :members:
 
+Note, this was originally developed by someone more familiar with Java then Python, so there are many getters/setters
+that should (and eventually will be) replaced with properties.
 
 Indices and tables
 ==================

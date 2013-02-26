@@ -286,16 +286,14 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		fc = self.forcingClass
 
 		# Get all the info we need
-		print "fc: ", fc
 		layers = common.getLayers()
-		print "layers: ", layers
 		fc.maskLayers(common.getLayers())
 		fc.setSpecies(common.getSpecies())
 		fc.setOutputFormat(common.getOutputFormat())
 		fc.setAveraging(self.getAveraging())
 
 		fformat = common.getFormat()
-		concs=fc.FindFiles(self.top.conc_path, fformat, self.top.date_min, self.top.date_max)
+		concs=fc.FindFiles(file_format=fformat, path=self.top.conc_path, date_min=self.top.date_min, date_max=self.top.date_max)
 		fc.loadConcentrationFiles(concs)
 
 		# Produce the forcing feilds

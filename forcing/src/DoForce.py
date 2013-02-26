@@ -47,10 +47,12 @@ class Forcing:
 	# Output file name format
 	forceFileOutputFormat = None
 
-	def __init__(self,ni=0,nj=0,nk=0,nt=0):
-		""" Initialize Forcing object.  The inputs will typically be
-			read from a sample config file using loadDims(), so these
-		    inputs may be left blank.
+	def __init__(self,ni=0,nj=0,nk=0,nt=0,sample_conc=''):
+		""" Initialize Forcing object.  Dimentions will be used if given,
+		    but if a sample concentration file is given, it will be read
+		    instead.  (So, either provide dims, a file, or none.)  When nothing
+		    is really provided, the user will typically use
+			the static method loadDims loadDims() to set the dims later
 
 		Keyword Arguments:
 
@@ -65,14 +67,24 @@ class Forcing:
 
 		nt:*int*
 		   Time steps
+
+		sample_conc:*string*
+		   Name of sample concentration file
 		"""
 
-		# Set up full dimensions
-		#print "Received ni=%d nj=%d nk=%d nt=%d" % (ni,nj,nk,nt)
-		self.ni=ni
-		self.nj=nj
-		self.nk=nk
-		self.nt=nt
+		if len(sample_conc):
+			dims=Forcing.loadDims(sample_conc)
+			self.ni = dims['ni']
+			self.nj = dims['nj']
+			self.nk = dims['nk']
+			self.nt = dims['nt']
+		else:
+			# Set up full dimensions
+			#print "Received ni=%d nj=%d nk=%d nt=%d" % (ni,nj,nk,nt)
+			self.ni=ni
+			self.nj=nj
+			self.nk=nk
+			self.nt=nt
 
 		# Initialize vectors, space is done differently
 		self.times = range(1,nt)
@@ -166,7 +178,12 @@ class Forcing:
 
 		return name
 
-	def setPath(self, path):
+	# Not a good use of a property, but it's my first one
+	@property
+	def conc_path(self):
+		""" Getter for the concentration path """
+	@conc_path.setter
+	def conc_path(self, path):
 		""" Path that'll be used to look for concentration files """
 		self.conc_path = path
 
@@ -395,7 +412,7 @@ class Forcing:
 		dest.sync()
 
 	@staticmethod
-	def FindFiles(path, file_format, date_min=None, date_max=None):
+	def FindFiles(file_format, path=None, date_min=None, date_max=None):
 		""" Find the concentration files that match the pattern/format provided
 
 		Keyword Arguments:
@@ -418,6 +435,11 @@ class Forcing:
 		*list[DataFile]*
 		   Returns a list of Datafiles
 		"""
+
+		#if path == None:
+		#	path = self.conc_path
+		if path == None:
+			raise ValueError("Must provide a path to search")
 
 		#files=os.listdir( "/mnt/mediasonic/opt/output/morteza/frc-8h-US/" ) # Obviously change this..
 		files=os.listdir(path)
