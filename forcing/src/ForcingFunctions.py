@@ -1,5 +1,6 @@
 from DoForce import Forcing
 import numpy as np
+import copy
 
 class ForceOnAverageConcentration(Forcing):
 	""" These are here and not in the panel's such that they can
@@ -45,26 +46,35 @@ class ForceOnAverageConcentration(Forcing):
 			raise NoSpeciesException("Must specify species")
 			return
 
-		flds={}
+		# Create zero fields to allocate our arrays
+		print "111 Self.species: ", self.species
+		fld_empty=range(0, len(self.species))
+		for idx_s in range(0, len(self.species)):
+			fld_empty[idx_s] = np.zeros((self.nt, self.nk, self.nj, self.ni))
+
+		print "222 Self.species: ", self.species
+		flds={'yesterday': fld_empty, 'today': fld_empty, 'tomorrow': fld_empty}
 
 		# This is NOT efficient.  Could probably easily make it
 		# more efficient by implementing some sort of cache though..
-		for s in self.species:
+		for idx_s in range(0, len(self.species)):
 			if conc_yest == None:
 				# If we're on day 1..
-				data_yest = np.zeros((self.ni, self.nj))
+				# This is inefficient, will upgrade later
+				data_yest = np.zeros((self.nt, self.nk, self.nj, self.ni))
 			else:
-				var_yest  = conc_yest.variables[s]
+				var_yest  = conc_yest.variables[self.species[idx_s]]
 				data_yest  = var_yest.getValue()
 
 
 			if conc_tom == None:
-				data_tom   = np.zeros((self.ni, self.nj))
+				data_tom   = np.zeros((self.nt, self.nk, self.nj, self.ni))
 			else:
-				var_tom   = conc_tom.variables[s]
+				print "Looking for variable %s"%self.species[idx_s]
+				var_tom   = conc_tom.variables[self.species[idx_s]]
 				data_tom   = var_tom.getValue()
 
-			var_today = conc_today.variables[s]
+			var_today = conc_today.variables[self.species[idx_s]]
 			data_today = var_today.getValue()
 
 #			src_yesterday=conc_yest.getValue()
@@ -90,7 +100,7 @@ class ForceOnAverageConcentration(Forcing):
 							vec_today = np.zeros(self.nt, dtype=np.float32)
 							vec_tom   = np.zeros(self.nt, dtype=np.float32)
 							for t in range(0, self.nt-1):
-								print "Reading %s at (%d,%d) t=%d"%(s,i,j,t)
+								print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
 								# Make sure I'm not transposing this...
 								vec_yest[t]  = data_yest[t][k][j][i]
 								vec_today[t] = data_today[t][k][j][i]
@@ -104,7 +114,7 @@ class ForceOnAverageConcentration(Forcing):
 							# (forward/backward), the window size, and time
 							# zone 
 
-							vec = Forcing.prepareTimeVectorForAvg(vec_yest, yest_today, yest_tomorrow, timezone=tz[i][j])
+							vec = Forcing.prepareTimeVectorForAvg(vec_yest, vec_today, vec_tom, timezone=tz[i][j])
 
 							# Calculate the moving window average
 							avgs = Forcing.calcMovingAverage(vec)
@@ -116,20 +126,31 @@ class ForceOnAverageConcentration(Forcing):
 							forcing_vectors = Forcing.applyForceToAvgTime(avgs)
 
 							# Now, write these out to the flds
-							for t in range(0, self.dims['nt']-1):
-								print "Reading %s at (%d,%d) t=%d"%(s,i,j,t)
+							print "Shape(fld_yest): ", fld_yest.shape, ", shape(forcing_vectors['yesterday']): ", forcing_vectors['yesterday'].shape
+							print "yesterday: ", forcing_vectors['yesterday']
+							print "len(yesterday) : ", len(forcing_vectors['yesterday'])
+							print "len(today) : ", len(forcing_vectors['today'])
+							print "len(tomorrow) : ", len(forcing_vectors['tomorrow'])
+							for t in range(0, self.nt-1):
+								print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
 								# Make sure I'm not transposing this...
+								print "fld_yest[t][k][j][i] = ", fld_yest[t][k][j][i]
+								print "forcing_vectors['yesterday'][t] = ", forcing_vectors['yesterday'][t]
 								fld_yest[t][k][j][i]  = forcing_vectors['yesterday'][t]
-								fld_today[t][k][j][i] = forcing_vectors['yesterday'][t]
-								fld_tom[t][k][j][i]   = forcing_vectors['yesterday'][t]
+								fld_today[t][k][j][i] = forcing_vectors['today'][t]
+								fld_tom[t][k][j][i]   = forcing_vectors['tomorrow'][t]
+
 
 #						for t in self.times:
 #							if self.space[i][j] == 1:
 #								fld[t][k][j][i]=1
 
-			flds['yesterday'][s] = fld_yest
-			flds['today'][s]     = fld_today
-			flds['tomorrow'][s]  = fld_tom
+			flds['yesterday'][idx_s] = fld_yest
+			flds['today'][idx_s]     = fld_today
+			flds['tomorrow'][idx_s]  = fld_tom
+
+			print "BREAKING!!!"
+			break
 
 		return flds
 

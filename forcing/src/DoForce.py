@@ -241,6 +241,7 @@ class Forcing:
 
 		raise NotImplementedError( "Not yet implemented" )
 
+	# This should be a property
 	def setSpecies(self,species):
 		""" Specify which species to consider.  How they're considered
 			is contingent on the actual forcing function."""
@@ -324,7 +325,10 @@ class Forcing:
 				# Create the forcing variable in the output file
 				for day in range(1, len(flds)):
 					for key in flds.keys():
-						var = force.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+						# Do this for today on the first loop
+						var = force_tomorrow.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+
+						# Will have to change this to ADD the fld
 						# Write forcing field
 						var.assignValue(flds[key])
 
@@ -656,9 +660,12 @@ class Forcing:
 		else:
 			forcing[max_idx-winLen:max_idx] = float(1)/winLen
 
-		yesterday = forcing[0:Forcing.dayLen-1]
-		today = forcing[Forcing.dayLen:Forcing.dayLen*2-1]
-		tomorrow = forcing[Forcing.dayLen*2:]
+		#yesterday = forcing[0:Forcing.dayLen]
+		#today = forcing[Forcing.dayLen:Forcing.dayLen*2-1]
+		#tomorrow = forcing[Forcing.dayLen*2:]
+		yesterday = np.arange(0, 24)
+		today = np.arange(24, 48)
+		tomorrow = np.arange(48, 72)
 
 		return {'yesterday': yesterday, 'today': today, 'tomorrow': tomorrow}
 
