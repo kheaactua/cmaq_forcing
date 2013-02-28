@@ -314,6 +314,13 @@ class Forcing:
 					# only writes the dims on tomorrow)
 					force_today = Forcing.initForceFile(conc_today, self.generateForceFileName(self.conc_files[conc_idx]))
 
+					# Create the species variables
+					for s in self.species:
+						force_tomorrow.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+
+				# Write out the variables for tomorrow
+				for s in self.species:
+					force_tomorrow.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
 
 				# Generate a list[yesterday, today, tomorrow]
 				# where every "day" is a dict with species names for keys, and values
@@ -323,14 +330,11 @@ class Forcing:
 				   force_yest=force_yest, force_today=force_today, force_tom=force_tom)
 
 				# Create the forcing variable in the output file
-				for day in range(1, len(flds)):
-					for key in flds.keys():
-						# Do this for today on the first loop
-						var = force_tomorrow.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+				for key in flds.keys():
 
-						# Will have to change this to ADD the fld
-						# Write forcing field
-						var.assignValue(flds[key])
+					# Will have to change this to ADD the fld
+					# Write forcing field
+					var.assignValue(flds[key])
 
 				# Close the file
 				force.close()
