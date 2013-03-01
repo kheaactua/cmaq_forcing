@@ -316,11 +316,21 @@ class Forcing:
 
 					# Create the species variables
 					for s in self.species:
-						force_tomorrow.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+						try:
+							print "Creating variable %s in today's force file"%s
+							force_today.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+						except IOError as ex:
+							print "Writing error trying to create variable %s"%s, ex
+							pass
 
 				# Write out the variables for tomorrow
 				for s in self.species:
-					force_tomorrow.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+					try:
+						print "Creating variable %s in tomorrows's force file"%s
+						force_tom.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+					except IOError as ex:
+						print "Writing error trying to create variable %s"%s, ex
+						pass
 
 				# Generate a list[yesterday, today, tomorrow]
 				# where every "day" is a dict with species names for keys, and values
@@ -329,10 +339,8 @@ class Forcing:
 				   conc_yest=conc_yest,   conc_today=conc_today,   conc_tom=conc_tom,
 				   force_yest=force_yest, force_today=force_today, force_tom=force_tom)
 
-				# Create the forcing variable in the output file
+				# Add the field to the force file
 				for key in flds.keys():
-
-					# Will have to change this to ADD the fld
 					# Write forcing field
 					var.assignValue(flds[key])
 
@@ -368,8 +376,10 @@ class Forcing:
 		if os.path.exists(fpath):
 			# TEMP, remove
 			os.remove(fpath)
+			print "Deleted %s !"%fpath
 			#raise IOError("%s already exists."%fpath)
 
+		print "Opening %s for writing"%fpath
 		force = NetCDFFile(fpath, 'a')
 
 		Forcing.copyDims(conc, force)
@@ -383,6 +393,8 @@ class Forcing:
 		## Fix geocode data
 		## http://svn.asilika.com/svn/school/GEOG%205804%20-%20Introduction%20to%20GIS/Project/webservice/fixIoapiProjection.py
 		## fixIoapiSpatialInfo
+
+		return force
 
 	def generateForcingFields(self, conc_idx):
 		""" Generate a forcing field.  *Abstract*
