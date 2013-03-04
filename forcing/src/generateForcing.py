@@ -42,10 +42,12 @@ def loadConfFile(name):
 
 def ProgressBarCLI(prog, filename):
 	print "Progress %f, filename: %s"%(prog, filename)
+	print "\n------------------------------------------------------------\n"
 
 if args.cli:
 
-	fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
+	#fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
+	fc = f.ForceOnAverageConcentration(sample_conc='basic_concentrations/CCTM.20050505')
 
 	fc.maskLayers([1])
 	fc.species=['O3']

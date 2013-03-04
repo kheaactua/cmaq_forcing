@@ -10,7 +10,7 @@ def getForcingObject(ni,nj,nk,nt):
 	return ForceOnSpecies(ni,nj,nk,nt)
 
 # Abstract
-class Forcing:
+class Forcing(object):
 	""" Class set up to take in all required inputs and generate forcing fields.
 
 	    This class can handle different time averaging, and layer, [2d] domain, species
@@ -23,7 +23,7 @@ class Forcing:
 		   f = ForceOnAverageConcentration()
 		   f.loadDims(sample_concentration_file_name)
 		   f.loadConcentrationFiles(concentration_files)
-		   f.maskLayers(layers_to_use)
+		   f.layers=layers_to_use
 		   f.setAveraging("Max 8 hr")
 		   f.species=["O3"]
 		   f.produceForcingField()
@@ -46,6 +46,9 @@ class Forcing:
 
 	# Output file name format
 	forceFileOutputFormat = None
+
+	# Layers to process
+	_layers = []
 
 	def __init__(self,ni=0,nj=0,nk=0,nt=0,sample_conc=''):
 		""" Initialize Forcing object.  Dimentions will be used if given,
@@ -177,10 +180,14 @@ class Forcing:
 		# Start replacing stuff..
 		name = fmt
 		date = conc.date
-		print "Date: ", date, ", type: ", type(date)
 
 		types = str(self.__class__)
-		types = re.sub(r'[^\.]*\.', '', types)
+		#print "Starting with: %s"%types
+		#types = re.sub(r"[^\.]*\.([^']*)'", '\1', types)
+		types = re.sub(r"[^\.]*'", '', types)
+		#print "Middle with: %s"%types
+		types = re.sub(r"\..*$", '', types)
+		#print "Ended with: %s"%types
 
 		month="%0.2d"%date.month
 		day="%0.2d"%date.day
@@ -209,7 +216,7 @@ class Forcing:
 	@property
 	def species(self):
 		""" Getter for the concentration path """
-		return self.species
+		return self._species
 	@species.setter
 	def species(self, species_list):
 		""" Setter for the species attribute.  How species are considered
@@ -220,7 +227,7 @@ class Forcing:
 		species_list:*string[]*
 		   List of species
 		"""
-		self.species=species_list
+		self._species=species_list
 
 
 	def setOutputFormat(self, fmt):
@@ -252,16 +259,27 @@ class Forcing:
 		"""
 		self.times=mask;
 
+	# Deprecated
 	def maskLayers(self, mask):
 		""" Set layer mask
 
 		Keyword arguments:
 
-		mask
+		mask:*int[]*
 		   vector of the layers that WILL be used
 		"""
 
-		self.layers=mask;
+		self.layers=mask
+
+	@property
+	def layers(self):
+		return self._layers+1
+	@layers.setter
+	def layers(self, mask):
+		# Minus 1 because layer 1 is at index 0
+		self._layers=np.zeros(len(mask))
+		for i in range(0, len(mask)-1):
+			sekf._layers[i] = mask[i]-1
 
 	def maskSpace(self, mask):
 		""" Set a grid mask
@@ -302,7 +320,7 @@ class Forcing:
 		force_tom   = None
 
 		# Some flags to easily know if we have a yesterday or tomorrow
-		has_yest = True
+		has_yest = False
 		has_tom  = True
 
 		# Index of concentration file
@@ -314,8 +332,9 @@ class Forcing:
 				if conc_today != None:
 					# Move this to yesterday
 					if conc_yest != None:
-						print "Closing yesterday's file before re-assigning a new yesterday"
+						print "- Closing yesterday's file before re-assigning a new yesterday", force_yest
 						conc_yest.close()
+						conc_yest = None
 					conc_yest  = conc_today
 					force_yest = force_today
 				if conc_tom != None:
@@ -336,10 +355,13 @@ class Forcing:
 						force_tom = Forcing.initForceFile(conc_tom, force_tom_name)
 					except IOError as ex:
 						print "Error! %s already exists.  Please remove the forcing file and try again."%force_tom_name
-						# TEMP, remove
+						# HACK TEMP, remove
 						os.remove(force_tom_name)
-				if conc_idx == len(self.conc_files)-1:
-					# We're likely on the last day
+				else:
+					# We're on the last day
+					print "- Closing tomorrow's file ", force_tom
+					# force_tom.close() # Not closing, because at this point they (today, tomorrow) both point at the same file
+					force_tom = None
 					has_tom = False
 
 				if conc_today == None:
@@ -357,19 +379,33 @@ class Forcing:
 							print "Creating variable %s in today's force file"%s
 							force_today.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
 						except IOError as ex:
-							print "Writing error trying to create variable %s"%s, ex
+							print "Writing error trying to create variable %s in today's file"%s, ex
+							
+							print "Force_today: ", force_today
+							print "Current variable names: %s\n"%(" ".join(map(str, force_today.variables.keys())))
 							pass
 				else:
 					has_yest = True
 
+
+				# What days are we working with?
+				print "\n"
+				print "Yesterday: ", force_yest
+				print "Today:     ", force_today
+				print "Tomorrow:  ", force_tom
+				print "\n"
+
+
 				# Write out the variables for tomorrow
-				for s in self.species:
-					try:
-						print "Creating variable %s in tomorrow's force file"%s
-						force_tom.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
-					except IOError as ex:
-						print "Writing error trying to create variable %s"%s, ex
-						pass
+				if has_tom:
+					for s in self.species:
+						try:
+							print "Creating variable %s in tomorrow's force file"%s
+							force_tom.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+						except IOError as ex:
+							print "Writing error trying to create variable %s in tomorrow's file"%s, ex
+							print "\n\n"
+							pass
 
 				# Generate a list[yesterday, today, tomorrow]
 				# where every "day" is a list with species indices (from self.species) for
@@ -425,10 +461,17 @@ class Forcing:
 						# In species loop
 						idx_s = idx_s + 1
 
-					# In Day loop
+					# In Day loop (yest, today, tom)
+
+
+				# in if dryrun
+
+			# In days loops (day1, day2, day3, ...)
 
 			# Perform a call back to update the progress
 			progress_callback(float(conc_idx)/len(self.conc_files), self.conc_files[conc_idx])
+
+		force_today.close()
 
 
 	@staticmethod

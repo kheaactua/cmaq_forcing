@@ -82,7 +82,7 @@ class ForceOnAverageConcentration(Forcing):
 			var_today = conc_today.variables[species]
 			data_today = var_today.getValue()
 
-			#print "Initialized data_today with shape=", data_today.shape
+			print "Initialized data_today with shape=", data_today.shape
 
 #			src_yesterday=conc_yest.getValue()
 #			data=np.concatenate([yesterday, today, tomorrow])
@@ -94,7 +94,7 @@ class ForceOnAverageConcentration(Forcing):
 			#print "Initialized fld_today with shape=", fld_today.shape
 
 			# Recall, mask is already considered in these vectors
-			for k in self.layers:
+			for k in self._layers:
 				# I think there's a better way to do the next two loops, don't know it though.
 				for i in range(0,self.ni-1):
 					for j in range(0,self.nj-1):
@@ -111,7 +111,9 @@ class ForceOnAverageConcentration(Forcing):
 							for t in range(0, self.nt-1):
 								#print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
 								# Make sure I'm not transposing this...
+								#print "shape(vec_yest)=%s, shape(data_yest)=%s.  Tyrying to access data_yest[%d][%d][%d][%d]"%(vec_yest.shape, data_yest.shape, t, k, j, i)
 								vec_yest[t]  = data_yest[t][k][j][i]
+								#print "shape(vec_today)=%s, shape(data_today)=%s"%(vec_today.shape, data_yest.shape)
 								vec_today[t] = data_today[t][k][j][i]
 								vec_tom[t]   = data_tom[t][k][j][i]
 
