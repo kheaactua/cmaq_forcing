@@ -30,12 +30,21 @@ for d in range(sdate, edate):
 	conc.createDimension('LAY',   nk)
 	conc.createDimension('ROW',   nj)
 	conc.createDimension('COL',   ni)
+	conc.createDimension('VAR',   len(species))
+	conc.createDimension('DATE-TIME', 2)
+
+	# Create tflag
+	var=conc.createVariable('TFLAG', 'i', ('TSTEP', 'VAR', 'DATE-TIME'))
+	dts=np.zeros((nt,len(species),2), dtype=np.int32)
+	for h in range(0,25):
+		dts[h]=[d, h*10000]
+	#print "dts.shape=", dts.shape
+	var.assignValue(dts)
 
 	for s in species:
 		fld = np.zeros((nt,nk,nj,ni), dtype=np.float32)
 
 		if s is 'O3':
-			print "Throwing in some values"
 			for t in range(0,nt):
 				fld[t,0,1:3,1:4] = 8
 
