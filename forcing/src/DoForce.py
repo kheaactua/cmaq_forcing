@@ -36,7 +36,7 @@ class Forcing:
 	conc_files = []
 
 	# Concentration file path
-	conc_path = None
+	_conc_path = None
 
 	# True for forward, false for backward
 	default_averaging_direction = False
@@ -100,11 +100,10 @@ class Forcing:
 		self.conc_path  = None
 
 		# TEMP HACK REMOVE!
-		print "HACK!! Setting smaller domain size"
-		self.ni = 5
-		self.nj = self.ni
-		self.nk = 2
-		#self.nt = 3
+		#print "HACK!! Setting smaller domain size"
+		#self.ni = 5
+		#self.nj = self.ni
+		#self.nk = 2
 
 	@staticmethod
 	def loadDims(filename):
@@ -173,17 +172,27 @@ class Forcing:
 			fmt = self.forceFileOutputFormat
 
 		if fmt == None:
-			raise ValueError( "Output file format not specified.")
+			raise ValueError( "Output file format not specified." )
 
 		# Start replacing stuff..
-		name = conc.name
+		name = fmt
 		date = conc.date
+		print "Date: ", date, ", type: ", type(date)
+
+		types = str(self.__class__)
+		types = re.sub(r'[^\.]*\.', '', types)
+
+		month="%0.2d"%date.month
+		day="%0.2d"%date.day
+		julday="%0.3d"%date.julday
 
 		name = re.sub(r'YYYY', str(date.year), name)
 		name = re.sub(r'YY',   str(date.year)[2:], name)
-		name = re.sub(r'MM',   str(date.month), name)
-		name = re.sub(r'DD',   str(date.month), name)
-		# put jul date in
+		name = re.sub(r'MM',   month, name)
+		name = re.sub(r'DD',   day, name)
+		name = re.sub(r'JJJ',  julday, name)
+
+		name = re.sub(r'TYPE', types, name)
 
 		return name
 
@@ -191,10 +200,11 @@ class Forcing:
 	@property
 	def conc_path(self):
 		""" Getter for the concentration path """
+		return self._conc_path
 	@conc_path.setter
 	def conc_path(self, path):
 		""" Path that'll be used to look for concentration files """
-		self.conc_path = path
+		self._conc_path = path
 
 	@property
 	def species(self):
@@ -313,7 +323,6 @@ class Forcing:
 					conc_today  = conc_tom
 					force_today = force_tom
 				if conc_idx<len(self.conc_files)-1:
-					#conc_tom = self.conc_files[conc_idx+1]
 					try:
 						conc_tom  = NetCDFFile(self.conc_files[conc_idx+1].path, 'r')
 					except IOError as ex:
@@ -323,6 +332,7 @@ class Forcing:
 					# on every file but the first (which is taken care of below)
 					try:
 						force_tom_name=self.generateForceFileName(self.conc_files[conc_idx+1])
+						print "force_tom_name = %s"%force_tom_name
 						force_tom = Forcing.initForceFile(conc_tom, force_tom_name)
 					except IOError as ex:
 						print "Error! %s already exists.  Please remove the forcing file and try again."%force_tom_name
@@ -499,8 +509,9 @@ class Forcing:
 				attrVal = getattr(src, attr);
 				# Write it to the new file
 				setattr(dest, attr, attrVal)
-			else:
-				print attr, "does not exist in this NetCDF file %s." % src
+			#else:
+			#	# HACK uncomment this
+			#	print attr, "does not exist in this NetCDF file %s." % src
 
 		dest.sync()
 
@@ -755,12 +766,18 @@ class Forcing:
 
 		return {'yesterday': yesterday, 'today': today, 'tomorrow': tomorrow}
 
-class DataFile:
+class DataFile(object):
 	""" Used encase we want any more info on the input files.
 	Currently, name, path and date are all we care about
 	"""
 
-	date = None
+	_date = None
+	@property
+	def date(self):
+		return self._date
+	@date.setter
+	def date(self, dt):
+		self._date=dateE(dt.year, dt.month, dt.day)
 
 	# Simply the file name (basename)
 	name = None
@@ -804,16 +821,31 @@ class DataFile:
 	def __str__(self):
 		return self.name
 
-def datetimeE(datetime):
+class dateE(date, object):
 	""" Extends datetime.datetime by adding juldate operators """
 
 	_julday = -1
 
+	def __init__(self, year, month, day):
+		date.__init__(year, month, day)
+
+		self.SetJulDay(year, month, day)
+
 	@property
 	def julday(self):
-		# DEFINITELY NOT DONE
+		#date_s = datetime.datetime(self.year, 1, 1)
+		#date_e = datetime.datetime(self.year, self.month, self.day)
+		#delta = date_s - date_e
+		#self.julday = delta.days
 		return self._julday
-
-	def SetJulDay(self, julday, year):
+	@julday.setter
+	def julday(self, val):
+		# Needs to know the year
 		raise NotImplementedError( "Not yet implemented" )
+
+	def SetJulDay(self, year, month, day):
+		date_s = datetime(self.year, 1, 1)
+		date_e = datetime(self.year, self.month, self.day)
+		delta = date_s - date_e
+		self._julday = delta.days
 

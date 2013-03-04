@@ -54,7 +54,9 @@ if args.cli:
 
 	date_min = datetime(1999,07,03)
 	date_max = datetime(1999,07,06)
-	fc.conc_path = os.getcwd() + '/concentrations/'
+	#fc.conc_path = os.getcwd() + '/concentrations/'
+	fc.conc_path = os.getcwd() + '/basic_concentrations/'
+
 	#conc_files=f.ForceOnAverageConcentration.FindFiles(file_format="CCTM.YYYYMMDD", date_min=date_min, date_max=date_max)
 	conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
 	fc.loadConcentrationFiles(conc_files)
