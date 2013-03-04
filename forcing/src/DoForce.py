@@ -328,6 +328,9 @@ class Forcing(object):
 
 			print "conc_idx = %d"%conc_idx
 
+			on_first_day = (conc_idx == 0)
+			on_last_day = (conc_idx==len(self.conc_files)-1)
+
 			if not dryrun:
 				if conc_today != None:
 					# Move this to yesterday
@@ -341,7 +344,8 @@ class Forcing(object):
 					# Move this to today
 					conc_today  = conc_tom
 					force_today = force_tom
-				if conc_idx<len(self.conc_files)-1:
+				#if conc_idx<len(self.conc_files)-1:
+				if not on_last_day
 					try:
 						conc_tom  = NetCDFFile(self.conc_files[conc_idx+1].path, 'r')
 					except IOError as ex:
@@ -364,7 +368,8 @@ class Forcing(object):
 					force_tom = None
 					has_tom = False
 
-				if conc_today == None:
+				#if conc_today == None:
+				if on_first_day:
 					# If we're here, we're likely in the first iteration
 					has_yest = False
 					conc_today = NetCDFFile(self.conc_files[conc_idx].path, 'r')
