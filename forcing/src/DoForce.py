@@ -25,7 +25,7 @@ class Forcing:
 		   f.loadConcentrationFiles(concentration_files)
 		   f.maskLayers(layers_to_use)
 		   f.setAveraging("Max 8 hr")
-		   f.setSpecies("O3")
+		   f.species=["O3"]
 		   f.produceForcingField()
 
 	"""
@@ -99,6 +99,12 @@ class Forcing:
 		self.conc_files = []
 		self.conc_path  = None
 
+		# TEMP HACK REMOVE!
+		print "HACK!! Setting smaller domain size"
+		self.ni = 5
+		self.nj = self.ni
+		self.nk = 2
+		#self.nt = 3
 
 	@staticmethod
 	def loadDims(filename):
@@ -190,6 +196,23 @@ class Forcing:
 		""" Path that'll be used to look for concentration files """
 		self.conc_path = path
 
+	@property
+	def species(self):
+		""" Getter for the concentration path """
+		return self.species
+	@species.setter
+	def species(self, species_list):
+		""" Setter for the species attribute.  How species are considered
+			is contingent on the actual forcing function.
+
+		Keyword Arguments:
+
+		species_list:*string[]*
+		   List of species
+		"""
+		self.species=species_list
+
+
 	def setOutputFormat(self, fmt):
 		""" Format for output files.  See generateForceFileName for notes on format """
 		self.forceFileOutputFormat=fmt
@@ -241,13 +264,6 @@ class Forcing:
 
 		raise NotImplementedError( "Not yet implemented" )
 
-	# This should be a property
-	def setSpecies(self,species):
-		""" Specify which species to consider.  How they're considered
-			is contingent on the actual forcing function."""
-
-		self.species=species
-
 
 #	def produceForcingField(self, progressWindow = None, progress_callback = None):
 	def produceForcingField(self, progress_callback = None, dryrun = False):
@@ -267,13 +283,17 @@ class Forcing:
 
 		#
 		# Iterate through concentration files
-		conc_yest = None
+		conc_yest  = None
 		conc_today = None
-		conc_tom = None
+		conc_tom   = None
 
-		force_yest = None
+		force_yest  = None
 		force_today = None
-		force_tom = None
+		force_tom   = None
+
+		# Some flags to easily know if we have a yesterday or tomorrow
+		has_yest = True
+		has_tom  = True
 
 		# Index of concentration file
 		for conc_idx in range(0, len(self.conc_files)):
@@ -283,6 +303,9 @@ class Forcing:
 			if not dryrun:
 				if conc_today != None:
 					# Move this to yesterday
+					if conc_yest != None:
+						print "Closing yesterday's file before re-assigning a new yesterday"
+						conc_yest.close()
 					conc_yest  = conc_today
 					force_yest = force_today
 				if conc_tom != None:
@@ -305,9 +328,13 @@ class Forcing:
 						print "Error! %s already exists.  Please remove the forcing file and try again."%force_tom_name
 						# TEMP, remove
 						os.remove(force_tom_name)
+				if conc_idx == len(self.conc_files)-1:
+					# We're likely on the last day
+					has_tom = False
 
 				if conc_today == None:
 					# If we're here, we're likely in the first iteration
+					has_yest = False
 					conc_today = NetCDFFile(self.conc_files[conc_idx].path, 'r')
 
 					# Do this otherwise it'll be skipped over (as the next init
@@ -322,31 +349,74 @@ class Forcing:
 						except IOError as ex:
 							print "Writing error trying to create variable %s"%s, ex
 							pass
+				else:
+					has_yest = True
 
 				# Write out the variables for tomorrow
 				for s in self.species:
 					try:
-						print "Creating variable %s in tomorrows's force file"%s
+						print "Creating variable %s in tomorrow's force file"%s
 						force_tom.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
 					except IOError as ex:
 						print "Writing error trying to create variable %s"%s, ex
 						pass
 
 				# Generate a list[yesterday, today, tomorrow]
-				# where every "day" is a dict with species names for keys, and values
-				# of the domain (ni*nj*nk)
+				# where every "day" is a list with species indices (from self.species) for
+				# keys, and values of the domain (ni*nj*nk) for that species
 				flds = self.generateForcingFields(conc_idx=conc_idx,
 				   conc_yest=conc_yest,   conc_today=conc_today,   conc_tom=conc_tom,
 				   force_yest=force_yest, force_today=force_today, force_tom=force_tom)
 
 				# Add the field to the force file
-				for key in flds.keys():
-					# Write forcing field
-					var.assignValue(flds[key])
+				for day in flds:
+					print "Day: ", day
+					# Flds[day] is now a ndarray[species][nt][nk][nj][ni]
+					idx_s = 0
+					for species in self.species:
+						#print "Using species index idx_s: %d = species %s"%(idx_s, species)
+						species = self.species[idx_s]
+						# Get the netcdf variables
+						# Get the values
+						# add the values
+						# write them back to the file
 
-				# Close the file
-				force.close()
-			
+						if has_yest:
+							#new_yest  = force_yest.variables[species].assignValue(flds['yesterday'][idx_s] + force_yest.variables[species].getValue())
+							var = force_yest.variables[species]
+							base_fld = var.getValue()
+							if base_fld.shape[0] == 0:
+								# This is a newly created variable with no time steps in it yet
+								var.assignValue(flds['yesterday'][idx_s])
+							else:
+								#sum_fld = flds['yesterday'][idx_s] + base_fld[0:self.nt][0:self.nk][0:self.nj][0:self.ni]
+								sum_fld = flds['yesterday'][idx_s] + base_fld
+								var.assignValue(sum_fld)
+
+						# Today's...
+						var = force_today.variables[species]
+						base_fld = var.getValue()
+						if base_fld.shape[0] == 0:
+							# This is a newly created variable with no time steps in it yet
+							var.assignValue(flds['today'][idx_s])
+						else:
+							var.assignValue(flds['today'][idx_s] + base_fld)
+
+						# Tomorrow
+						if has_tom:
+							var = force_tom.variables[species]
+							base_fld = var.getValue()
+							if base_fld.shape[0] == 0:
+								# This is a newly created variable with no time steps in it yet
+								var.assignValue(flds['tomorrow'][idx_s])
+							else:
+								var.assignValue(flds['tomorrow'][idx_s] + base_fld)
+
+						# In species loop
+						idx_s = idx_s + 1
+
+					# In Day loop
+
 			# Perform a call back to update the progress
 			progress_callback(float(conc_idx)/len(self.conc_files), self.conc_files[conc_idx])
 

@@ -48,7 +48,7 @@ if args.cli:
 	fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
 
 	fc.maskLayers([1])
-	fc.setSpecies(['O3'])
+	fc.species=['O3']
 	fc.setOutputFormat('Forcing.TYPE.YYYYMMDD')
 	fc.setAveraging('Max 8 hr')
 

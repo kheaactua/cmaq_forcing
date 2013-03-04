@@ -46,36 +46,43 @@ class ForceOnAverageConcentration(Forcing):
 			raise NoSpeciesException("Must specify species")
 			return
 
+		print "ni, nj: %d, %d"%(self.ni, self.nj)
+
+
 		# Create zero fields to allocate our arrays
-		print "111 Self.species: ", self.species
+		#print "111 Self.species: ", self.species
 		fld_empty=range(0, len(self.species))
 		for idx_s in range(0, len(self.species)):
+			species = self.species[idx_s]
 			fld_empty[idx_s] = np.zeros((self.nt, self.nk, self.nj, self.ni))
 
-		print "222 Self.species: ", self.species
+		#print "222 Self.species: ", self.species
 		flds={'yesterday': fld_empty, 'today': fld_empty, 'tomorrow': fld_empty}
 
 		# This is NOT efficient.  Could probably easily make it
 		# more efficient by implementing some sort of cache though..
 		for idx_s in range(0, len(self.species)):
+			species = self.species[idx_s]
 			if conc_yest == None:
 				# If we're on day 1..
 				# This is inefficient, will upgrade later
 				data_yest = np.zeros((self.nt, self.nk, self.nj, self.ni))
 			else:
-				var_yest  = conc_yest.variables[self.species[idx_s]]
+				var_yest  = conc_yest.variables[species]
 				data_yest  = var_yest.getValue()
 
 
 			if conc_tom == None:
 				data_tom   = np.zeros((self.nt, self.nk, self.nj, self.ni))
 			else:
-				print "Looking for variable %s"%self.species[idx_s]
-				var_tom   = conc_tom.variables[self.species[idx_s]]
+				print "Looking for variable %s"%species
+				var_tom   = conc_tom.variables[species]
 				data_tom   = var_tom.getValue()
 
-			var_today = conc_today.variables[self.species[idx_s]]
+			var_today = conc_today.variables[species]
 			data_today = var_today.getValue()
+
+			#print "Initialized data_today with shape=", data_today.shape
 
 #			src_yesterday=conc_yest.getValue()
 #			data=np.concatenate([yesterday, today, tomorrow])
@@ -83,6 +90,8 @@ class ForceOnAverageConcentration(Forcing):
 			fld_yest  = np.zeros(data_yest.shape, dtype=np.float32)
 			fld_today = np.zeros(data_today.shape, dtype=np.float32)
 			fld_tom   = np.zeros(data_tom.shape, dtype=np.float32)
+
+			#print "Initialized fld_today with shape=", fld_today.shape
 
 			# Recall, mask is already considered in these vectors
 			for k in self.layers:
@@ -100,7 +109,7 @@ class ForceOnAverageConcentration(Forcing):
 							vec_today = np.zeros(self.nt, dtype=np.float32)
 							vec_tom   = np.zeros(self.nt, dtype=np.float32)
 							for t in range(0, self.nt-1):
-								print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
+								#print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
 								# Make sure I'm not transposing this...
 								vec_yest[t]  = data_yest[t][k][j][i]
 								vec_today[t] = data_today[t][k][j][i]
@@ -126,31 +135,28 @@ class ForceOnAverageConcentration(Forcing):
 							forcing_vectors = Forcing.applyForceToAvgTime(avgs)
 
 							# Now, write these out to the flds
-							print "Shape(fld_yest): ", fld_yest.shape, ", shape(forcing_vectors['yesterday']): ", forcing_vectors['yesterday'].shape
-							print "yesterday: ", forcing_vectors['yesterday']
-							print "len(yesterday) : ", len(forcing_vectors['yesterday'])
-							print "len(today) : ", len(forcing_vectors['today'])
-							print "len(tomorrow) : ", len(forcing_vectors['tomorrow'])
+							#print "Shape(fld_yest): ", fld_yest.shape, ", shape(forcing_vectors['yesterday']): ", forcing_vectors['yesterday'].shape
+							#print "yesterday: ", forcing_vectors['yesterday']
+							#print "len(yesterday) : ", len(forcing_vectors['yesterday'])
+							#print "len(today) : ", len(forcing_vectors['today'])
+							#print "len(tomorrow) : ", len(forcing_vectors['tomorrow'])
 							for t in range(0, self.nt-1):
-								print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
+								#print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
 								# Make sure I'm not transposing this...
-								print "fld_yest[t][k][j][i] = ", fld_yest[t][k][j][i]
-								print "forcing_vectors['yesterday'][t] = ", forcing_vectors['yesterday'][t]
+								#print "fld_yest[t][k][j][i] = ", fld_yest[t][k][j][i]
+								#print "forcing_vectors['yesterday'][t] = ", forcing_vectors['yesterday'][t]
 								fld_yest[t][k][j][i]  = forcing_vectors['yesterday'][t]
 								fld_today[t][k][j][i] = forcing_vectors['today'][t]
 								fld_tom[t][k][j][i]   = forcing_vectors['tomorrow'][t]
 
 
-#						for t in self.times:
-#							if self.space[i][j] == 1:
-#								fld[t][k][j][i]=1
-
 			flds['yesterday'][idx_s] = fld_yest
 			flds['today'][idx_s]     = fld_today
 			flds['tomorrow'][idx_s]  = fld_tom
 
-			print "BREAKING!!!"
-			break
+			#print "flds['yesterday'][%s].shape = "%(species), flds['yesterday'][idx_s].shape
+			#print "BREAKING!!!"
+			#break
 
 		return flds
 
