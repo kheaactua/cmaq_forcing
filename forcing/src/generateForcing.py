@@ -56,7 +56,8 @@ if args.cli:
 	#fc.outputFormat = 'Forcing.TYPE.YYYYMMDD'
 	#fc.outputPath=os.getcwd() + 'output/'
 
-	fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
+	#fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
+	fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
 	fc.setAveraging('Max 8 hr')
 
 	date_min = datetime(1999,07,03)

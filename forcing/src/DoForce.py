@@ -295,6 +295,9 @@ class Forcing(object):
 		fld = var.getValue()[0,0]
 		print "shape(timezones) = ", fld.shape
 
+		if fld.shape != (self.nj, self.ni):
+			raise ValueError("Error.  Gridded time zone file has a different domain than input concentration files.  Current domain=%s, timezone domain=%s"%(str(fld.shape), str( (self.ni, self.nj) ) ))
+
 		self.griddedTimeZoneFld=fld
 
 

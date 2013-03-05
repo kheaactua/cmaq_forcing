@@ -127,7 +127,7 @@ class ForceOnAverageConcentration(Forcing):
 							# (forward/backward), the window size, and time
 							# zone 
 
-							vec = Forcing.prepareTimeVectorForAvg(vec_yest, vec_today, vec_tom, timezone=tz[i][j])
+							vec = Forcing.prepareTimeVectorForAvg(vec_yest, vec_today, vec_tom, timezone=tz[j][i])
 							#print "i=%d,j=%d, preped vec[%d] = %s"%(i,j,len(vec)," ".join(map(str, vec)))
 
 							# Calculate the moving window average
