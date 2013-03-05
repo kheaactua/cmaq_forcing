@@ -57,7 +57,8 @@ class ForceOnAverageConcentration(Forcing):
 			fld_empty[idx_s] = np.zeros((self.nt, self.nk, self.nj, self.ni))
 
 		#print "222 Self.species: ", self.species
-		flds={'yesterday': fld_empty, 'today': fld_empty, 'tomorrow': fld_empty}
+		print "Initializing flds dict"
+		flds={'yesterday': fld_empty, 'today': copy.copy(fld_empty), 'tomorrow': copy.copy(fld_empty)}
 
 		# This is NOT efficient.  Could probably easily make it
 		# more efficient by implementing some sort of cache though..
@@ -89,8 +90,8 @@ class ForceOnAverageConcentration(Forcing):
 #			data=np.concatenate([yesterday, today, tomorrow])
 
 			fld_yest  = np.zeros(data_yest.shape, dtype=np.float32)
-			fld_today = np.zeros(data_today.shape, dtype=np.float32)
-			fld_tom   = np.zeros(data_tom.shape, dtype=np.float32)
+			fld_today = copy.copy(fld_yest)
+			fld_tom   = copy.copy(fld_yest)
 
 			#print "Initialized fld_today with shape=", fld_today.shape
 
@@ -107,8 +108,8 @@ class ForceOnAverageConcentration(Forcing):
 						# opposite way as we want (time is the top index..)
 						if self.averaging == 'AVG_MAX8':
 							vec_yest  = np.zeros(self.nt, dtype=np.float32)
-							vec_today = np.zeros(self.nt, dtype=np.float32)
-							vec_tom   = np.zeros(self.nt, dtype=np.float32)
+							vec_today = copy.copy(vec_yest)
+							vec_tom   = copy.copy(vec_yest)
 							for t in range(0, self.nt-1):
 								#print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
 								# Make sure I'm not transposing this...
@@ -159,12 +160,14 @@ class ForceOnAverageConcentration(Forcing):
 					#endfor j
 				#endfor i
 			#endfor k
-			#print "fld_today[t=8]:\n",fld_today[8,:,:,:]
+			print "fld_today[t=8] idx_s=%d:\n"%idx_s,fld_today[8,:,:,:]
 
 
 			flds['yesterday'][idx_s] = fld_yest
 			flds['today'][idx_s]     = fld_today
+			print "flds['today'][s=0][t=8]:\n", flds['today'][0][8,:,:,:]
 			flds['tomorrow'][idx_s]  = fld_tom
+			print "flds['today'][s=0][t=8] 22222:\n", flds['today'][0][8,:,:,:]
 
 			#print "flds['yesterday'][%s].shape = "%(species), flds['yesterday'][idx_s].shape
 			#print "BREAKING!!!"
@@ -172,6 +175,7 @@ class ForceOnAverageConcentration(Forcing):
 
 		#endfor species
 
+		print "flds['today'][s=0][t=8]  3333:\n", flds['today'][0][8,:,:,:]
 		return flds
 
 class ForcingException(Exception):
