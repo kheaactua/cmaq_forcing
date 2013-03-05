@@ -54,8 +54,9 @@ class Forcing(object):
 	# Concentration file path
 	_conc_path = None
 
-	# True for forward, false for backward
-	default_averaging_direction = False
+	# True for forward, false for backward.  I'm told
+	# the standard is forward
+	default_averaging_direction = True
 
 	# Obvious, but used a lot
 	dayLen=24
