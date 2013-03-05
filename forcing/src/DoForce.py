@@ -337,7 +337,7 @@ class Forcing(object):
 
 			# Initialize the file
 			try:
-				force = Forcing.initForceFile(conc, force_name, self.species)
+				force = self.initForceFile(conc, force_name)
 			except IOError as ex:
 				print "Error! %s already exists.  Please remove the forcing file and try again."%force_name
 				# HACK TEMP, remove
@@ -453,17 +453,18 @@ class Forcing(object):
 						# Today's...
 						var = force_today.variables[species]
 						base_fld = var.getValue()
-						if base_fld.shape[0] == 0:
-							# This is a newly created variable with no time steps in it yet
-							print "1111 wrote today"
-							var.assignValue(flds['today'][idx_s])
-						else:
-							print "2222 wrote today\n", flds['today'][idx_s] + base_fld
-							var.assignValue(flds['today'][idx_s] + base_fld)
-						force_today.sync()
-						force_today.close()
-						print "Closed ", force_today
-						os._exit(0)
+						#if base_fld.shape[0] == 0:
+						#	# This is a newly created variable with no time steps in it yet
+						#	print "1111 wrote today"
+						#	var.assignValue(flds['today'][idx_s])
+						#else:
+						sum_fld = base_fld + flds['today'][idx_s]
+						var.assignValue(sum_fld)
+
+						#force_today.sync()
+						#force_today.close()
+						#print "Closed ", force_today
+						#os._exit(0)
 
 #!#						# Tomorrow
 #!#						if force_tom is not None:
@@ -490,8 +491,7 @@ class Forcing(object):
 		# Probably have to close conc_today
 
 
-	@staticmethod
-	def initForceFile(conc, fpath, species = []):
+	def initForceFile(self, conc, fpath, species = None):
 		""" Initialize a forcing file.
 			This method opens the NetCDF file in read/write mode, copies the
 			dimensions, copies I/O Api attributes over, and any other common
@@ -527,14 +527,17 @@ class Forcing(object):
 		Forcing.copyDims(conc, force)
 		Forcing.copyIoapiProps(conc, force)
 
+		if species is None:
+			species = self.species
+
 		# Create the variables we'll be writing to
 		for s in species:
 			try:
 				var = force.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+				var.assignValue(np.zeros((self.nt,self.nk,self.nj,self.ni), dtype=np.float32))
 			except IOError as ex:
 				print "Writing error trying to create variable %s in today's file"%s, ex
 				print "Current variable names: %s\n"%(" ".join(map(str, force.variables.keys())))
-			#var.assignValue(flds[key])
 
 		## Fix geocode data
 		## http://svn.asilika.com/svn/school/GEOG%205804%20-%20Introduction%20to%20GIS/Project/webservice/fixIoapiProjection.py
