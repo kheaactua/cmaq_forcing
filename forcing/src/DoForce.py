@@ -451,12 +451,12 @@ class Forcing(object):
 #!#								var.assignValue(sum_fld)
 
 						# Today's...
-						print "Today's conc:\n", conc_today.variables[species].getValue()[8]
+						#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
 						var = force_today.variables[species]
 						base_fld = var.getValue()
 
 						sum_fld = base_fld + flds['today'][idx_s]
-						print "Today's force:\n", sum_fld[8]
+						#print "Today's force:\n", sum_fld[8]
 						var.assignValue(sum_fld)
 
 						#force_today.sync()

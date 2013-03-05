@@ -127,18 +127,18 @@ class ForceOnAverageConcentration(Forcing):
 							# zone 
 
 							vec = Forcing.prepareTimeVectorForAvg(vec_yest, vec_today, vec_tom, timezone=tz[i][j])
-							print "i=%d,j=%d, preped vec[%d] = %s"%(i,j,len(vec)," ".join(map(str, vec)))
+							#print "i=%d,j=%d, preped vec[%d] = %s"%(i,j,len(vec)," ".join(map(str, vec)))
 
 							# Calculate the moving window average
 							avgs = Forcing.calcMovingAverage(vec)
-							print "i=%d,j=%d, avg vec[%d]    = %s"%(i,j,len(avgs)," ".join(map(str, avgs)))
+							#print "i=%d,j=%d, avg vec[%d]    = %s"%(i,j,len(avgs)," ".join(map(str, avgs)))
 
 							# And then, for the 8-hour max to be used for a
 							# forcing term, generate a vector for yesterday,
 							# today and tomorrow with the forcing terms in them
 # NOTE: Ensure that this is above the threshold
 							forcing_vectors = Forcing.applyForceToAvgTime(avgs)
-							print "i=%d,j=%d, avg fvec[%d]   = %s"%(i,j,len(forcing_vectors['today'])," ".join(map(str, forcing_vectors['today'])))
+							#print "i=%d,j=%d, avg fvec[%d]   = %s"%(i,j,len(forcing_vectors['today'])," ".join(map(str, forcing_vectors['today'])))
 
 							# Now, write these out to the flds
 							#print "Shape(fld_yest): ", fld_yest.shape, ", shape(forcing_vectors['yesterday']): ", forcing_vectors['yesterday'].shape
