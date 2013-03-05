@@ -57,7 +57,7 @@ class ForceOnAverageConcentration(Forcing):
 			fld_empty[idx_s] = np.zeros((self.nt, self.nk, self.nj, self.ni))
 
 		#print "222 Self.species: ", self.species
-		print "Initializing flds dict"
+		#print "Initializing flds dict"
 		flds={'yesterday': fld_empty, 'today': copy.copy(fld_empty), 'tomorrow': copy.copy(fld_empty)}
 
 		# This is NOT efficient.  Could probably easily make it
@@ -160,14 +160,14 @@ class ForceOnAverageConcentration(Forcing):
 					#endfor j
 				#endfor i
 			#endfor k
-			print "fld_today[t=8] idx_s=%d:\n"%idx_s,fld_today[8,:,:,:]
+			#print "fld_today[t=8] idx_s=%d:\n"%idx_s,fld_today[8,:,:,:]
 
 
 			flds['yesterday'][idx_s] = fld_yest
 			flds['today'][idx_s]     = fld_today
-			print "flds['today'][s=0][t=8]:\n", flds['today'][0][8,:,:,:]
+			#print "flds['today'][s=0][t=8]:\n", flds['today'][0][8,:,:,:]
 			flds['tomorrow'][idx_s]  = fld_tom
-			print "flds['today'][s=0][t=8] 22222:\n", flds['today'][0][8,:,:,:]
+			#print "flds['today'][s=0][t=8] 22222:\n", flds['today'][0][8,:,:,:]
 
 			#print "flds['yesterday'][%s].shape = "%(species), flds['yesterday'][idx_s].shape
 			#print "BREAKING!!!"
@@ -175,7 +175,7 @@ class ForceOnAverageConcentration(Forcing):
 
 		#endfor species
 
-		print "flds['today'][s=0][t=8]  3333:\n", flds['today'][0][8,:,:,:]
+		#print "flds['today'][s=0][t=8]  3333:\n", flds['today'][0][8,:,:,:]
 		return flds
 
 class ForcingException(Exception):
