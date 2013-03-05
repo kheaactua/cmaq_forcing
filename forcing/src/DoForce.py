@@ -319,79 +319,96 @@ class Forcing(object):
 		force_today = None
 		force_tom   = None
 
-		# Some flags to easily know if we have a yesterday or tomorrow
-		has_yest = False
-		has_tom  = True
+		# In order to keep the code below clean, all the files are
+		# initiate in this first loop
+		conc_files = []
+		force_files = []
+		for conc_datafile in self.conc_files:
+			force_name=self.generateForceFileName(conc_datafile)
+			conc_files.append(conc_datafile.path)
+			force_files.append(force_name)
+
+			# Open the concentration file
+			try:
+				conc = NetCDFFile(conc_datafile.path, 'r')
+			except IOError as ex:
+				print "Error!  Cannot open concentration file %s"%(conc_datafile.name)
+				raise
+
+			# Initialize the file
+			try:
+				force = Forcing.initForceFile(conc, force_name, self.species)
+			except IOError as ex:
+				print "Error! %s already exists.  Please remove the forcing file and try again."%force_name
+				# HACK TEMP, remove
+				os.remove(force_name)
+
+			# Clean up and close the files
+			conc.close()
+			force.close()
+		# End of initiation loop
+
+		# List of file names
+		conc_files  = [None] + conc_files  + [None]
+		force_files = [None] + force_files + [None]
+
+		print "Conc_datafiles: %s"%(" ".join(map(str, self.conc_files)))
+		print "Conc_files: ", conc_files
 
 		# Index of concentration file
-		for conc_idx in range(0, len(self.conc_files)):
+		for conc_idx in range(1, len(conc_files)-1):
 
 			print "conc_idx = %d"%conc_idx
 
-			on_first_day = (conc_idx == 0)
-			on_last_day = (conc_idx==len(self.conc_files)-1)
+			# Have a None at the ends
+			#on_first_day = (conc_idx == 1)
+			#on_last_day = (conc_idx==len(self.conc_files)-2)
 
 			if not dryrun:
-				if conc_today != None:
-					# Move this to yesterday
-					if conc_yest != None:
-						print "- Closing yesterday's file before re-assigning a new yesterday", force_yest
-						conc_yest.close()
-						conc_yest = None
-					conc_yest  = conc_today
+
+				# Grab the files
+				conc_yest_name = conc_files[conc_idx-1]
+				force_yest_name = force_files[conc_idx-1]
+
+				conc_today_name = conc_files[conc_idx]
+				force_today_name = force_files[conc_idx]
+
+				conc_tom_name = conc_files[conc_idx+1]
+				force_tom_name = force_files[conc_idx+1]
+
+				# Close files that we're done with
+				if conc_yest is not None:
+					# This is now the day before yesterday, close it.
+					conc_yest.close()
+					conc_yest = None
+					force_yest.close()
+					force_yest = None
+
+				# Open the files
+				if conc_yest_name != None:
+					#conc_yest  = NetCDFFile(conc_yest_name, 'r')
+					#force_yest = NetCDFFile(force_yest_name, 'a')
+
+					# Shift this to yesterday
+					conc_yest = conc_today
 					force_yest = force_today
-				if conc_tom != None:
-					# Move this to today
-					conc_today  = conc_tom
+
+				if conc_tom == None and conc_yest_name == None:
+					# First time around
+					conc_today  = NetCDFFile(conc_today_name, 'r')
+					force_today = NetCDFFile(force_today_name, 'a')
+				elif conc_tom != None:
+					# Not the first or last
+					# Shift tomorrow to today
+					conc_today = conc_tom
 					force_today = force_tom
-				#if conc_idx<len(self.conc_files)-1:
-				if not on_last_day
-					try:
-						conc_tom  = NetCDFFile(self.conc_files[conc_idx+1].path, 'r')
-					except IOError as ex:
-						print "Could not open %s for reading."%self.conc_files[conc_idx+1].path
-						break
-					# Open and initialize tomorrow's file.  This way it'll be done
-					# on every file but the first (which is taken care of below)
-					try:
-						force_tom_name=self.generateForceFileName(self.conc_files[conc_idx+1])
-						print "force_tom_name = %s"%force_tom_name
-						force_tom = Forcing.initForceFile(conc_tom, force_tom_name)
-					except IOError as ex:
-						print "Error! %s already exists.  Please remove the forcing file and try again."%force_tom_name
-						# HACK TEMP, remove
-						os.remove(force_tom_name)
+
+				if conc_tom_name != None:
+					conc_tom  = NetCDFFile(conc_tom_name, 'r')
+					force_tom = NetCDFFile(force_tom_name, 'a')
 				else:
-					# We're on the last day
-					print "- Closing tomorrow's file ", force_tom
-					# force_tom.close() # Not closing, because at this point they (today, tomorrow) both point at the same file
+					conc_tom = None
 					force_tom = None
-					has_tom = False
-
-				#if conc_today == None:
-				if on_first_day:
-					# If we're here, we're likely in the first iteration
-					has_yest = False
-					conc_today = NetCDFFile(self.conc_files[conc_idx].path, 'r')
-
-					# Do this otherwise it'll be skipped over (as the next init
-					# only writes the dims on tomorrow)
-					force_today = Forcing.initForceFile(conc_today, self.generateForceFileName(self.conc_files[conc_idx]))
-
-					# Create the species variables
-					for s in self.species:
-						try:
-							print "Creating variable %s in today's force file"%s
-							force_today.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
-						except IOError as ex:
-							print "Writing error trying to create variable %s in today's file"%s, ex
-							
-							print "Force_today: ", force_today
-							print "Current variable names: %s\n"%(" ".join(map(str, force_today.variables.keys())))
-							pass
-				else:
-					has_yest = True
-
 
 				# What days are we working with?
 				print "\n"
@@ -399,18 +416,6 @@ class Forcing(object):
 				print "Today:     ", force_today
 				print "Tomorrow:  ", force_tom
 				print "\n"
-
-
-				# Write out the variables for tomorrow
-				if has_tom:
-					for s in self.species:
-						try:
-							print "Creating variable %s in tomorrow's force file"%s
-							force_tom.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
-						except IOError as ex:
-							print "Writing error trying to create variable %s in tomorrow's file"%s, ex
-							print "\n\n"
-							pass
 
 				# Generate a list[yesterday, today, tomorrow]
 				# where every "day" is a list with species indices (from self.species) for
@@ -421,7 +426,7 @@ class Forcing(object):
 
 				# Add the field to the force file
 				for day in flds:
-					print "Day: ", day
+					#print "Day: ", day
 					# Flds[day] is now a ndarray[species][nt][nk][nj][ni]
 					idx_s = 0
 					for species in self.species:
@@ -432,7 +437,7 @@ class Forcing(object):
 						# add the values
 						# write them back to the file
 
-						if has_yest:
+						if force_yest is not None:
 							#new_yest  = force_yest.variables[species].assignValue(flds['yesterday'][idx_s] + force_yest.variables[species].getValue())
 							var = force_yest.variables[species]
 							base_fld = var.getValue()
@@ -454,7 +459,7 @@ class Forcing(object):
 							var.assignValue(flds['today'][idx_s] + base_fld)
 
 						# Tomorrow
-						if has_tom:
+						if force_tom is not None:
 							var = force_tom.variables[species]
 							base_fld = var.getValue()
 							if base_fld.shape[0] == 0:
@@ -466,21 +471,20 @@ class Forcing(object):
 						# In species loop
 						idx_s = idx_s + 1
 
-					# In Day loop (yest, today, tom)
+				# endfor day loop (yest, today, tom)
 
-
-				# in if dryrun
-
-			# In days loops (day1, day2, day3, ...)
+			# endif dryrun
 
 			# Perform a call back to update the progress
-			progress_callback(float(conc_idx)/len(self.conc_files), self.conc_files[conc_idx])
+			progress_callback(float(conc_idx)/len(self.conc_files), conc_files[conc_idx])
 
-		force_today.close()
+		# endfor days loop (day1, day2, day3, ...)
+
+		# Probably have to close conc_today
 
 
 	@staticmethod
-	def initForceFile(conc, fpath):
+	def initForceFile(conc, fpath, species = []):
 		""" Initialize a forcing file.
 			This method opens the NetCDF file in read/write mode, copies the
 			dimensions, copies I/O Api attributes over, and any other common
@@ -494,6 +498,9 @@ class Forcing(object):
 		fpath:*string*
 		   Path (dir and name) of the forcing file to initialize
 
+		species:*string[]*
+		   List of species to create
+
 		Returns:
 
 		NetCDFFile
@@ -504,18 +511,22 @@ class Forcing(object):
 		if os.path.exists(fpath):
 			# TEMP, remove
 			os.remove(fpath)
-			print "Deleted %s !"%fpath
+			#print "Deleted %s !"%fpath
 			#raise IOError("%s already exists."%fpath)
 
-		print "Opening %s for writing"%fpath
+		#print "Opening %s for writing"%fpath
 		force = NetCDFFile(fpath, 'a')
 
 		Forcing.copyDims(conc, force)
 		Forcing.copyIoapiProps(conc, force)
 
-		# Copy all the variables over
-		for key in conc.variables:
-			var = force.createVariable(key, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+		# Create the variables we'll be writing to
+		for s in species:
+			try:
+				var = force.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+			except IOError as ex:
+				print "Writing error trying to create variable %s in today's file"%s, ex
+				print "Current variable names: %s\n"%(" ".join(map(str, force.variables.keys())))
 			#var.assignValue(flds[key])
 
 		## Fix geocode data
@@ -645,6 +656,8 @@ class Forcing(object):
 				if (date_min == None and date_max == None) or ( (date_min != None and df.date > date_min) or (date_max != None and df.date < date_max) ):
 					cfiles.append(df)
 
+		
+		#return sorted(cfiles, key=lambda student: .age)
 		return sorted(cfiles)
 
 	def loadConcentrationFiles(self, files):
@@ -868,6 +881,15 @@ class DataFile(object):
 
 	def __str__(self):
 		return self.name
+
+	# Used for sorting
+	def __cmp__(self, other):
+		if self._date > other._date:
+			return 1
+		elif self._date < other._date:
+			return -1
+		else:
+			return 0 
 
 class dateE(date, object):
 	""" Extends datetime.datetime by adding juldate operators """
