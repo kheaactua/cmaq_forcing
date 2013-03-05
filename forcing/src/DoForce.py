@@ -581,7 +581,7 @@ class Forcing(object):
 			species = self.species
 
 		# Create the variables we'll be writing to
-		print "TODO: Make this copy the TFLAG variable.  Working on %s"%fpath
+		print "Working on %s"%fpath
 		for s in species:
 			try:
 				var = force.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
@@ -590,9 +590,19 @@ class Forcing(object):
 				print "Writing error trying to create variable %s in today's file"%s, ex
 				print "Current variable names: %s\n"%(" ".join(map(str, force.variables.keys())))
 
+		# Copy over TFLAG
+		vsrc = conc.variables['TFLAG']
+		force.createVariable('TFLAG', 'i', ('TSTEP', 'VAR', 'DATE-TIME'))
+		vdest = force.variables['TFLAG']
+		vdest.assignValue(vsrc.getValue())
+
+
 		## Fix geocode data
 		## http://svn.asilika.com/svn/school/GEOG%205804%20-%20Introduction%20to%20GIS/Project/webservice/fixIoapiProjection.py
 		## fixIoapiSpatialInfo
+
+		# Sync the file before sending it off
+		force.sync()
 
 		return force
 

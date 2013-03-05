@@ -113,7 +113,7 @@ class ForceOnAverageConcentration(Forcing):
 							for t in range(0, self.nt-1):
 								#print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
 								# Make sure I'm not transposing this...
-								#print "shape(vec_yest)=%s, shape(data_yest)=%s.  Tyrying to access data_yest[%d][%d][%d][%d]"%(vec_yest.shape, data_yest.shape, t, k, j, i)
+								print "shape(vec_yest)=%s, shape(data_yest)=%s.  Tyrying to access data_yest[%d][%d][%d][%d]"%(vec_yest.shape, data_yest.shape, t, k, j, i)
 								vec_yest[t]  = data_yest[t][k][j][i]
 								#print "shape(vec_today)=%s, shape(data_today)=%s"%(vec_today.shape, data_yest.shape)
 								vec_today[t] = data_today[t][k][j][i]
