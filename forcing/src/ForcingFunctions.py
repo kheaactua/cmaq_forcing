@@ -35,7 +35,7 @@ class ForceOnAverageConcentration(Forcing):
 		contain a float32 3D field.
 		"""
 
-		print "In ForceOnAverageConcentration:generateForcingFields()"
+		#print "In ForceOnAverageConcentration:generateForcingFields()"
 
 		# TEMP HACK!
 		# Assume all timezones are GMT

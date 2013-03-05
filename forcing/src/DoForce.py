@@ -358,11 +358,7 @@ class Forcing(object):
 		# Index of concentration file
 		for conc_idx in range(1, len(conc_files)-1):
 
-			print "conc_idx = %d"%conc_idx
-
-			# Have a None at the ends
-			#on_first_day = (conc_idx == 1)
-			#on_last_day = (conc_idx==len(self.conc_files)-2)
+			#print "conc_idx = %d"%conc_idx
 
 			if not dryrun:
 
@@ -380,7 +376,7 @@ class Forcing(object):
 				if conc_yest is not None:
 					# This is now the day before yesterday, close it.
 					conc_yest.close()
-					print "Closed %s"%conc_yest
+					#print "Closed %s"%conc_yest
 					conc_yest = None
 					force_yest.close()
 					force_yest = None
@@ -411,12 +407,12 @@ class Forcing(object):
 					conc_tom = None
 					force_tom = None
 
-				# What days are we working with?
-				print "\n"
-				print "Yesterday: ", force_yest
-				print "Today:     ", force_today
-				print "Tomorrow:  ", force_tom
-				print "\n"
+				## What days are we working with?
+				#print "\n"
+				#print "Yesterday: ", force_yest
+				#print "Today:     ", force_today
+				#print "Tomorrow:  ", force_tom
+				#print "\n"
 
 				# Generate a list[yesterday, today, tomorrow]
 				# where every "day" is a list with species indices (from self.species) for
@@ -447,9 +443,9 @@ class Forcing(object):
 					var = force_today.variables[species]
 					base_fld = var.getValue()
 					sum_fld = base_fld + flds['today'][idx_s]
-					print "base_fld.shape: ", base_fld.shape
-					print "sum_fld.shape:  ", sum_fld.shape
-					print "Today's total force:\n", sum_fld[8]
+					#print "base_fld.shape: ", base_fld.shape
+					#print "sum_fld.shape:  ", sum_fld.shape
+					#print "Today's total force:\n", sum_fld[8]
 					var.assignValue(sum_fld)
 
 
