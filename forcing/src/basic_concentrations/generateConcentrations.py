@@ -52,3 +52,24 @@ for d in range(sdate, edate):
 
 	conc.close()
 
+# Create time zones
+fpath = 'timezones.nc'
+if os.path.exists(fpath):
+	os.remove(fpath)
+tz = NetCDFFile(fpath, 'a')
+tz.createDimension('TSTEP', 1)
+tz.createDimension('LAY',   1)
+tz.createDimension('ROW',   nj)
+tz.createDimension('COL',   ni)
+
+# Create LTIME
+var=tz.createVariable('LTIME', 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+tzfield=np.zeros((1, 1, nj,ni), dtype=np.float32)
+
+for i in range(ni-1, -1, -1):
+	tzfield[0,0,:,i] = i-ni+1
+
+print tzfield
+var.assignValue(tzfield)
+tz.sync()
+tz.close()
