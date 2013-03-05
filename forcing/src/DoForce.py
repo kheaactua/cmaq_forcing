@@ -20,12 +20,28 @@ class Forcing(object):
 
 		Usage example::
 
+		   # Choose what kind of forcing
 		   f = ForceOnAverageConcentration()
+
+		   # Initialize the object and give it some concentration files
 		   f.loadDims(sample_concentration_file_name)
 		   f.loadConcentrationFiles(concentration_files)
+
+		   # Define the parts of the domain to operate
 		   f.layers=layers_to_use
-		   f.setAveraging("Max 8 hr")
 		   f.species=["O3"]
+
+		   # What kind of time averaging?
+		   f.setAveraging("Max 8 hr")
+
+		   # Set up output parameters
+		   fc.outputFormat = 'Forcing.TYPE.YYYYMMDD'
+		   f.outputPath=os.getcwd() + 'output/'
+
+		   # Set up time zones
+		   f.griddedTimeZone = 'GriddedTimeZoneMask.nc'
+
+		   # Run
 		   f.produceForcingField()
 
 	"""
@@ -45,17 +61,26 @@ class Forcing(object):
 	dayLen=24
 
 	# Output file name format
-	forceFileOutputFormat = None
+	_outputFormat = 'Forcing.TYPE.YYYYMMDD'
+
+	# Output path
+	_outputPath = None
 
 	# Layers to process
 	_layers = []
+
+	# Gridded timezone file.  Ideally, in the future we'll be able to figure these
+	# out with shape files, rather than having a pre-gridded file
+	_griddedTimeZone = None
+	# The actual gridded field
+	griddedTimeZoneFld = None
 
 	def __init__(self,ni=0,nj=0,nk=0,nt=0,sample_conc=''):
 		""" Initialize Forcing object.  Dimentions will be used if given,
 		    but if a sample concentration file is given, it will be read
 		    instead.  (So, either provide dims, a file, or none.)  When nothing
 		    is really provided, the user will typically use
-			the static method loadDims loadDims() to set the dims later
+			the static method loadDims() to set the dims later
 
 		Keyword Arguments:
 
@@ -102,11 +127,7 @@ class Forcing(object):
 		self.conc_files = []
 		self.conc_path  = None
 
-		# TEMP HACK REMOVE!
-		#print "HACK!! Setting smaller domain size"
-		#self.ni = 5
-		#self.nj = self.ni
-		#self.nk = 2
+		self._outputPath = os.getcwd() + '/output'
 
 	@staticmethod
 	def loadDims(filename):
@@ -165,14 +186,14 @@ class Forcing(object):
 
 
 		Returns:
-		   *string* Forcing file name
+		   *string* Forcing file path (/directory/and/filename)
 		"""
 
 		if not isinstance(conc, DataFile):
 			raise TypeError("Concentration input must be a data file")
 
 		if fmt == None:
-			fmt = self.forceFileOutputFormat
+			fmt = self.outputFormat
 
 		if fmt == None:
 			raise ValueError( "Output file format not specified." )
@@ -201,7 +222,7 @@ class Forcing(object):
 
 		name = re.sub(r'TYPE', types, name)
 
-		return name
+		return self.outputPath + '/' + name
 
 	# Not a good use of a property, but it's my first one
 	@property
@@ -229,11 +250,55 @@ class Forcing(object):
 		"""
 		self._species=species_list
 
-
-	def setOutputFormat(self, fmt):
+	@property
+	def outputFormat(self):
+		return self._outputFormat
+	@outputFormat.setter
+	def outputFormat(self, fmt):
 		""" Format for output files.  See generateForceFileName for notes on format """
-		self.forceFileOutputFormat=fmt
+		self._outputFormat=fmt
 
+	@property
+	def outputPath(self):
+		return self._outputPath
+	@outputPath.setter
+	def outputPath(self, path):
+		self._outputPath = path
+
+
+	@property
+	def griddedTimeZone(self):
+		return self._griddedTimeZone
+	@griddedTimeZone.setter
+	def griddedTimeZone(self, path):
+		""" Load a gridded NetCDF file of time zones (so every cell has a value
+		    based on it's geographical location such as -5 for example.)
+
+			Though time zones are time-variant, this code does not yet consider that.
+		    It reads one field, and applies to at all time.
+
+		    Currently this function is designed to use the format we use in the group,
+		    i.e. a NetCDF file with a variable LTIME(TSTEP, LAY, ROW, COL) where the
+		    data can be found at TSTEP=0, LAY=0
+		"""
+		self._griddedTimeZone = path
+
+		# Open the file and load in the field
+		try:
+			tz = NetCDFFile(path, 'r')
+		except IOError as ex:
+			print "Error!  Cannot open gridded timezone file %s"%(path)
+			raise
+
+		var = tz.variables['LTIME']
+		# The field should be at t=0,k=0
+		fld = var.getValue()[0,0]
+		print "shape(timezones) = ", fld.shape
+
+		self.griddedTimeZoneFld=fld
+
+
+	# Should replace this setter with a property
 	def setAveraging(self, avg):
 		""" Set averaging option, e.g. max 8-hr, etc
 
@@ -248,6 +313,7 @@ class Forcing(object):
 				self.averaging=key
 
 		# Should probably raise an exception if it's not found		
+
 
 	def maskTimes(self, mask):
 		""" Set time mask
@@ -324,9 +390,9 @@ class Forcing(object):
 		conc_files = []
 		force_files = []
 		for conc_datafile in self.conc_files:
-			force_name=self.generateForceFileName(conc_datafile)
+			force_path=self.generateForceFileName(conc_datafile)
 			conc_files.append(conc_datafile.path)
-			force_files.append(force_name)
+			force_files.append(force_path)
 
 			# Open the concentration file
 			try:
@@ -337,18 +403,18 @@ class Forcing(object):
 
 			# Initialize the file
 			try:
-				force = self.initForceFile(conc, force_name)
+				force = self.initForceFile(conc, force_path)
 			except IOError as ex:
-				print "Error! %s already exists.  Please remove the forcing file and try again."%force_name
+				print "Error! %s already exists.  Please remove the forcing file and try again."%force_path
 				# HACK TEMP, remove
-				os.remove(force_name)
+				os.remove(force_path)
 
 			# Clean up and close the files
 			conc.close()
 			force.close()
 		# End of initiation loop
 
-		# List of file names
+		# List of full file paths
 		conc_files  = [None] + conc_files  + [None]
 		force_files = [None] + force_files + [None]
 
@@ -363,14 +429,14 @@ class Forcing(object):
 			if not dryrun:
 
 				# Grab the files
-				conc_yest_name = conc_files[conc_idx-1]
-				force_yest_name = force_files[conc_idx-1]
+				conc_yest_path = conc_files[conc_idx-1]
+				force_yest_path = force_files[conc_idx-1]
 
-				conc_today_name = conc_files[conc_idx]
-				force_today_name = force_files[conc_idx]
+				conc_today_path = conc_files[conc_idx]
+				force_today_path = force_files[conc_idx]
 
-				conc_tom_name = conc_files[conc_idx+1]
-				force_tom_name = force_files[conc_idx+1]
+				conc_tom_path = conc_files[conc_idx+1]
+				force_tom_path = force_files[conc_idx+1]
 
 				# Close files that we're done with
 				if conc_yest is not None:
@@ -382,27 +448,24 @@ class Forcing(object):
 					force_yest = None
 
 				# Open the files
-				if conc_yest_name != None:
-					#conc_yest  = NetCDFFile(conc_yest_name, 'r')
-					#force_yest = NetCDFFile(force_yest_name, 'a')
-
+				if conc_yest_path != None:
 					# Shift this to yesterday
 					conc_yest = conc_today
 					force_yest = force_today
 
-				if conc_tom == None and conc_yest_name == None:
+				if conc_tom == None and conc_yest_path == None:
 					# First time around
-					conc_today  = NetCDFFile(conc_today_name, 'r')
-					force_today = NetCDFFile(force_today_name, 'a')
+					conc_today  = NetCDFFile(conc_today_path, 'r')
+					force_today = NetCDFFile(force_today_path, 'a')
 				elif conc_tom != None:
 					# Not the first or last
 					# Shift tomorrow to today
 					conc_today = conc_tom
 					force_today = force_tom
 
-				if conc_tom_name != None:
-					conc_tom  = NetCDFFile(conc_tom_name, 'r')
-					force_tom = NetCDFFile(force_tom_name, 'a')
+				if conc_tom_path != None:
+					conc_tom  = NetCDFFile(conc_tom_path, 'r')
+					force_tom = NetCDFFile(force_tom_path, 'a')
 				else:
 					conc_tom = None
 					force_tom = None

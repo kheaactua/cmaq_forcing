@@ -51,7 +51,12 @@ if args.cli:
 
 	fc.maskLayers([1])
 	fc.species=['O3']
-	fc.setOutputFormat('Forcing.TYPE.YYYYMMDD')
+
+	# These two are default values
+	#fc.outputFormat = 'Forcing.TYPE.YYYYMMDD'
+	#fc.outputPath=os.getcwd() + 'output/'
+
+	fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
 	fc.setAveraging('Max 8 hr')
 
 	date_min = datetime(1999,07,03)

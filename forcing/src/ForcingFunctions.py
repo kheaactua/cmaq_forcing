@@ -37,16 +37,16 @@ class ForceOnAverageConcentration(Forcing):
 
 		#print "In ForceOnAverageConcentration:generateForcingFields()"
 
-		# TEMP HACK!
-		# Assume all timezones are GMT
-		tz = np.zeros((self.ni,self.nj))
-		# /TEMP HACK!
+		if self.griddedTimeZoneFld == None:
+			# Assume all timezones are GMT
+			print "Warning!  No gridded time zone information loaded.  Using a field of zeros."
+			tz = np.zeros((self.ni,self.nj))
+		else:
+			tz = self.griddedTimeZoneFld
 
 		if len(self.species) == 0:
 			raise NoSpeciesException("Must specify species")
 			return
-
-		#print "ni, nj: %d, %d"%(self.ni, self.nj)
 
 
 		# Create zero fields to allocate our arrays
