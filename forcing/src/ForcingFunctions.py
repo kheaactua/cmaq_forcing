@@ -82,8 +82,8 @@ class ForceOnAverageConcentration(Forcing):
 			var_today = conc_today.variables[species]
 			data_today = var_today.getValue()
 
-			print "Initialized data_today with shape=", data_today.shape
-			print "data_today[t=8]: ", data_today[8,:,:,:]
+			#print "Initialized data_today with shape=", data_today.shape
+			#print "data_today[t=8]: ", data_today[8,:,:,:]
 
 #			src_yesterday=conc_yest.getValue()
 #			data=np.concatenate([yesterday, today, tomorrow])
@@ -159,7 +159,7 @@ class ForceOnAverageConcentration(Forcing):
 					#endfor j
 				#endfor i
 			#endfor k
-			print "fld_today[t=8]:\n",fld_today[8,:,:,:]
+			#print "fld_today[t=8]:\n",fld_today[8,:,:,:]
 
 
 			flds['yesterday'][idx_s] = fld_yest
