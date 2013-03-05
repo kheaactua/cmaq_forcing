@@ -181,13 +181,13 @@ class Forcing(object):
 		name = fmt
 		date = conc.date
 
-		types = str(self.__class__)
+		types = str(type(self))
 		#print "Starting with: %s"%types
-		#types = re.sub(r"[^\.]*\.([^']*)'", '\1', types)
-		types = re.sub(r"[^\.]*'", '', types)
+		types = re.sub(r"[^\.]*\.", '', types)
 		#print "Middle with: %s"%types
-		types = re.sub(r"\..*$", '', types)
+		types = re.sub(r"'.*$", '', types)
 		#print "Ended with: %s"%types
+		#os._exit(1)
 
 		month="%0.2d"%date.month
 		day="%0.2d"%date.day
@@ -380,6 +380,7 @@ class Forcing(object):
 				if conc_yest is not None:
 					# This is now the day before yesterday, close it.
 					conc_yest.close()
+					print "Closed %s"%conc_yest
 					conc_yest = None
 					force_yest.close()
 					force_yest = None
@@ -437,36 +438,42 @@ class Forcing(object):
 						# add the values
 						# write them back to the file
 
-						if force_yest is not None:
-							#new_yest  = force_yest.variables[species].assignValue(flds['yesterday'][idx_s] + force_yest.variables[species].getValue())
-							var = force_yest.variables[species]
-							base_fld = var.getValue()
-							if base_fld.shape[0] == 0:
-								# This is a newly created variable with no time steps in it yet
-								var.assignValue(flds['yesterday'][idx_s])
-							else:
-								#sum_fld = flds['yesterday'][idx_s] + base_fld[0:self.nt][0:self.nk][0:self.nj][0:self.ni]
-								sum_fld = flds['yesterday'][idx_s] + base_fld
-								var.assignValue(sum_fld)
+#!#						if force_yest is not None:
+#!#							#new_yest  = force_yest.variables[species].assignValue(flds['yesterday'][idx_s] + force_yest.variables[species].getValue())
+#!#							var = force_yest.variables[species]
+#!#							base_fld = var.getValue()
+#!#							if base_fld.shape[0] == 0:
+#!#								# This is a newly created variable with no time steps in it yet
+#!#								var.assignValue(flds['yesterday'][idx_s])
+#!#							else:
+#!#								#sum_fld = flds['yesterday'][idx_s] + base_fld[0:self.nt][0:self.nk][0:self.nj][0:self.ni]
+#!#								sum_fld = flds['yesterday'][idx_s] + base_fld
+#!#								var.assignValue(sum_fld)
 
 						# Today's...
 						var = force_today.variables[species]
 						base_fld = var.getValue()
 						if base_fld.shape[0] == 0:
 							# This is a newly created variable with no time steps in it yet
+							print "1111 wrote today"
 							var.assignValue(flds['today'][idx_s])
 						else:
+							print "2222 wrote today\n", flds['today'][idx_s] + base_fld
 							var.assignValue(flds['today'][idx_s] + base_fld)
+						force_today.sync()
+						force_today.close()
+						print "Closed ", force_today
+						os._exit(0)
 
-						# Tomorrow
-						if force_tom is not None:
-							var = force_tom.variables[species]
-							base_fld = var.getValue()
-							if base_fld.shape[0] == 0:
-								# This is a newly created variable with no time steps in it yet
-								var.assignValue(flds['tomorrow'][idx_s])
-							else:
-								var.assignValue(flds['tomorrow'][idx_s] + base_fld)
+#!#						# Tomorrow
+#!#						if force_tom is not None:
+#!#							var = force_tom.variables[species]
+#!#							base_fld = var.getValue()
+#!#							if base_fld.shape[0] == 0:
+#!#								# This is a newly created variable with no time steps in it yet
+#!#								var.assignValue(flds['tomorrow'][idx_s])
+#!#							else:
+#!#								var.assignValue(flds['tomorrow'][idx_s] + base_fld)
 
 						# In species loop
 						idx_s = idx_s + 1
