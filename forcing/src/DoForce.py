@@ -581,7 +581,7 @@ class Forcing(object):
 			species = self.species
 
 		# Create the variables we'll be writing to
-		print "TODO: Make this copy the TFLAG variable"
+		print "TODO: Make this copy the TFLAG variable.  Working on %s"%fpath
 		for s in species:
 			try:
 				var = force.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
@@ -690,10 +690,10 @@ class Forcing(object):
 		files=os.listdir(path)
 
 
-		if date_min!=None and not isinstance(date_min, datetime):
+		if date_min!=None and not isinstance(date_min, date):
 			raise TypeError("Minimum date may either be None or a DateTime")
 			#raise TypeError("Minimum date may either be None or a date, currently %s, type(date_min)=%s, isinstance(date_min, date)=%s"%(datetime, type(date_min), isinstance(date_min, date)))
-		if date_max!=None and not isinstance(date_max, datetime):
+		if date_max!=None and not isinstance(date_max, date):
 			raise TypeError("Maximum date may either be None or a DateTime")
 
 		# Backup
@@ -713,11 +713,12 @@ class Forcing(object):
 			if re.search(reg, f):
 				#print "%s matches"%f
 				df=DataFile(f, path=path+f, file_format=file_format)
-				#print "type(df.date)=%s, type(date_min)=%s"%(type(df.date), type(date_min))
-				if (date_min == None and date_max == None) or ( (date_min != None and df.date > date_min) or (date_max != None and df.date < date_max) ):
+				#is_between_date = df.date>=date_min and df.date<=date_max
+				#print "df.date=%s, between [%s %s]?=%r type(df.date)=%s, type(date_min)=%s"%(df.date, date_min, date_max, is_between_date, type(df.date), type(date_min))
+				if (date_min == None and date_max == None) or ( (date_min != None and df.date >= date_min) and (date_max != None and df.date <= date_max) ):
+					#print "File added"
 					cfiles.append(df)
 
-		
 		#return sorted(cfiles, key=lambda student: .age)
 		return sorted(cfiles)
 

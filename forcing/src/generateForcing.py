@@ -47,7 +47,8 @@ def ProgressBarCLI(prog, filename):
 if args.cli:
 
 	#fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
-	fc = f.ForceOnAverageConcentration(sample_conc='basic_concentrations/CCTM.20050505')
+	#fc = f.ForceOnAverageConcentration(sample_conc='basic_concentrations/CCTM.20050505')
+	fc = f.ForceOnAverageConcentration(sample_conc='/mnt/mediasonic/opt/output/base/CCTM_fwdCONC.20070424')
 
 	fc.maskLayers([1])
 	fc.species=['O3']
@@ -56,17 +57,20 @@ if args.cli:
 	#fc.outputFormat = 'Forcing.TYPE.YYYYMMDD'
 	#fc.outputPath=os.getcwd() + 'output/'
 
-	#fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
-	fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
+	fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
+	#fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
 	fc.setAveraging('Max 8 hr')
 
-	date_min = datetime(1999,07,03)
-	date_max = datetime(1999,07,06)
+	#date_min = dateE(1999,07,03)
+	#date_max = dateE(1999,07,06)
+	date_min = dateE(2007,04,24)
+	date_max = dateE(2007,04,28)
 	#fc.conc_path = os.getcwd() + '/concentrations/'
-	fc.conc_path = os.getcwd() + '/basic_concentrations/'
+	#fc.conc_path = os.getcwd() + '/basic_concentrations/'
+	fc.conc_path = '/mnt/mediasonic/opt/output/base/'
 
-	#conc_files=f.ForceOnAverageConcentration.FindFiles(file_format="CCTM.YYYYMMDD", date_min=date_min, date_max=date_max)
-	conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
+	#conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
+	conc_files=fc.FindFiles(file_format="CCTM_fwdCONC.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
 	fc.loadConcentrationFiles(conc_files)
 
 
