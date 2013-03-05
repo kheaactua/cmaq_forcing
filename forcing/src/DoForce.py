@@ -425,44 +425,51 @@ class Forcing(object):
 				   conc_yest=conc_yest,   conc_today=conc_today,   conc_tom=conc_tom,
 				   force_yest=force_yest, force_today=force_today, force_tom=force_tom)
 
-				# Add the field to the force file
-				for day in flds:
-					#print "Day: ", day
-					# Flds[day] is now a ndarray[species][nt][nk][nj][ni]
-					idx_s = 0
-					for species in self.species:
-						#print "Using species index idx_s: %d = species %s"%(idx_s, species)
-						species = self.species[idx_s]
-						# Get the netcdf variables
-						# Get the values
-						# add the values
-						# write them back to the file
+				# Flds[day] is now a ndarray[species][nt][nk][nj][ni]
+				idx_s = 0
+				for species in self.species:
+					#print "Using species index idx_s: %d = species %s"%(idx_s, species)
+					species = self.species[idx_s]
+					# Get the netcdf variables
+					# Get the values
+					# add the values
+					# write them back to the file
 
-						# Yesterday
-						if force_yest is not None:
-							var = force_yest.variables[species]
-							sum_fld = flds['yesterday'][idx_s] + var.getValue()
-							var.assignValue(sum_fld)
+#!#					# Yesterday
+#!#					if force_yest is not None:
+#!#						var = force_yest.variables[species]
+#!#						sum_fld = flds['yesterday'][idx_s] + var.getValue()
+#!#						var.assignValue(sum_fld)
 
-						# Today's...
-						#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
-						#print "Today's force idx_s=%d:\n"%idx_s, flds['today'][idx_s][8]
-						var = force_today.variables[species]
-						base_fld = var.getValue()
-						sum_fld = base_fld + flds['today'][idx_s]
-						#print "Today's total force:\n", sum_fld[8]
-						var.assignValue(sum_fld)
+					# Today's...
+					#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
+					#print "Today's force idx_s=%d:\n"%idx_s, flds['today'][idx_s][8]
+					var = force_today.variables[species]
+					base_fld = var.getValue()
+					sum_fld = base_fld + flds['today'][idx_s]
+					print "base_fld.shape: ", base_fld.shape
+					print "sum_fld.shape:  ", sum_fld.shape
+					print "Today's total force:\n", sum_fld[8]
+					var.assignValue(sum_fld)
 
-						# Tomorrow
-						if force_tom is not None:
-							var = force_tom.variables[species]
-							var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
 
-						# In species loop
-						idx_s = idx_s + 1
+#!#					# Tomorrow
+#!#					if force_tom is not None:
+#!#						var = force_tom.variables[species]
+#!#						var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
 
-				# endfor day loop (yest, today, tom)
 
+					# In species loop
+					idx_s = idx_s + 1
+
+				# Sync netcdf files
+				if force_yest is not None:
+					force_yest.sync()
+				force_today.sync()
+				if force_tom is not None:
+					force_tom.sync()
+
+				os._exit(0)
 			# endif dryrun
 
 			# Perform a call back to update the progress
@@ -513,6 +520,7 @@ class Forcing(object):
 			species = self.species
 
 		# Create the variables we'll be writing to
+		print "TODO: Make this copy the TFLAG variable"
 		for s in species:
 			try:
 				var = force.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
