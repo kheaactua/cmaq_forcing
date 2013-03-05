@@ -41,14 +41,15 @@ def loadConfFile(name):
 """
 
 def ProgressBarCLI(prog, filename):
-	print "Progress %f, filename: %s"%(prog, filename)
+	d=datetime.now()
+	print "Time: %0.2d:%0.2d.%0.2d: Progress %f, filename: %s"%(d.hour,d.minute,d.second, prog, filename)
 	print "\n------------------------------------------------------------\n"
 
 if args.cli:
 
 	#fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
 	#fc = f.ForceOnAverageConcentration(sample_conc='basic_concentrations/CCTM.20050505')
-	fc = f.ForceOnAverageConcentration(sample_conc='/mnt/mediasonic/opt/output/base/CCTM_fwdCONC.20070424')
+	fc = f.ForceOnAverageConcentration(sample_conc='/mnt/mediasonic/opt/output/base/CCTM_fwdACONC.20070501')
 
 	fc.maskLayers([1])
 	fc.species=['O3']
@@ -63,16 +64,18 @@ if args.cli:
 
 	#date_min = dateE(1999,07,03)
 	#date_max = dateE(1999,07,06)
-	date_min = dateE(2007,04,24)
-	date_max = dateE(2007,04,28)
+	date_min = dateE(2007,05,01)
+	date_max = dateE(2007,05,01)
 	#fc.conc_path = os.getcwd() + '/concentrations/'
 	#fc.conc_path = os.getcwd() + '/basic_concentrations/'
 	fc.conc_path = '/mnt/mediasonic/opt/output/base/'
 
 	#conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
-	conc_files=fc.FindFiles(file_format="CCTM_fwdCONC.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
+	conc_files=fc.FindFiles(file_format="CCTM_fwdACONC.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
 	fc.loadConcentrationFiles(conc_files)
 
+	# Mask space
+	fc.maskSpace('/opt/home/morteza/Codes/Force8hr/usa.nc', 'USA', 2)
 
 	fc.produceForcingField(ProgressBarCLI, dryrun=False)
 

@@ -114,6 +114,11 @@ class Forcing(object):
 			self.nk=nk
 			self.nt=nt
 
+		# Offer some protection against bad files
+		if self.nt is not self.dayLen+1:
+			raise ValueError("This application is only designed to work with 24 hour time files.  Given nt=%d"%self.nt)
+
+
 		# Initialize vectors, space is done differently
 		self.times = range(1,nt)
 		self.layers = range(1,nk)
@@ -293,7 +298,7 @@ class Forcing(object):
 		var = tz.variables['LTIME']
 		# The field should be at t=0,k=0
 		fld = var.getValue()[0,0]
-		print "shape(timezones) = ", fld.shape
+		#print "shape(timezones) = ", fld.shape
 
 		if fld.shape != (self.nj, self.ni):
 			raise ValueError("Error.  Gridded time zone file has a different domain than input concentration files.  Current domain=%s, timezone domain=%s"%(str(fld.shape), str( (self.ni, self.nj) ) ))
@@ -350,16 +355,31 @@ class Forcing(object):
 		for i in range(0, len(mask)-1):
 			sekf._layers[i] = mask[i]-1
 
-	def maskSpace(self, mask):
+	def maskSpace(self, maskf, variable, value=1):
 		""" Set a grid mask
 
 		Keyword arguments:
 
-		mask:*(ni x nj) binary array*
-		   1 means use, 0 means don't use
+		maskf:*string*
+		   NetCDF file containing the masking field
+
+		variable:*string*
+		   Variable in the NetCDF file that is the mask
+
+		value:*int*
+		   The masking value of the mask
 		"""
 
-		raise NotImplementedError( "Not yet implemented" )
+		try:
+			f=NetCDFFile(maskf, 'r')
+			var = f.variables[variable]
+			mask=var.getValue()[0][0]
+			self.space = mask==value
+			f.close()
+		except Exception as ex:
+			print "Something went wrong masking space\n", ex
+			raise
+
 
 
 #	def produceForcingField(self, progressWindow = None, progress_callback = None):
@@ -377,6 +397,8 @@ class Forcing(object):
 		     progressWindow.progress_callback(percent_progress:float, current_file:Datafile)
 
 		"""
+
+		print "Processing... Domain=(ns=%d, nt=%d, nk=%d, ni=%d, nj=%d)"%(len(self.species), self.nt, self.nk, self.ni, self.nj)
 
 		#
 		# Iterate through concentration files
@@ -421,8 +443,8 @@ class Forcing(object):
 		conc_files  = [None] + conc_files  + [None]
 		force_files = [None] + force_files + [None]
 
-		print "Conc_datafiles: %s"%(" ".join(map(str, self.conc_files)))
-		print "Conc_files: ", conc_files
+		#print "Conc_datafiles: %s"%(" ".join(map(str, self.conc_files)))
+		#print "Conc_files: ", conc_files
 
 		# Index of concentration file
 		for conc_idx in range(1, len(conc_files)-1):
@@ -594,6 +616,7 @@ class Forcing(object):
 		vsrc = conc.variables['TFLAG']
 		force.createVariable('TFLAG', 'i', ('TSTEP', 'VAR', 'DATE-TIME'))
 		vdest = force.variables['TFLAG']
+		#print "shape(vsrc)=%s, shape(vdest)=%s"%(str(vsrc.shape), str(vdest.shape))
 		vdest.assignValue(vsrc.getValue())
 
 

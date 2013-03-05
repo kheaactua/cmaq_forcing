@@ -101,6 +101,23 @@ class ForceOnAverageConcentration(Forcing):
 				for i in range(0,self.ni):
 					for j in range(0,self.nj):
 
+						# Spatial mask
+						if not self.space[j,i]:
+							# This is masked out.  Set to zero and go to the next cell
+							#print "Shape(fld_yest) = %s, shape(np.zeros) = %s"%(str(fld_yest[0:self.nt,k,j,i].shape), str(np.zeros((self.nt, 1, 1, 1), dtype=np.float32).shape))
+							fld_yest[0:self.nt,k,j,i]  = np.zeros((self.nt), dtype=np.float32)
+							fld_today[0:self.nt,k,j,i] = np.zeros((self.nt), dtype=np.float32)
+							fld_tom[0:self.nt,k,j,i]   = np.zeros((self.nt), dtype=np.float32)
+							continue
+						#else:
+						#	# TEMP HACK!!
+						#   # This temp hack is used to ensure the mask is working
+						#	fld_yest[0:self.nt,k,j,i]  = np.ones((self.nt), dtype=np.float32)
+						#	fld_today[0:self.nt,k,j,i] = np.ones((self.nt), dtype=np.float32)
+						#	fld_tom[0:self.nt,k,j,i]   = np.ones((self.nt), dtype=np.float32)
+						#	continue
+
+
 						# Take averaging into consideration
 						# For almost all of these averagings, we'll have to
 						# build a vector of all values for all times at that
@@ -113,7 +130,7 @@ class ForceOnAverageConcentration(Forcing):
 							for t in range(0, self.nt-1):
 								#print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
 								# Make sure I'm not transposing this...
-								print "shape(vec_yest)=%s, shape(data_yest)=%s.  Tyrying to access data_yest[%d][%d][%d][%d]"%(vec_yest.shape, data_yest.shape, t, k, j, i)
+								#print "shape(vec_yest)=%s, shape(data_yest)=%s.  Tyrying to access data_yest[%d][%d][%d][%d]"%(vec_yest.shape, data_yest.shape, t, k, j, i)
 								vec_yest[t]  = data_yest[t][k][j][i]
 								#print "shape(vec_today)=%s, shape(data_today)=%s"%(vec_today.shape, data_yest.shape)
 								vec_today[t] = data_today[t][k][j][i]
