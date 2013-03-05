@@ -438,41 +438,24 @@ class Forcing(object):
 						# add the values
 						# write them back to the file
 
-#!#						if force_yest is not None:
-#!#							#new_yest  = force_yest.variables[species].assignValue(flds['yesterday'][idx_s] + force_yest.variables[species].getValue())
-#!#							var = force_yest.variables[species]
-#!#							base_fld = var.getValue()
-#!#							if base_fld.shape[0] == 0:
-#!#								# This is a newly created variable with no time steps in it yet
-#!#								var.assignValue(flds['yesterday'][idx_s])
-#!#							else:
-#!#								#sum_fld = flds['yesterday'][idx_s] + base_fld[0:self.nt][0:self.nk][0:self.nj][0:self.ni]
-#!#								sum_fld = flds['yesterday'][idx_s] + base_fld
-#!#								var.assignValue(sum_fld)
+						# Yesterday
+						if force_yest is not None:
+							var = force_yest.variables[species]
+							sum_fld = flds['yesterday'][idx_s] + var.getValue()
+							var.assignValue(sum_fld)
 
 						# Today's...
 						#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
 						var = force_today.variables[species]
 						base_fld = var.getValue()
-
 						sum_fld = base_fld + flds['today'][idx_s]
 						#print "Today's force:\n", sum_fld[8]
 						var.assignValue(sum_fld)
 
-						#force_today.sync()
-						#force_today.close()
-						#print "Closed ", force_today
-						#os._exit(0)
-
-#!#						# Tomorrow
-#!#						if force_tom is not None:
-#!#							var = force_tom.variables[species]
-#!#							base_fld = var.getValue()
-#!#							if base_fld.shape[0] == 0:
-#!#								# This is a newly created variable with no time steps in it yet
-#!#								var.assignValue(flds['tomorrow'][idx_s])
-#!#							else:
-#!#								var.assignValue(flds['tomorrow'][idx_s] + base_fld)
+						# Tomorrow
+						if force_tom is not None:
+							var = force_tom.variables[species]
+							var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
 
 						# In species loop
 						idx_s = idx_s + 1
