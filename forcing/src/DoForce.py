@@ -451,14 +451,12 @@ class Forcing(object):
 #!#								var.assignValue(sum_fld)
 
 						# Today's...
+						print "Today's conc:\n", conc_today.variables[species].getValue()[8]
 						var = force_today.variables[species]
 						base_fld = var.getValue()
-						#if base_fld.shape[0] == 0:
-						#	# This is a newly created variable with no time steps in it yet
-						#	print "1111 wrote today"
-						#	var.assignValue(flds['today'][idx_s])
-						#else:
+
 						sum_fld = base_fld + flds['today'][idx_s]
+						print "Today's force:\n", sum_fld[8]
 						var.assignValue(sum_fld)
 
 						#force_today.sync()
@@ -828,12 +826,12 @@ class Forcing(object):
 		else:
 			forcing[max_idx-winLen:max_idx] = float(1)/winLen
 
-		#yesterday = forcing[0:Forcing.dayLen]
-		#today = forcing[Forcing.dayLen:Forcing.dayLen*2-1]
-		#tomorrow = forcing[Forcing.dayLen*2:]
-		yesterday = np.arange(0, 24)
-		today = np.arange(24, 48)
-		tomorrow = np.arange(48, 72)
+		yesterday = forcing[0:Forcing.dayLen]
+		today = forcing[Forcing.dayLen:Forcing.dayLen*2]
+		tomorrow = forcing[Forcing.dayLen*2:Forcing.dayLen*3]
+		#yesterday = np.arange(0, 24)
+		#today = np.arange(24, 48)
+		#tomorrow = np.arange(48, 72)
 
 		return {'yesterday': yesterday, 'today': today, 'tomorrow': tomorrow}
 

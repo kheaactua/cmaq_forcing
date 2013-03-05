@@ -45,8 +45,7 @@ for d in range(sdate, edate):
 		fld = np.zeros((nt,nk,nj,ni), dtype=np.float32)
 
 		if s is 'O3':
-			for t in range(0,nt):
-				fld[t,0,1:3,1:4] = 8
+			fld[7:16,0,1:3,1:4] = 8
 
 		var = conc.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
 		var.assignValue(fld)

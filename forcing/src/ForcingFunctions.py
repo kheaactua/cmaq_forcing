@@ -46,7 +46,7 @@ class ForceOnAverageConcentration(Forcing):
 			raise NoSpeciesException("Must specify species")
 			return
 
-		print "ni, nj: %d, %d"%(self.ni, self.nj)
+		#print "ni, nj: %d, %d"%(self.ni, self.nj)
 
 
 		# Create zero fields to allocate our arrays
@@ -75,7 +75,7 @@ class ForceOnAverageConcentration(Forcing):
 			if conc_tom == None:
 				data_tom   = np.zeros((self.nt, self.nk, self.nj, self.ni))
 			else:
-				print "Looking for variable %s"%species
+				#print "Looking for variable %s"%species
 				var_tom   = conc_tom.variables[species]
 				data_tom   = var_tom.getValue()
 
@@ -83,6 +83,7 @@ class ForceOnAverageConcentration(Forcing):
 			data_today = var_today.getValue()
 
 			print "Initialized data_today with shape=", data_today.shape
+			print "data_today[t=8]: ", data_today[8,:,:,:]
 
 #			src_yesterday=conc_yest.getValue()
 #			data=np.concatenate([yesterday, today, tomorrow])
@@ -96,8 +97,8 @@ class ForceOnAverageConcentration(Forcing):
 			# Recall, mask is already considered in these vectors
 			for k in self._layers:
 				# I think there's a better way to do the next two loops, don't know it though.
-				for i in range(0,self.ni-1):
-					for j in range(0,self.nj-1):
+				for i in range(0,self.ni):
+					for j in range(0,self.nj):
 
 						# Take averaging into consideration
 						# For almost all of these averagings, we'll have to
@@ -126,15 +127,18 @@ class ForceOnAverageConcentration(Forcing):
 							# zone 
 
 							vec = Forcing.prepareTimeVectorForAvg(vec_yest, vec_today, vec_tom, timezone=tz[i][j])
+							print "i=%d,j=%d, preped vec[%d] = %s"%(i,j,len(vec)," ".join(map(str, vec)))
 
 							# Calculate the moving window average
 							avgs = Forcing.calcMovingAverage(vec)
+							print "i=%d,j=%d, avg vec[%d]    = %s"%(i,j,len(avgs)," ".join(map(str, avgs)))
 
 							# And then, for the 8-hour max to be used for a
 							# forcing term, generate a vector for yesterday,
 							# today and tomorrow with the forcing terms in them
 # NOTE: Ensure that this is above the threshold
 							forcing_vectors = Forcing.applyForceToAvgTime(avgs)
+							print "i=%d,j=%d, avg fvec[%d]   = %s"%(i,j,len(forcing_vectors['today'])," ".join(map(str, forcing_vectors['today'])))
 
 							# Now, write these out to the flds
 							#print "Shape(fld_yest): ", fld_yest.shape, ", shape(forcing_vectors['yesterday']): ", forcing_vectors['yesterday'].shape
@@ -151,6 +155,12 @@ class ForceOnAverageConcentration(Forcing):
 								fld_today[t][k][j][i] = forcing_vectors['today'][t]
 								fld_tom[t][k][j][i]   = forcing_vectors['tomorrow'][t]
 
+						#endif averaging
+					#endfor j
+				#endfor i
+			#endfor k
+			print "fld_today[t=8]:\n",fld_today[8,:,:,:]
+
 
 			flds['yesterday'][idx_s] = fld_yest
 			flds['today'][idx_s]     = fld_today
@@ -159,6 +169,8 @@ class ForceOnAverageConcentration(Forcing):
 			#print "flds['yesterday'][%s].shape = "%(species), flds['yesterday'][idx_s].shape
 			#print "BREAKING!!!"
 			#break
+
+		#endfor species
 
 		return flds
 
