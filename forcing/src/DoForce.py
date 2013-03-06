@@ -782,7 +782,26 @@ class Forcing(object):
 
 	@staticmethod
 	def prepareTimeVectorForAvg(yesterday, today, tomorrow, timezone=0, winLen=8, forwards_or_backwards = default_averaging_direction):
-		""" Prepare a vector for a sliding window
+		""" Prepare a vector for a sliding window.  Given a vector of values
+		for three days (yesterday, today and tomorrow), this considers the direction of
+		your averaging (8 hours forwards, backwards, or maybe central one day) and
+		outputs a vector that can be used for averaging.
+
+		So, given::
+
+		   yesterday=[0 ... 0] (24 elements)
+		   today    =[0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 0 ... 0] (24 elements)
+		   tomorrow =[0 ... 0] (24 elements)
+
+		   winLen=8
+		   timezone=0
+		   forwards_or_backwards=forwards
+
+		This function will then return a 32 element vector consisting of [today tomorrow[0:8]]
+
+		If however *timezone* = -5, then this function will return::
+
+		   [yesterday[-5:] today tomorrow[0:3]
 
 		Keywords:
 
@@ -832,14 +851,19 @@ class Forcing(object):
 
 	@staticmethod
 	def calcMovingAverage(data, winLen = 8):
-		""" Calculate a sliding/moving window average over the data.
+		""" Calculate a sliding/moving window average over the data and return a 24 element vector of averages.
+
+		The keyword arguments below assume a winLen = 8
 
 		Keywords:
-		data
-		   Data vector.  If calculating forwards, this should have 24+winLen vals
-		   hours are [0 1 2 3 ... 24 25 26 27 28 29 30]
-		   If calculating backwards, this should have winLen+24 vals
-		   hours are [-3 -2 -1 0 1 2 3 ... 23]
+
+		data:*float32*
+		   Data vector.  If calculating forwards, this should have 24+winLen values.
+		   Or in hours: [0 1 2 3 ... 24 25 26 27 28 29 30 31]
+
+		   If calculating backwards, this should have winLen+24 values
+		   hours are [-7 -6 -5 -4 -3 -2 -1 0 1 2 3 ... 23]
+
 		winLen:*int*
 		   size of window
 
@@ -877,11 +901,24 @@ class Forcing(object):
 	def applyForceToAvgTime(avgs_today, winLen=8, forwards_or_backwards = default_averaging_direction):
 		""" Apply the forcing terms to the max X-hour average.
 
+		This function finds the max value in the provided list and writes a 1/winLen to the return vector at the location of the max and for the next (if forward) or last (if backward) winLen-1 elements.
+
+		So, if the max occurred at hour 0, we were calculating forward and winLen=8, the return value would be::
+
+		   [1/8 1/8 1/8 1/8 1/8 1/8 1/8 1/8 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+
+		Note, this method also returns a vector for yesterday and tomorrow, which in this example would be all zeros.
+
+		Keyword Arguments:
+
+		avgs_today:*float32[]*
+		   24 element list of X-hour averages.
+
 		Returns:
 
 		*dict[yesterday[], today[], tomorrow[]]*:
 		   Forcing terms to be applied to yesterday, today and today.  For instance, if the max
-		   occured right in the middle of today, say at noon (and we're calculating forward), then
+		   occurred right in the middle of today, say at noon (and we're calculating forward), then
 		   12:00-20:00 will have a value of 1/8 (say winLen==8)
 		   The max could happen at the start of end of the day, where it would cause forcing in
 		   yesterday or today.. So the outputs (yesterday, tomorrow) can be added to whatever
