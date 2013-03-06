@@ -79,7 +79,7 @@ if args.cli:
 		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
 
 	elif setup==1:
-		fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
+		#fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
 		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
 	elif setup==2:
 		fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
