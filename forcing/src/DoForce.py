@@ -961,7 +961,7 @@ class Forcing(object):
 		max_idx=avgs.argmax()
 
 		# Reverse the timezone shift
-		#max_idx = max_idx - timezone
+		max_idx = max_idx + timezone
 
 		if forwards_or_backwards == True:
 			# Moving forward

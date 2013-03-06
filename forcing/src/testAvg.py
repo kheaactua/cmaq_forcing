@@ -4,7 +4,12 @@ from DoForce import *
 import numpy as np
 import sys
 
-timezone=-1
+#print "Sys.argv[%d]: "%len(sys.argv), sys.argv
+timezone=0
+if len(sys.argv) == 2:
+	timezone=int(sys.argv[1])
+
+print "Using timezone %d"%timezone
 
 #yesterday=range(-24,0)
 #today=range(0,24)
