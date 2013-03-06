@@ -155,7 +155,7 @@ class ForceOnAverageConcentration(Forcing):
 							# forcing term, generate a vector for yesterday,
 							# today and tomorrow with the forcing terms in them
 # NOTE: Ensure that this is above the threshold
-							forcing_vectors = Forcing.applyForceToAvgTime(avgs)
+							forcing_vectors = Forcing.applyForceToAvgTime(avgs, timezone=tz[j][i])
 							#print "i=%d,j=%d, avg fvec[%d]   = %s"%(i,j,len(forcing_vectors['today'])," ".join(map(str, forcing_vectors['today'])))
 
 							# Now, write these out to the flds

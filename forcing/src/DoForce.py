@@ -805,7 +805,7 @@ class Forcing(object):
 
 		Keywords:
 
-		yesterday[], today[], tomorrow[]
+		yesterday[], today[], tomorrow[]:*numpy.ndarray*
 		   24 element vectors starting at index 0
 		timezone:*int*
 		   Shift the vector to reflect your timezone
@@ -816,20 +816,20 @@ class Forcing(object):
 
 		Returns:
 
-		*float*[] of length 24+winLen:
+		*ndarray((24+winLen), dtype=float32)*
 		   The values to be averaged adjusted for whether we're calculating
 		   forwards or backwards.
 		"""
 
 		if len(yesterday)<Forcing.dayLen:
 			print yesterday
-			raise ValueError("\"yesterday\" vector must be 24 elements long.  Given len=%d"%len(yesterday))
+			raise ValueError("\"yesterday\" ndarray vector must be 24 elements long.  Given len=%d"%len(yesterday))
 		if len(today)<Forcing.dayLen:
-			raise ValueError("\"today\" vector must be 24 elements long.  Given len=%d"%len(today))
+			raise ValueError("\"today\" ndarray vector must be 24 elements long.  Given len=%d"%len(today))
 		if len(tomorrow)<Forcing.dayLen:
-			raise ValueError("\"tomorrow\" vector must be 24 elements long.  Given len=%d"%len(tomorrow))
+			raise ValueError("\"tomorrow\" ndarray vector must be 24 elements long.  Given len=%d"%len(tomorrow))
 
-		data=np.concatenate([yesterday, today, tomorrow])
+		data=np.concatenate([yesterday, today, tomorrow], axis=1)
 		#print "Combined Data:\n%s "%', '.join(map(str, data))
 
 		if forwards_or_backwards:
@@ -857,7 +857,7 @@ class Forcing(object):
 
 		Keywords:
 
-		data:*float32*
+		data:*ndarray((1, 24+winLen), dtype=float32)*
 		   Data vector.  If calculating forwards, this should have 24+winLen values.
 		   Or in hours: [0 1 2 3 ... 24 25 26 27 28 29 30 31]
 
@@ -869,14 +869,14 @@ class Forcing(object):
 
 		Returns:
 
-		*float*[]: Float representing TODAY's X hour averages.
+		*ndarray((1, 24), dtype=float32)*: Float representing TODAY's X hour averages.
 		"""
 
 		# The algorithm we use has some options, this is just
 		# setting it to move one at a time
 		winOverlap=winLen-1
 
-		dl=len(data)
+		dl=max(data.shape)
 		proper_data_len=Forcing.dayLen + winLen - 1
 		if dl != proper_data_len:
 			raise RuntimeWarning("Invalid length of data.  Data should be %d elements for an %d-window.  Given %d."%(proper_data_len, winLen, dl))
@@ -898,7 +898,7 @@ class Forcing(object):
 		return y
 
 	@staticmethod
-	def applyForceToAvgTime(avgs_today, winLen=8, forwards_or_backwards = default_averaging_direction):
+	def applyForceToAvgTime(avgs_today, winLen=8, timezone = 0, forwards_or_backwards = default_averaging_direction):
 		""" Apply the forcing terms to the max X-hour average.
 
 		This function finds the max value in the provided list and writes a 1/winLen to the return vector at the location of the max and for the next (if forward) or last (if backward) winLen-1 elements.
@@ -913,6 +913,15 @@ class Forcing(object):
 
 		avgs_today:*float32[]*
 		   24 element list of X-hour averages.
+
+		winLen=8:*int*
+		   Length of the window
+
+		timezone=0:*float32*
+		   Timezone that this occurs in.  This is required to re-shift the values back into GTM, as they were earlier shifted into local time by prepareTimeVectorForAvg
+
+		forwards_or_backwards:*bool*
+		   True means set it up for a forward avg
 
 		Returns:
 
@@ -930,10 +939,11 @@ class Forcing(object):
 		forcing=np.zeros(Forcing.dayLen*3)
 
 		# Set up 3 day vector of averages, probably a slow way, but
-		# for now will help keep track of indicies
+		# for now will help keep track of indices
 		avgs=np.zeros(Forcing.dayLen*3)
-		# I know it seems like it should be to Forcing.dayLen*2-1... but the way it is
-		# is myteriously correct..
+		# I know it seems like it should be to Forcing.dayLen*2-1... but the
+		# way it is is mysteriously correct (seems like python interprets
+		# ranges as [start,end[ (non-inclusive on end index))..
 		avgs[Forcing.dayLen:Forcing.dayLen*2]=avgs_today
 
 		#print "\n\nTesting.. Averages (len=%d):\n%s "%(len(avgs_today), ', '.join(map(str, avgs_today)))
@@ -948,7 +958,10 @@ class Forcing(object):
 		# Where's the max?
 		#max_val=max(avgs.all())
 		#max_idx=avgs.index(max_val)
-		max_idx=avgs.argmax()	
+		max_idx=avgs.argmax()
+
+		# Reverse the timezone shift
+		#max_idx = max_idx - timezone
 
 		if forwards_or_backwards == True:
 			# Moving forward
@@ -965,6 +978,7 @@ class Forcing(object):
 
 		return {'yesterday': yesterday, 'today': today, 'tomorrow': tomorrow}
 
+# This should be moved into another file
 class DataFile(object):
 	""" Used encase we want any more info on the input files.
 	Currently, name, path and date are all we care about
@@ -1029,6 +1043,7 @@ class DataFile(object):
 		else:
 			return 0 
 
+# This should also be moved into another file
 class dateE(date, object):
 	""" Extends datetime.datetime by adding juldate operators """
 

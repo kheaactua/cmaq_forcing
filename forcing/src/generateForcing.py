@@ -45,7 +45,7 @@ def ProgressBarCLI(prog, filename):
 	print "Time: %0.2d:%0.2d.%0.2d: Progress %f, filename: %s"%(d.hour,d.minute,d.second, prog, filename)
 	print "\n------------------------------------------------------------\n"
 
-if args.cli:
+if args.cli or True:
 
 	setup=1
 
@@ -57,8 +57,8 @@ if args.cli:
 	elif setup==1:
 		fc = f.ForceOnAverageConcentration(sample_conc='basic_concentrations/CCTM.20050505')
 		fc.conc_path = os.getcwd() + '/basic_concentrations/'
-		date_min=None
-		date_max=None
+		date_min = dateE(2005,05,05)
+		date_max = dateE(2005,05,05)
 	elif setup==2:
 		fc = f.ForceOnAverageConcentration(sample_conc='/mnt/mediasonic/opt/output/base/CCTM_fwdACONC.20070501')
 		date_min = dateE(2007,05,01)
@@ -79,7 +79,7 @@ if args.cli:
 		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
 
 	elif setup==1:
-		#fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
+		fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
 		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
 	elif setup==2:
 		fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
