@@ -127,7 +127,10 @@ class Forcing(object):
 		self.species = []
 
 		# Set a default mask of everything
-		self.space=np.ones((ni,nj))
+		# Note it's transposed, as that's how netcdf saves it
+		self.space=np.ones((self.nj,self.ni))
+		print "\n\n\n\nself.space:"
+		print self.space
 
 		# Empty set of concentration files
 		self.conc_files = []

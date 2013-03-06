@@ -47,9 +47,26 @@ def ProgressBarCLI(prog, filename):
 
 if args.cli:
 
-	#fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
-	#fc = f.ForceOnAverageConcentration(sample_conc='basic_concentrations/CCTM.20050505')
-	fc = f.ForceOnAverageConcentration(sample_conc='/mnt/mediasonic/opt/output/base/CCTM_fwdACONC.20070501')
+	setup=1
+
+	if setup==0:
+		fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
+		date_min = dateE(1999,07,03)
+		date_max = dateE(1999,07,06)
+		fc.conc_path = os.getcwd() + '/concentrations/'
+	elif setup==1:
+		fc = f.ForceOnAverageConcentration(sample_conc='basic_concentrations/CCTM.20050505')
+		fc.conc_path = os.getcwd() + '/basic_concentrations/'
+		date_min=None
+		date_max=None
+	elif setup==2:
+		fc = f.ForceOnAverageConcentration(sample_conc='/mnt/mediasonic/opt/output/base/CCTM_fwdACONC.20070501')
+		date_min = dateE(2007,05,01)
+		date_max = dateE(2007,05,01)
+		fc.conc_path = '/mnt/mediasonic/opt/output/base/'
+
+
+	fc.setAveraging('Max 8 hr')
 
 	fc.maskLayers([1])
 	fc.species=['O3']
@@ -58,25 +75,20 @@ if args.cli:
 	#fc.outputFormat = 'Forcing.TYPE.YYYYMMDD'
 	#fc.outputPath=os.getcwd() + 'output/'
 
-	fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
-	#fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
-	fc.setAveraging('Max 8 hr')
+	if setup==0:
+		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
 
-	#date_min = dateE(1999,07,03)
-	#date_max = dateE(1999,07,06)
-	date_min = dateE(2007,05,01)
-	date_max = dateE(2007,05,01)
-	#fc.conc_path = os.getcwd() + '/concentrations/'
-	#fc.conc_path = os.getcwd() + '/basic_concentrations/'
-	fc.conc_path = '/mnt/mediasonic/opt/output/base/'
+	elif setup==1:
+		fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
+		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
+	elif setup==2:
+		fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
+		conc_files=fc.FindFiles(file_format="CCTM_fwdACONC.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
+		# Mask space
+		fc.maskSpace('/opt/home/morteza/Codes/Force8hr/usa.nc', 'USA', 2)
 
-	#conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
-	conc_files=fc.FindFiles(file_format="CCTM_fwdACONC.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
+
 	fc.loadConcentrationFiles(conc_files)
-
-	# Mask space
-	fc.maskSpace('/opt/home/morteza/Codes/Force8hr/usa.nc', 'USA', 2)
-
 	fc.produceForcingField(ProgressBarCLI, dryrun=False)
 
 
