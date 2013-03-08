@@ -14,6 +14,23 @@ import numpy as np
 i=60
 j=30
 
+print "Cell i=%d j=%d"%(i,j)
+
+# Timezone?
+tzf="../GriddedTimeZoneMask.nc"
+src=NetCDFFile(tzf, 'r')
+
+# Get the variable
+var = src.variables['LTIME']
+data=var.getValue()[0][0]
+print "Timezone: %d"%(data[j][i])
+
+# Copy over the value
+src.close()
+
+
+
+
 files=["CCTM_fwdACONC.20070501", "CCTM_fwdACONC.20070502", "CCTM_fwdACONC.20070503"]
 ffiles=["/mnt/mediasonic/opt/output/morteza/frc-8h-US/CCTM_fwdFRC.20070501", "/mnt/mediasonic/opt/output/morteza/frc-8h-US/CCTM_fwdFRC.20070502", "/mnt/mediasonic/opt/output/morteza/frc-8h-US/CCTM_fwdFRC.20070503"]
 
@@ -36,3 +53,4 @@ for f in allfiles:
 
 	# Copy over the value
 	src.close()
+
