@@ -7,34 +7,32 @@ import argparse
 import sys
 
 from Scientific.IO.NetCDF import NetCDFFile
-from numpy import shape
+import numpy as np
 
-fname=""
-if len(sys.argv) == 2:
-	fname=sys.argv[1]
-else:
-	print "Must provide a name"
-	sys._exit(1)
-outname="out.%s"%fname
 
-src=NetCDFFile(fname, 'r')
-dest=NetCDFFile(outname, 'a')
+# Cell of choice
+i=60
+j=30
 
-dims = src.dimensions.keys()
-for d in dims:
-	v = src.dimensions[d]
-	try:
-		dest.createDimension(d, v)
-	except IOError as ex:
-		print "Cannot create dimension %s"%d, ex
-dest.sync()
+files=["CCTM_fwdACONC.20070501", "CCTM_fwdACONC.20070502", "CCTM_fwdACONC.20070503"]
+ffiles=["/mnt/mediasonic/opt/output/morteza/frc-8h-US/CCTM_fwdFRC.20070501", "/mnt/mediasonic/opt/output/morteza/frc-8h-US/CCTM_fwdFRC.20070502", "/mnt/mediasonic/opt/output/morteza/frc-8h-US/CCTM_fwdFRC.20070503"]
 
-# Get the variable
-var = src.variables['O3']
+allfiles=files+ffiles
 
-# Copy over the value
-dvar = dest.createVariable('O3', 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
-dvar.assignValue(var.getValue())
 
-dest.sync()
-dest.close()
+for f in allfiles:
+	#print "Opening %s"%f
+	src=NetCDFFile(f, 'r')
+
+	# Get the variable
+	var = src.variables['O3']
+
+	data=var.getValue()
+
+	vec=np.zeros((25), dtype=np.float32)
+	vec[:]=data[:,0,j,i]
+
+	print "%s"%(", ".join('%6.4f' % v for v in vec))
+
+	# Copy over the value
+	src.close()
