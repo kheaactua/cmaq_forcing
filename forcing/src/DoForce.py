@@ -525,11 +525,11 @@ class Forcing(object):
 					# add the values
 					# write them back to the file
 
-					# Yesterday
-					if force_yest is not None:
-						var = force_yest.variables[species]
-						sum_fld = flds['yesterday'][idx_s] + var.getValue()
-						var.assignValue(sum_fld)
+#!#					# Yesterday
+#!#					if force_yest is not None:
+#!#						var = force_yest.variables[species]
+#!#						sum_fld = flds['yesterday'][idx_s] + var.getValue()
+#!#						var.assignValue(sum_fld)
 
 					# Today's...
 					#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
@@ -537,16 +537,22 @@ class Forcing(object):
 					var = force_today.variables[species]
 					base_fld = var.getValue()
 					sum_fld = base_fld + flds['today'][idx_s]
+					fld_matt = flds['today'][idx_s]
 					#print "base_fld.shape: ", base_fld.shape
 					#print "sum_fld.shape:  ", sum_fld.shape
 					#print "Today's total force:\n", sum_fld[8]
+
+					print "i=60, j=30, k=0, t=:"
+					print "flds['today'] = ", fld_matt[:,0,30,60]
+					print "sum_fld       = ", sum_fld[:,0,30,60]
+
 					var.assignValue(sum_fld)
 
 
-					# Tomorrow
-					if force_tom is not None:
-						var = force_tom.variables[species]
-						var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
+#!#					# Tomorrow
+#!#					if force_tom is not None:
+#!#						var = force_tom.variables[species]
+#!#						var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
 
 
 					# In species loop
