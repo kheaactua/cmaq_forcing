@@ -56,7 +56,7 @@ class Forcing(object):
 
 	# True for forward, false for backward.  I'm told
 	# the standard is forward
-	default_averaging_direction = False
+	default_averaging_direction = True
 
 	# Obvious, but used a lot
 	dayLen=24
@@ -781,7 +781,7 @@ class Forcing(object):
 
 
 	@staticmethod
-	def prepareTimeVectorForAvg(yesterday, today, tomorrow, timezone=0, winLen=8, forwards_or_backwards = default_averaging_direction):
+	def prepareTimeVectorForAvg(yesterday, today, tomorrow, timezone=0, winLen=8, forwards_or_backwards = default_averaging_direction, debug=False):
 		""" Prepare a vector for a sliding window.  Given a vector of values
 		for three days (yesterday, today and tomorrow), this considers the direction of
 		your averaging (8 hours forwards, backwards, or maybe central one day) and
@@ -813,6 +813,9 @@ class Forcing(object):
 		   the size of the window
 		forwards_or_backwards:*bool*
 		   True means set it up for a forward avg
+
+		debug:*bool*
+		   Temporary variable that outputs the vector colour coded. Green for parts from yesterday, blue for today and orange for tomorrow
 
 		Returns:
 
@@ -846,6 +849,37 @@ class Forcing(object):
 		idx_end   = idx_end   + timezone
 
 		vec = data[idx_start:idx_end]
+
+		###
+		# Debug stuff
+		###
+
+		if debug:
+
+			green='\033[92m'
+			blue='\033[94m'
+			yellow='\033[33m'
+			clear='\033[0m'
+
+			outs=''
+			if idx_start<Forcing.dayLen:
+				#print "111 Printing %d to %d"%(idx_start, Forcing.dayLen)
+				outs = "%s%s%s "%(green, ' '.join('%4.3f' % v for v in data[idx_start:Forcing.dayLen]), clear)
+			#print "222 Printing %d to %d"%(Forcing.dayLen, Forcing.dayLen*2)
+			outs = outs+"%s%s%s "%(blue, ' '.join('%4.3f' % v for v in data[Forcing.dayLen:Forcing.dayLen*2]), clear)
+			if idx_start==Forcing.dayLen:
+				#print "333 Printing %d to %d"%(Forcing.dayLen*2,idx_end)
+				#print "idx_start=%d, idx_end=%d"%(idx_start, idx_end)
+				#print "Vals: ", data[Forcing.dayLen*2:idx_end]
+				outs = outs+"%s%s%s"%(yellow, ' '.join('%4.3f' % v for v in data[Forcing.dayLen*2:idx_end]), clear)
+
+			print "Returning: %s"%outs
+
+		###
+		# /Debug stuff
+		###
+
+		
 
 		return vec
 
