@@ -6,6 +6,9 @@ import re
 import dateutil.parser as dparser
 from datetime import *
 
+# This is mostly for debugging..  Just ansi colours
+from bcolours import bcolours as bc
+
 def getForcingObject(ni,nj,nk,nt):
 	return ForceOnSpecies(ni,nj,nk,nt)
 
@@ -56,7 +59,7 @@ class Forcing(object):
 
 	# True for forward, false for backward.  I'm told
 	# the standard is forward
-	default_averaging_direction = True
+	default_averaging_direction = False
 
 	# Obvious, but used a lot
 	dayLen=24
@@ -543,7 +546,7 @@ class Forcing(object):
 					#print "Today's total force:\n", sum_fld[8]
 
 					print "i=60, j=30, k=0, t=:"
-					print "flds['today'] = ", fld_matt[:,0,30,60]
+					print "flds['today'] %s = "%(str(type(fld_matt[:,0,30,60]))), fld_matt[:,0,30,60]
 					print "sum_fld       = ", sum_fld[:,0,30,60]
 
 					var.assignValue(sum_fld)
@@ -862,11 +865,10 @@ class Forcing(object):
 
 		if debug:
 
-			red="\033[91m"
-			green='\033[92m'
-			blue='\033[94m'
-			yellow='\033[33m'
-			clear='\033[0m'
+			# This would have been easier to do by defining a coloured number
+			# class, and simply printing out vec.  This method however allowed
+			# me to double check the math (since I pretty much did it from
+			# scratch again when doing this.)
 
 			if winLen<abs(timezone):
 				print "%sWarning!%s colour coding's don't work when winLen<abs(timezone) (%d>%d)"%(red, clear, winLen, abs(timezone))
@@ -893,9 +895,9 @@ class Forcing(object):
 				vec3=[]
 				# There are never "tomorrow" values with the timezones in our domains for backwards calcs
 
-			outs = "%s%s%s "%(green, ' '.join('%4.3f' % v for v in vec1), clear)
-			outs = outs+"%s%s%s "%(blue, ' '.join('%4.3f' % v for v in vec2), clear)
-			outs = outs+"%s%s%s "%(yellow, ' '.join('%4.3f' % v for v in vec3), clear)
+			outs = "%s%s%s "%(bc.yesterday, ' '.join('%4.3f' % v for v in vec1), clear)
+			outs = outs+"%s%s%s "%(bc.today, ' '.join('%4.3f' % v for v in vec2), clear)
+			outs = outs+"%s%s%s "%(bc.tomorrow, ' '.join('%4.3f' % v for v in vec3), clear)
 
 			debug_vec=np.concatenate([vec1, vec2, vec3], axis=1)
 			print "Preped vec(len=%d)=%s"%(len(debug_vec), outs)
@@ -945,7 +947,7 @@ class Forcing(object):
 		y = []
 
 		i = 0
-		# Loop over 24 hours.  Recall, prepareTimeVectorForAvg already accounted for wether we are counting
+		# Loop over 24 hours.  Recall, prepareTimeVectorForAvg already accounted for weather we are counting
 		# forwards or backwards
 		while i < Forcing.dayLen:
 			#print "i=%0.2d"%(i)
@@ -1046,35 +1048,23 @@ class Forcing(object):
 		# ranges as [start,end[ (non-inclusive on end index))..
 		avgs[Forcing.dayLen:Forcing.dayLen*2]=avgs_today
 
-		#print "\n\nTesting.. Averages (len=%d):\n%s "%(len(avgs_today), ', '.join(map(str, avgs_today)))
-		#i = 0
-		#for v in avgs:
-		#	if i%24==0 and i!=0:
-		#		print "\n"
-		#	print "%2d: %2f"%(i,v)
-		#	i = i+1
-
-
 		# Where's the max?
-		#max_val=max(avgs.all())
-		#max_idx=avgs.index(max_val)
 		max_idx=avgs.argmax()
 
 		# Reverse the timezone shift
 		max_idx = max_idx + timezone
 
+		#forcing_value=float(1)/winLen
+		forcing_value=1
 		if forwards_or_backwards == True:
 			# Moving forward
-			forcing[max_idx:max_idx+winLen] = float(1)/winLen
+			forcing[max_idx:max_idx+winLen] = forcing_value
 		else:
-			forcing[max_idx-winLen+1:max_idx+1] = float(1)/winLen
+			forcing[max_idx-winLen+1:max_idx+1] = forcing_value
 
 		yesterday = forcing[0:Forcing.dayLen]
 		today = forcing[Forcing.dayLen:Forcing.dayLen*2]
 		tomorrow = forcing[Forcing.dayLen*2:Forcing.dayLen*3]
-		#yesterday = np.arange(0, 24)
-		#today = np.arange(24, 48)
-		#tomorrow = np.arange(48, 72)
 
 		return {'yesterday': yesterday, 'today': today, 'tomorrow': tomorrow}
 

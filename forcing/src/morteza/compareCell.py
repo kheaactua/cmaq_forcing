@@ -4,7 +4,7 @@
 import argparse
 
 # System functions
-import sys
+import sys, os
 
 from Scientific.IO.NetCDF import NetCDFFile
 import numpy as np
@@ -12,20 +12,26 @@ import numpy as np
 # Graphing
 import matplotlib.pyplot as plt
 
-matt_file="../output/Forcing.ForceOnAverageConcentration.20070502"
+matt_file=os.environ['HOME'] + "/cmaq_forcing/forcing/src/output/Forcing.ForceOnAverageConcentration.20070502"
 mort_file="/mnt/mediasonic/opt/output/morteza/frc-8h-US/CCTM_fwdFRC.20070502"
 #matt_file='conc/CCTM_fwdACONC.20070502'
 #mort_file='conc/CCTM_fwdACONC.20070502'
 
 
+#
 # Cell of choice
-i=60
-j=30
+
+# Match!
+#i=60
+#j=30
+
+i=72
+j=19
 
 print "Cell i=%d j=%d"%(i,j)
 
 # Timezone?
-tzf="../GriddedTimeZoneMask.nc"
+tzf=os.environ['HOME'] + "/cmaq_forcing/forcing/src/GriddedTimeZoneMask.nc"
 src=NetCDFFile(tzf, 'r')
 
 # Get the variable
@@ -59,12 +65,14 @@ print "Time: %s"%("   ".join('%4.0d' % v for v in range(1,26)))
 print "Mort: %s"%(", ".join('%4.3f' % v for v in vec_mort))
 print "Matt: %s"%(", ".join('%4.3f' % v for v in vec_matt))
 
-## Plot the data
-#fig=plt.figure()
-#ax = fig.add_subplot(111)
-#ax.plot(range(1,26), vec_mort, 'b-')
-#ax.plot(range(1,26), vec_matt, 'r-')
-#plt.show()
+# Plot the data
+fig=plt.figure()
+ax = fig.add_subplot(111)
+print "Morteza blue, matt red"
+ax.plot(range(1,26), vec_mort, 'b-', label="Morteza")
+ax.plot(range(1,26), vec_matt, 'r-', label="Matt")
+ax.legend()
+plt.show()
 
 
 matt.close()
