@@ -36,5 +36,5 @@ var = src.variables['O3']
 dvar = dest.createVariable('O3', 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
 dvar.assignValue(var.getValue())
 
-dvar.sync()
-var.close()
+dest.sync()
+dest.close()
