@@ -552,8 +552,15 @@ class Forcing(object):
 					# Yesterday
 					if force_yest is not None:
 						var = force_yest.variables[species]
-						sum_fld = flds['yesterday'][idx_s] + var.getValue()
-						var.assignValue(sum_fld)
+						sum_fld = np.add(flds['yesterday'][idx_s], var.getValue())
+
+						print "Shapes:"
+						print "shape(var.getValue()): %s"%str(var.getValue().shape)
+						print "shape(fld[..]):        %s"%str(flds['yesterday'][idx_s].shape)
+						print "shape(sum_fld):        %s"%str(sum_fld.shape)
+						print ""
+
+						print "t=12, base: %4.3f, fld: %4.3f, sum: %s%4.3f%s, manual sum: %4.3f"%(var.getValue()[12,0,debug_j,debug_i], flds['yesterday'][idx_s][12,0,debug_j,debug_i], c.red, sum_fld[12,0,debug_j,debug_i], c.clear, var.getValue()[12,0,debug_j,debug_i] + flds['yesterday'][idx_s][12,0,debug_j,debug_i])
 
 
 						if debug:
@@ -562,6 +569,8 @@ class Forcing(object):
 							print "Yests: %s%s%s"%(c.dark('yesterday'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('yesterday')), c.clear)
 							print "\n"
 
+
+						var.assignValue(sum_fld)
 
 					# Today's...
 					#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
@@ -587,7 +596,6 @@ class Forcing(object):
 					if force_tom is not None:
 						var = force_tom.variables[species]
 						# Tomorrow shouldn't have any values already, so that's why we're not fetching them here
-						var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
 
 						if debug:
 							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.light('tomorrow')), c.clear)
@@ -595,6 +603,7 @@ class Forcing(object):
 							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('tomorrow')), c.clear)
 							print "\n"
 
+						var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
 
 					# In species loop
 					idx_s = idx_s + 1
