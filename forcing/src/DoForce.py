@@ -392,7 +392,7 @@ class Forcing(object):
 
 
 #	def produceForcingField(self, progressWindow = None, progress_callback = None):
-	def produceForcingField(self, progress_callback = None, dryrun = False):
+	def produceForcingField(self, progress_callback = None, dryrun = False, debug=False):
 		""" Iterate through concentration files, create forcing output netcdf files, prepare them, and call the writing function
 
 		Keyword Arguments:
@@ -406,6 +406,11 @@ class Forcing(object):
 		     progressWindow.progress_callback(percent_progress:float, current_file:Datafile)
 
 		"""
+
+		if debug:
+			c = bc()
+			debug_i=72
+			debug_j=19
 
 		print "Processing... Domain=(ns=%d, nt=%d, nk=%d, ni=%d, nj=%d)"%(len(self.species), self.nt, self.nk, self.ni, self.nj)
 
@@ -528,11 +533,21 @@ class Forcing(object):
 					# add the values
 					# write them back to the file
 
+					if debug:
+						print "\n%si=%d, j=%d, k=0, t=:24%s"%(c.HEADER, debug_i, debug_j, c.clear)
+
 					# Yesterday
 					if force_yest is not None:
 						var = force_yest.variables[species]
 						sum_fld = flds['yesterday'][idx_s] + var.getValue()
 						var.assignValue(sum_fld)
+
+						if debug:
+							print "Yestb: %s%s%s"%(c.light('yesterday'), ' '.join('%4.3f' % v for v in flds['yesterday'][idx_s][:24,0,debug_j,debug_i]), c.clear)
+							print "Yest:  %s%s%s"%(c.yesterday, ' '.join('%4.3f' % v for v in var.getValue()[:24,0,debug_j,debug_i]), c.clear)
+							print "Yests: %s%s%s"%(c.dark('yesterday'), ' '.join('%4.3f' % v for v in sum_fld[:24,0,debug_j,debug_i]), c.clear)
+							print "\n"
+
 
 					# Today's...
 					#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
@@ -541,13 +556,15 @@ class Forcing(object):
 					base_fld = var.getValue()
 					sum_fld = base_fld + flds['today'][idx_s]
 					fld_matt = flds['today'][idx_s]
-					#print "base_fld.shape: ", base_fld.shape
-					#print "sum_fld.shape:  ", sum_fld.shape
-					#print "Today's total force:\n", sum_fld[8]
 
-					print "i=60, j=30, k=0, t=:"
-					print "flds['today'] %s = "%(str(type(fld_matt[:,0,30,60]))), fld_matt[:,0,30,60]
-					print "sum_fld       = ", sum_fld[:,0,30,60]
+					if debug:
+						#print "base_fld.shape: ", base_fld.shape
+						#print "sum_fld.shape:  ", sum_fld.shape
+						print "Todab: %s%s%s"%(c.light('today'), ' '.join('%4.3f' % v for v in flds['today'][idx_s][:24,0,debug_j,debug_i]), c.clear)
+						print "Toda:  %s%s%s"%(c.today, ' '.join('%4.3f' % v for v in var.getValue()[:24,0,debug_j,debug_i]), c.clear)
+						print "Todas: %s%s%s"%(c.dark('today'), ' '.join('%4.3f' % v for v in sum_fld[:24,0,debug_j,debug_i]), c.clear)
+						print "\n"
+
 
 					var.assignValue(sum_fld)
 
@@ -557,6 +574,11 @@ class Forcing(object):
 						var = force_tom.variables[species]
 						var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
 
+						if debug:
+							print "Tomob: %s%s%s"%(c.light('tomorrow'), ' '.join('%4.3f' % v for v in flds['tomorrow'][idx_s][:24,0,debug_j,debug_i]), c.clear)
+							print "Tomo:  %s%s%s"%(c.tomorrow, ' '.join('%4.3f' % v for v in var.getValue()[:24,0,debug_j,debug_i]), c.clear)
+							print "Tomos: %s%s%s"%(c.dark('tomorrow'), ' '.join('%4.3f' % v for v in sum_fld[:24,0,debug_j,debug_i]), c.clear)
+							print "\n"
 
 					# In species loop
 					idx_s = idx_s + 1
@@ -865,6 +887,9 @@ class Forcing(object):
 
 		if debug:
 
+			# Colours
+			b = bc()
+
 			# This would have been easier to do by defining a coloured number
 			# class, and simply printing out vec.  This method however allowed
 			# me to double check the math (since I pretty much did it from
@@ -895,9 +920,9 @@ class Forcing(object):
 				vec3=[]
 				# There are never "tomorrow" values with the timezones in our domains for backwards calcs
 
-			outs = "%s%s%s "%(bc.yesterday, ' '.join('%4.3f' % v for v in vec1), clear)
-			outs = outs+"%s%s%s "%(bc.today, ' '.join('%4.3f' % v for v in vec2), clear)
-			outs = outs+"%s%s%s "%(bc.tomorrow, ' '.join('%4.3f' % v for v in vec3), clear)
+			outs = "%s%s%s "%(bc.yesterday, ' '.join('%4.3f' % v for v in vec1), bc.clear)
+			outs = outs+"%s%s%s "%(bc.today, ' '.join('%4.3f' % v for v in vec2), bc.clear)
+			outs = outs+"%s%s%s "%(bc.tomorrow, ' '.join('%4.3f' % v for v in vec3), bc.clear)
 
 			debug_vec=np.concatenate([vec1, vec2, vec3], axis=1)
 			print "Preped vec(len=%d)=%s"%(len(debug_vec), outs)

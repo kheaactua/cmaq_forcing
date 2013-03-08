@@ -31,9 +31,9 @@ print "Using timezone %d"%timezone
 #today=range(0,24)
 #tomorrow=range(24,48)
 
-yesterday=np.zeros((24))
-today    =np.zeros((24))
-tomorrow =np.zeros((24))
+yesterday=np.zeros((24), dtype=np.float32)
+today    =np.zeros((24), dtype=np.float32)
+tomorrow =np.zeros((24), dtype=np.float32)
 #today[8:16]=1
 
 ## From Morteza's files, cell i=60,j=30, 2007 may1-3
@@ -54,29 +54,10 @@ print "Tomo: %s%s%s"%(bc.tomorrow, ' '.join('%4.3f' % v for v in tomorrow), bc.c
 print "\n"
 
 vec = Forcing.prepareTimeVectorForAvg(yesterday, today, tomorrow, timezone=timezone, debug=True)
-#vec = Forcing.prepareTimeVectorForAvg(yesterday, today, tomorrow)
-#print "\nCompiled vector(len=%d): %s \n"%(len(vec), ', '.join(map(str, vec)))
-##print "Triple check values"
-##print vec
-##print excel
-##for i in range(0,len(vec)):
-##	# i is for vec
-##	# j is for excel
-##
-##	j = i + 7
-##
-##	if excel[j] != vec[i]:
-##		print "Index %d doesn't match! vec=%d, excel=%d"%(i, vec[i], excel[j])
-##		sys.exit()
-##	#else:
-##	#	print "%d %d"%(excel[i], threedays[j])
+
 
 avgs = Forcing.calcMovingAverage(vec, debug=True)
-#if Forcing.default_averaging_direction == False:
-#	avgs[0]=100
 
-# Averages
-#print "Averages (len=%d):\n%s "%(len(avgs), ' '.join(map(str, avgs)))
 
 print ""
 # Where's the max?

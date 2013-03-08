@@ -89,7 +89,7 @@ if args.cli or True:
 
 
 	fc.loadConcentrationFiles(conc_files)
-	fc.produceForcingField(ProgressBarCLI, dryrun=False)
+	fc.produceForcingField(ProgressBarCLI, dryrun=False, debug=True)
 
 
 	## Parse species string

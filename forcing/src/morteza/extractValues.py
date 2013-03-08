@@ -4,7 +4,7 @@
 import argparse
 
 # System functions
-import sys
+import sys, os
 
 from Scientific.IO.NetCDF import NetCDFFile
 import numpy as np
@@ -12,26 +12,6 @@ import numpy as np
 sys.path.append('../')
 from bcolours import bcolours
 
-## Colour code things
-#class bcolours:
-#
-#	red="\033[91m"
-#	green='\033[92m'
-#	blue='\033[94m'
-#	yellow='\033[33m'
-#	purple='\033[35m'
-#	clear='\033[0m'
-#
-#	HEADER = '\033[95m'
-#	OKBLUE = '\033[94m'
-#	OKGREEN = '\033[92m'
-#	WARNING = yellow
-#	FAIL = red
-#	ENDC = clear
-#
-#	yesterday=green
-#	today=blue
-#	tomorrow=purple
 
 #
 # Cell of choice
@@ -54,17 +34,25 @@ var = src.variables['LTIME']
 data=var.getValue()[0][0]
 print "Timezone: %d"%(data[j][i])
 
+# Colours
+b = bc()
+
 # Copy over the value
 src.close()
 
+allfiles=[]
 
+cbase=os.environ['HOME'] + "/cmaq_forcing/forcing/src/morteza/"
+cfiles=["CCTM_fwdACONC.20070501", "CCTM_fwdACONC.20070502", "CCTM_fwdACONC.20070503"]
+for f in cfiles:
+	allfiles.append(cbase+f)
 
+ffiles=["CCTM_fwdFRC.20070501", "CCTM_fwdFRC.20070502", "CCTM_fwdFRC.20070503"]
+fbase='/mnt/mediasonic/opt/output/morteza/frc-8h-US/'
+for f in ffiles:
+	allfiles.append(fbase+f)
 
-files=["CCTM_fwdACONC.20070501", "CCTM_fwdACONC.20070502", "CCTM_fwdACONC.20070503"]
-ffiles=["/mnt/mediasonic/opt/output/morteza/frc-8h-US/CCTM_fwdFRC.20070501", "/mnt/mediasonic/opt/output/morteza/frc-8h-US/CCTM_fwdFRC.20070502", "/mnt/mediasonic/opt/output/morteza/frc-8h-US/CCTM_fwdFRC.20070503"]
-colours=[bcolours.yesterday, bcolours.today, bcolours.tomorrow]
-
-allfiles=files+ffiles
+colours=[b.yesterday, b.today, b.tomorrow]
 
 c_idx=0
 for f in allfiles:
