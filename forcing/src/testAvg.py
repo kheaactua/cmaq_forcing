@@ -7,7 +7,7 @@ import sys
 # This is mostly for debugging..  Just ansi colours
 from bcolours import bcolours as bc
 
-def printVec(vec):
+def printVec(vec, cstr):
 	red=bc.red
 	outs=""
 	for i in range(0, len(vec)):

@@ -412,6 +412,19 @@ class Forcing(object):
 			debug_i=72
 			debug_j=19
 
+			def printVec(vec, c, cstr):
+				red=c.red
+				outs=""
+				for i in range(0, len(vec)):
+					v=vec[i]
+					if v > 0:
+						outs=outs+"%s%4.3f%s"%(red, v, cstr)
+					else:
+						outs=outs+"%4.3f"%(v)
+					if i<len(vec)-1:
+						outs=outs+" "
+				return outs
+
 		print "Processing... Domain=(ns=%d, nt=%d, nk=%d, ni=%d, nj=%d)"%(len(self.species), self.nt, self.nk, self.ni, self.nj)
 
 		#
@@ -543,9 +556,9 @@ class Forcing(object):
 						var.assignValue(sum_fld)
 
 						if debug:
-							print "Yestb: %s%s%s"%(c.light('yesterday'), ' '.join('%4.3f' % v for v in flds['yesterday'][idx_s][:24,0,debug_j,debug_i]), c.clear)
-							print "Yest:  %s%s%s"%(c.yesterday, ' '.join('%4.3f' % v for v in var.getValue()[:24,0,debug_j,debug_i]), c.clear)
-							print "Yests: %s%s%s"%(c.dark('yesterday'), ' '.join('%4.3f' % v for v in sum_fld[:24,0,debug_j,debug_i]), c.clear)
+							print "Yestb: %s%s%s"%(c.light('yesterday'), printVec(flds['yesterday'][idx_s][:24,0,debug_j,debug_i], c, c.light('yesterday')), c.clear)
+							print "Yest:  %s%s%s"%(c.yesterday, printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.yesterday), c.clear)
+							print "Yests: %s%s%s"%(c.dark('yesterday'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('yesterday')), c.clear)
 							print "\n"
 
 
@@ -553,16 +566,16 @@ class Forcing(object):
 					#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
 					#print "Today's force idx_s=%d:\n"%idx_s, flds['today'][idx_s][8]
 					var = force_today.variables[species]
-					base_fld = var.getValue()
-					sum_fld = base_fld + flds['today'][idx_s]
+					#base_fld = var.getValue()
+					sum_fld = var.getValue() + flds['today'][idx_s]
 					fld_matt = flds['today'][idx_s]
 
 					if debug:
 						#print "base_fld.shape: ", base_fld.shape
 						#print "sum_fld.shape:  ", sum_fld.shape
-						print "Todab: %s%s%s"%(c.light('today'), ' '.join('%4.3f' % v for v in flds['today'][idx_s][:24,0,debug_j,debug_i]), c.clear)
-						print "Toda:  %s%s%s"%(c.today, ' '.join('%4.3f' % v for v in var.getValue()[:24,0,debug_j,debug_i]), c.clear)
-						print "Todas: %s%s%s"%(c.dark('today'), ' '.join('%4.3f' % v for v in sum_fld[:24,0,debug_j,debug_i]), c.clear)
+						print "Todab: %s%s%s"%(c.light('today'), printVec(flds['today'][idx_s][:24,0,debug_j,debug_i], c, c.light('today')), c.clear)
+						print "Toda:  %s%s%s"%(c.today, printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.today), c.clear)
+						print "Todas: %s%s%s"%(c.dark('today'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('today')), c.clear)
 						print "\n"
 
 
@@ -572,13 +585,15 @@ class Forcing(object):
 					# Tomorrow
 					if force_tom is not None:
 						var = force_tom.variables[species]
+						# Tomorrow shouldn't have any values already, so that's why we're not fetching them here
 						var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
 
 						if debug:
-							print "Tomob: %s%s%s"%(c.light('tomorrow'), ' '.join('%4.3f' % v for v in flds['tomorrow'][idx_s][:24,0,debug_j,debug_i]), c.clear)
-							print "Tomo:  %s%s%s"%(c.tomorrow, ' '.join('%4.3f' % v for v in var.getValue()[:24,0,debug_j,debug_i]), c.clear)
-							print "Tomos: %s%s%s"%(c.dark('tomorrow'), ' '.join('%4.3f' % v for v in sum_fld[:24,0,debug_j,debug_i]), c.clear)
+							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(flds['tomorrow'][idx_s][:24,0,debug_j,debug_i], c, c.light('tomorrow')), c.clear)
+							print "Tomo:  %s%s%s"%(c.tomorrow, printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.tomorrow), c.clear)
+							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('tomorrow')), c.clear)
 							print "\n"
+
 
 					# In species loop
 					idx_s = idx_s + 1
