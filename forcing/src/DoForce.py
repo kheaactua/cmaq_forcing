@@ -858,25 +858,47 @@ class Forcing(object):
 
 		if debug:
 
+			red="\033[91m"
 			green='\033[92m'
 			blue='\033[94m'
 			yellow='\033[33m'
 			clear='\033[0m'
 
-			outs=''
-			if idx_start<Forcing.dayLen:
-				#print "111 Printing %d to %d"%(idx_start, Forcing.dayLen)
-				outs = "%s%s%s "%(green, ' '.join('%4.3f' % v for v in data[idx_start:Forcing.dayLen]), clear)
-			#print "222 Printing %d to %d"%(Forcing.dayLen, Forcing.dayLen*2)
-			outs = outs+"%s%s%s "%(blue, ' '.join('%4.3f' % v for v in data[Forcing.dayLen:Forcing.dayLen*2]), clear)
-			if idx_start==Forcing.dayLen:
-				#print "333 Printing %d to %d"%(Forcing.dayLen*2,idx_end)
-				#print "idx_start=%d, idx_end=%d"%(idx_start, idx_end)
-				#print "Vals: ", data[Forcing.dayLen*2:idx_end]
-				outs = outs+"%s%s%s"%(yellow, ' '.join('%4.3f' % v for v in data[Forcing.dayLen*2:idx_end]), clear)
+			if winLen<abs(timezone):
+				print "%sWarning!%s colour coding's don't work when winLen<abs(timezone) (%d>%d)"%(red, clear, winLen, abs(timezone))
 
-			print "Preped vec(len=%d)=%s"%(len(vec), outs)
-			print "Act    vec(len=%d)=%s"%(len(vec), ' '.join('%4.3f' % v for v in vec))
+			outs=''
+			if forwards_or_backwards:
+				# Forward
+				vec1=data[Forcing.dayLen+timezone:Forcing.dayLen]
+
+				vec2=data[Forcing.dayLen:Forcing.dayLen*2]
+
+				# The -1 is because the window can never be completely in the next day,
+				# The furthest it can be is including the last hour of today
+				vec3=data[Forcing.dayLen*2:Forcing.dayLen*2+(winLen-1)+timezone]
+			else:
+				# Backward
+
+				# Same reason for the -1 here, but it can't extend completely
+				# into the previous day
+				vec1=data[Forcing.dayLen-(winLen-1)+timezone:Forcing.dayLen]
+
+				vec2=data[Forcing.dayLen:Forcing.dayLen*2+timezone]
+
+				vec3=[]
+				# There are never "tomorrow" values with the timezones in our domains for backwards calcs
+
+			outs = "%s%s%s "%(green, ' '.join('%4.3f' % v for v in vec1), clear)
+			outs = outs+"%s%s%s "%(blue, ' '.join('%4.3f' % v for v in vec2), clear)
+			outs = outs+"%s%s%s "%(yellow, ' '.join('%4.3f' % v for v in vec3), clear)
+
+			debug_vec=np.concatenate([vec1, vec2, vec3], axis=1)
+			print "Preped vec(len=%d)=%s"%(len(debug_vec), outs)
+
+			if not (debug_vec==vec).all():
+				print "%sError!!%s The debug vector does not match the actual returned vector"%(red, clear)
+				print "Act    vec(len=%d)=%s\n"%(len(vec), ' '.join('%4.3f' % v for v in vec))
 
 		###
 		# /Debug stuff
