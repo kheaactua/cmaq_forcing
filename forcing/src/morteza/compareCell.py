@@ -12,10 +12,10 @@ import numpy as np
 # Graphing
 import matplotlib.pyplot as plt
 
-#matt_file="../output/Forcing.ForceOnAverageConcentration.20070502"
-#mort_file="/mnt/mediasonic/opt/output/morteza/frc-8h-US/CCTM_fwdFRC.20070502"
-matt_file='conc/CCTM_fwdACONC.20070502'
-mort_file='conc/CCTM_fwdACONC.20070502'
+matt_file="../output/Forcing.ForceOnAverageConcentration.20070502"
+mort_file="/mnt/mediasonic/opt/output/morteza/frc-8h-US/CCTM_fwdFRC.20070502"
+#matt_file='conc/CCTM_fwdACONC.20070502'
+#mort_file='conc/CCTM_fwdACONC.20070502'
 
 
 # Cell of choice
