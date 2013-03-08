@@ -845,8 +845,10 @@ class Forcing(object):
 			idx_end = 2*Forcing.dayLen
 
 		# Apply time zone  i.e. Montreal is -5
+		print "idxs=[%d, %d] before timezone"%(idx_start, idx_end)
 		idx_start = idx_start + timezone
 		idx_end   = idx_end   + timezone
+		print "idxs=[%d, %d] after  timezone"%(idx_start, idx_end)
 
 		vec = data[idx_start:idx_end]
 
@@ -874,6 +876,7 @@ class Forcing(object):
 				outs = outs+"%s%s%s"%(yellow, ' '.join('%4.3f' % v for v in data[Forcing.dayLen*2:idx_end]), clear)
 
 			print "Preped vec(len=%d)=%s"%(len(vec), outs)
+			print "Act    vec(len=%d)=%s"%(len(vec), ' '.join('%4.3f' % v for v in vec))
 
 		###
 		# /Debug stuff
