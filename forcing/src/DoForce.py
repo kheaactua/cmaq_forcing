@@ -555,9 +555,10 @@ class Forcing(object):
 						sum_fld = flds['yesterday'][idx_s] + var.getValue()
 						var.assignValue(sum_fld)
 
+
 						if debug:
-							print "Yestb: %s%s%s"%(c.light('yesterday'), printVec(flds['yesterday'][idx_s][:24,0,debug_j,debug_i], c, c.light('yesterday')), c.clear)
-							print "Yest:  %s%s%s"%(c.yesterday, printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.yesterday), c.clear)
+							print "Yestb: %s%s%s"%(c.light('yesterday'), printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.light('yesterday')), c.clear)
+							print "Yest:  %s%s%s"%(c.yesterday, printVec(flds['yesterday'][idx_s][:24,0,debug_j,debug_i], c, c.yesterday), c.clear)
 							print "Yests: %s%s%s"%(c.dark('yesterday'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('yesterday')), c.clear)
 							print "\n"
 
@@ -573,8 +574,8 @@ class Forcing(object):
 					if debug:
 						#print "base_fld.shape: ", base_fld.shape
 						#print "sum_fld.shape:  ", sum_fld.shape
-						print "Todab: %s%s%s"%(c.light('today'), printVec(flds['today'][idx_s][:24,0,debug_j,debug_i], c, c.light('today')), c.clear)
-						print "Toda:  %s%s%s"%(c.today, printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.today), c.clear)
+						print "Todab: %s%s%s"%(c.light('today'), printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.light('today')), c.clear)
+						print "Toda:  %s%s%s"%(c.today, printVec(flds['today'][idx_s][:24,0,debug_j,debug_i], c, c.today), c.clear)
 						print "Todas: %s%s%s"%(c.dark('today'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('today')), c.clear)
 						print "\n"
 
@@ -589,8 +590,8 @@ class Forcing(object):
 						var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
 
 						if debug:
-							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(flds['tomorrow'][idx_s][:24,0,debug_j,debug_i], c, c.light('tomorrow')), c.clear)
-							print "Tomo:  %s%s%s"%(c.tomorrow, printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.tomorrow), c.clear)
+							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.light('tomorrow')), c.clear)
+							print "Tomo:  %s%s%s"%(c.tomorrow, printVec(flds['tomorrow'][idx_s][:24,0,debug_j,debug_i], c, c.tomorrow), c.clear)
 							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('tomorrow')), c.clear)
 							print "\n"
 
