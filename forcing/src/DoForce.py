@@ -873,7 +873,7 @@ class Forcing(object):
 				#print "Vals: ", data[Forcing.dayLen*2:idx_end]
 				outs = outs+"%s%s%s"%(yellow, ' '.join('%4.3f' % v for v in data[Forcing.dayLen*2:idx_end]), clear)
 
-			print "Returning: %s"%outs
+			print "Preped vec(len=%d)=%s"%(len(vec), outs)
 
 		###
 		# /Debug stuff

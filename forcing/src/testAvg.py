@@ -53,7 +53,7 @@ print "\n"
 
 vec = Forcing.prepareTimeVectorForAvg(yesterday, today, tomorrow, timezone=timezone, debug=True)
 #vec = Forcing.prepareTimeVectorForAvg(yesterday, today, tomorrow)
-print "\nCompiled vector(len=%d): %s \n"%(len(vec), ', '.join(map(str, vec)))
+#print "\nCompiled vector(len=%d): %s \n"%(len(vec), ', '.join(map(str, vec)))
 ##print "Triple check values"
 ##print vec
 ##print excel
