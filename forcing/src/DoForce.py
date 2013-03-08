@@ -879,12 +879,10 @@ class Forcing(object):
 		# /Debug stuff
 		###
 
-		
-
 		return vec
 
 	@staticmethod
-	def calcMovingAverage(data, winLen = 8):
+	def calcMovingAverage(data, winLen = 8, debug=False):
 		""" Calculate a sliding/moving window average over the data and return a 24 element vector of averages.
 
 		The keyword arguments below assume a winLen = 8
@@ -928,6 +926,44 @@ class Forcing(object):
 			y.append(float(sum(data[i:i+winLen]))/winLen)
 
 			i += winLen - winOverlap
+
+		###
+		# Debug stuff
+		###
+
+		# Hard programmed for 8 hr
+
+		red="\033[91m"
+		blue="\033[94m"
+		clear="\033[0m"
+		outs=""
+		max_val = max(y)
+		max_idx=y.index(max_val)
+		for i in range(0, len(y)):
+			if Forcing.default_averaging_direction:
+				# Forward
+				if i == max_idx:
+					outs=outs+"%s"%(red)
+				elif i==max_idx+1:
+					outs=outs+"%s"%(blue)
+				elif i==max_idx+8:
+					outs=outs+"%s"%(clear)
+			else:
+				# Backward
+				if i == max_idx:
+					outs=outs+"%s"%(red)
+				elif i==max_idx+1:
+					outs=outs+"%s"%(clear)
+				elif i==max_idx-8:
+					outs=outs+"%s"%(blue)
+
+			outs = outs + "%5.4f "%(y[i])
+
+		print "Avgs(len=%d): %s"%(len(y), outs)
+
+		###
+		# /Debug stuff
+		###
 
 		return y
 
@@ -999,9 +1035,9 @@ class Forcing(object):
 
 		if forwards_or_backwards == True:
 			# Moving forward
-			forcing[max_idx-1:max_idx+winLen-1] = float(1)/winLen
+			forcing[max_idx:max_idx+winLen] = float(1)/winLen
 		else:
-			forcing[max_idx-winLen:max_idx] = float(1)/winLen
+			forcing[max_idx-winLen+1:max_idx+1] = float(1)/winLen
 
 		yesterday = forcing[0:Forcing.dayLen]
 		today = forcing[Forcing.dayLen:Forcing.dayLen*2]
