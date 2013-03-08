@@ -127,6 +127,8 @@ class ForceOnAverageConcentration(Forcing):
 							vec_yest  = np.zeros(self.nt, dtype=np.float32)
 							vec_today = copy.copy(vec_yest)
 							vec_tom   = copy.copy(vec_yest)
+
+							# This loop should be replaced with just indexing..
 							for t in range(0, self.nt-1):
 								#print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
 								# Make sure I'm not transposing this...
@@ -164,14 +166,19 @@ class ForceOnAverageConcentration(Forcing):
 							#print "len(yesterday) : ", len(forcing_vectors['yesterday'])
 							#print "len(today) : ", len(forcing_vectors['today'])
 							#print "len(tomorrow) : ", len(forcing_vectors['tomorrow'])
-							for t in range(0, self.nt-1):
-								#print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
-								# Make sure I'm not transposing this...
-								#print "fld_yest[t][k][j][i] = ", fld_yest[t][k][j][i]
-								#print "forcing_vectors['yesterday'][t] = ", forcing_vectors['yesterday'][t]
-								fld_yest[t][k][j][i]  = forcing_vectors['yesterday'][t]
-								fld_today[t][k][j][i] = forcing_vectors['today'][t]
-								fld_tom[t][k][j][i]   = forcing_vectors['tomorrow'][t]
+
+#!#							for t in range(0, self.nt-1):
+#!#								#print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
+#!#								# Make sure I'm not transposing this...
+#!#								#print "fld_yest[t][k][j][i] = ", fld_yest[t][k][j][i]
+#!#								#print "forcing_vectors['yesterday'][t] = ", forcing_vectors['yesterday'][t]
+#!#								fld_yest[t][k][j][i]  = forcing_vectors['yesterday'][t]
+#!#								fld_today[t][k][j][i] = forcing_vectors['today'][t]
+#!#								fld_tom[t][k][j][i]   = forcing_vectors['tomorrow'][t]
+
+							fld_yest[:,k,j,i]  = forcing_vectors['yesterday'][:self.nt-1]
+							fld_today[:,k,j,i] = forcing_vectors['today'][:self.nt-1]
+							fld_tom[:,k,j,i]   = forcing_vectors['tomorrow'][:self.nt-1]
 
 						#endif averaging
 					#endfor j
