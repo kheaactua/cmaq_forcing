@@ -958,33 +958,34 @@ class Forcing(object):
 
 		# Hard programmed for 8 hr
 
-		red="\033[91m"
-		blue="\033[94m"
-		clear="\033[0m"
-		outs=""
-		max_val = max(y)
-		max_idx=y.index(max_val)
-		for i in range(0, len(y)):
-			if Forcing.default_averaging_direction:
-				# Forward
-				if i == max_idx:
-					outs=outs+"%s"%(red)
-				elif i==max_idx+1:
-					outs=outs+"%s"%(blue)
-				elif i==max_idx+8:
-					outs=outs+"%s"%(clear)
-			else:
-				# Backward
-				if i == max_idx:
-					outs=outs+"%s"%(red)
-				elif i==max_idx+1:
-					outs=outs+"%s"%(clear)
-				elif i==max_idx-8:
-					outs=outs+"%s"%(blue)
+		if debug:
+			red="\033[91m"
+			blue="\033[94m"
+			clear="\033[0m"
+			outs=""
+			max_val = max(y)
+			max_idx=y.index(max_val)
+			for i in range(0, len(y)):
+				if Forcing.default_averaging_direction:
+					# Forward
+					if i == max_idx:
+						outs=outs+"%s"%(red)
+					elif i==max_idx+1:
+						outs=outs+"%s"%(blue)
+					elif i==max_idx+8:
+						outs=outs+"%s"%(clear)
+				else:
+					# Backward
+					if i == max_idx:
+						outs=outs+"%s"%(red)
+					elif i==max_idx+1:
+						outs=outs+"%s"%(clear)
+					elif i==max_idx-8:
+						outs=outs+"%s"%(blue)
 
-			outs = outs + "%5.4f "%(y[i])
+				outs = outs + "%5.4f "%(y[i])
 
-		print "Avgs(len=%d): %s"%(len(y), outs)
+			print "Avgs(len=%d): %s"%(len(y), outs)
 
 		###
 		# /Debug stuff
