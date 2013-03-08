@@ -140,9 +140,9 @@ class ForceOnAverageConcentration(Forcing):
 #								vec_today[t] = data_today[t][k][j][i]
 #								vec_tom[t]   = data_tom[t][k][j][i]
 
-							vec_yest     = data_yest[:self.nt-1,k,j,i]
-							vec_today    = data_today[:self.nt-1,k,j,i]
-							vec_tomorrow = data_tomorrow[:self.nt-1,k,j,i]
+							vec_yest  = data_yest[:self.nt-1,k,j,i]
+							vec_today = data_today[:self.nt-1,k,j,i]
+							vec_tom   = data_tom[:self.nt-1,k,j,i]
 
 
 							## Put it together in one long matrix
