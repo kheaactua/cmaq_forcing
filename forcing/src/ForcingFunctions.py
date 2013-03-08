@@ -89,6 +89,8 @@ class ForceOnAverageConcentration(Forcing):
 #			src_yesterday=conc_yest.getValue()
 #			data=np.concatenate([yesterday, today, tomorrow])
 
+			## Remove the 25th timestep
+			#data_shape=(data_yest.shape[0]-1, data_yest.shape[1], data_yest.shape[2], data_yest.shape[3])
 			fld_yest  = np.zeros(data_yest.shape, dtype=np.float32)
 			fld_today = copy.copy(fld_yest)
 			fld_tom   = copy.copy(fld_yest)
@@ -124,19 +126,24 @@ class ForceOnAverageConcentration(Forcing):
 						# cell.  Unfortunately, the data is organized in the 
 						# opposite way as we want (time is the top index..)
 						if self.averaging == 'AVG_MAX8':
-							vec_yest  = np.zeros(self.nt, dtype=np.float32)
-							vec_today = copy.copy(vec_yest)
-							vec_tom   = copy.copy(vec_yest)
+#							vec_yest  = np.zeros(self.nt, dtype=np.float32)
+#							vec_today = copy.copy(vec_yest)
+#							vec_tom   = copy.copy(vec_yest)
 
-							# This loop should be replaced with just indexing..
-							for t in range(0, self.nt-1):
-								#print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
-								# Make sure I'm not transposing this...
-								#print "shape(vec_yest)=%s, shape(data_yest)=%s.  Tyrying to access data_yest[%d][%d][%d][%d]"%(vec_yest.shape, data_yest.shape, t, k, j, i)
-								vec_yest[t]  = data_yest[t][k][j][i]
-								#print "shape(vec_today)=%s, shape(data_today)=%s"%(vec_today.shape, data_yest.shape)
-								vec_today[t] = data_today[t][k][j][i]
-								vec_tom[t]   = data_tom[t][k][j][i]
+#							# This loop should be replaced with just indexing..
+#							for t in range(0, self.nt-1):
+#								#print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
+#								# Make sure I'm not transposing this...
+#								#print "shape(vec_yest)=%s, shape(data_yest)=%s.  Tyrying to access data_yest[%d][%d][%d][%d]"%(vec_yest.shape, data_yest.shape, t, k, j, i)
+#								vec_yest[t]  = data_yest[t][k][j][i]
+#								#print "shape(vec_today)=%s, shape(data_today)=%s"%(vec_today.shape, data_yest.shape)
+#								vec_today[t] = data_today[t][k][j][i]
+#								vec_tom[t]   = data_tom[t][k][j][i]
+
+							vec_yest     = data_yest[:self.nt-1,k,j,i]
+							vec_today    = data_today[:self.nt-1,k,j,i]
+							vec_tomorrow = data_tomorrow[:self.nt-1,k,j,i]
+
 
 							## Put it together in one long matrix
 							#vec3day = np.concatenate([data_yest, today, tomorrow])
@@ -176,9 +183,9 @@ class ForceOnAverageConcentration(Forcing):
 #!#								fld_today[t][k][j][i] = forcing_vectors['today'][t]
 #!#								fld_tom[t][k][j][i]   = forcing_vectors['tomorrow'][t]
 
-							fld_yest[:,k,j,i]  = forcing_vectors['yesterday'][:self.nt-1]
-							fld_today[:,k,j,i] = forcing_vectors['today'][:self.nt-1]
-							fld_tom[:,k,j,i]   = forcing_vectors['tomorrow'][:self.nt-1]
+							fld_yest[:self.nt-1,k,j,i]  = forcing_vectors['yesterday'][:self.nt-1]
+							fld_today[:self.nt-1,k,j,i] = forcing_vectors['today'][:self.nt-1]
+							fld_tom[:self.nt-1,k,j,i]   = forcing_vectors['tomorrow'][:self.nt-1]
 
 						#endif averaging
 					#endfor j
