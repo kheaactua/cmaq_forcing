@@ -56,7 +56,7 @@ class Forcing(object):
 
 	# True for forward, false for backward.  I'm told
 	# the standard is forward
-	default_averaging_direction = True
+	default_averaging_direction = False
 
 	# Obvious, but used a lot
 	dayLen=24
