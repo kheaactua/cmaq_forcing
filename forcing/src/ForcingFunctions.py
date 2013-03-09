@@ -6,7 +6,13 @@ class ForceOnAverageConcentration(Forcing):
 	""" These are here and not in the panel's such that they can
 	work via the command line """
 
-	threshold = 0
+	_threshold=0
+	@property
+	def threshold(self):
+		 return self._threshold
+	@threshold.setter
+	def threshold(self, val):
+		self._threshold = val
 	
 	def setThreshold(self, threshold):
 		self.threshold=threshold
@@ -126,27 +132,9 @@ class ForceOnAverageConcentration(Forcing):
 						# cell.  Unfortunately, the data is organized in the 
 						# opposite way as we want (time is the top index..)
 						if self.averaging == 'AVG_MAX8':
-#							vec_yest  = np.zeros(self.nt, dtype=np.float32)
-#							vec_today = copy.copy(vec_yest)
-#							vec_tom   = copy.copy(vec_yest)
-
-#							# This loop should be replaced with just indexing..
-#							for t in range(0, self.nt-1):
-#								#print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
-#								# Make sure I'm not transposing this...
-#								#print "shape(vec_yest)=%s, shape(data_yest)=%s.  Tyrying to access data_yest[%d][%d][%d][%d]"%(vec_yest.shape, data_yest.shape, t, k, j, i)
-#								vec_yest[t]  = data_yest[t][k][j][i]
-#								#print "shape(vec_today)=%s, shape(data_today)=%s"%(vec_today.shape, data_yest.shape)
-#								vec_today[t] = data_today[t][k][j][i]
-#								vec_tom[t]   = data_tom[t][k][j][i]
-
 							vec_yest  = data_yest[:self.nt-1,k,j,i]
 							vec_today = data_today[:self.nt-1,k,j,i]
 							vec_tom   = data_tom[:self.nt-1,k,j,i]
-
-
-							## Put it together in one long matrix
-							#vec3day = np.concatenate([data_yest, today, tomorrow])
 
 							# Prepares a vector of values with respect to the
 							# direction we're going to calculate the average
@@ -174,15 +162,6 @@ class ForceOnAverageConcentration(Forcing):
 							#print "len(today) : ", len(forcing_vectors['today'])
 							#print "len(tomorrow) : ", len(forcing_vectors['tomorrow'])
 
-#!#							for t in range(0, self.nt-1):
-#!#								#print "Reading %s at (%d,%d) t=%d"%(self.species[idx_s],i,j,t)
-#!#								# Make sure I'm not transposing this...
-#!#								#print "fld_yest[t][k][j][i] = ", fld_yest[t][k][j][i]
-#!#								#print "forcing_vectors['yesterday'][t] = ", forcing_vectors['yesterday'][t]
-#!#								fld_yest[t][k][j][i]  = forcing_vectors['yesterday'][t]
-#!#								fld_today[t][k][j][i] = forcing_vectors['today'][t]
-#!#								fld_tom[t][k][j][i]   = forcing_vectors['tomorrow'][t]
-
 							fld_yest[:self.nt-1,k,j,i]  = forcing_vectors['yesterday'][:self.nt-1]
 							fld_today[:self.nt-1,k,j,i] = forcing_vectors['today'][:self.nt-1]
 							fld_tom[:self.nt-1,k,j,i]   = forcing_vectors['tomorrow'][:self.nt-1]
@@ -191,6 +170,7 @@ class ForceOnAverageConcentration(Forcing):
 					#endfor j
 				#endfor i
 			#endfor k
+
 			#print "fld_today[t=8] idx_s=%d:\n"%idx_s,fld_today[8,:,:,:]
 
 
@@ -206,7 +186,6 @@ class ForceOnAverageConcentration(Forcing):
 
 		#endfor species
 
-		#print "flds['today'][s=0][t=8]  3333:\n", flds['today'][0][8,:,:,:]
 		return flds
 
 class ForcingException(Exception):
