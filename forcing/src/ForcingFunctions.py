@@ -14,9 +14,6 @@ class ForceOnAverageConcentration(Forcing):
 	def threshold(self, val):
 		self._threshold = val
 	
-	def setThreshold(self, threshold):
-		self.threshold=threshold
-
 	def generateForcingFields(self, conc_idx,
  	   conc_yest,  conc_today,  conc_tom,
 	   force_yest, force_today, force_tom):
