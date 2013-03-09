@@ -9,8 +9,8 @@ import sys, os
 from Scientific.IO.NetCDF import NetCDFFile
 import numpy as np
 
-sys.path.append('../')
-from bcolours import bcolours
+sys.path.append(os.environ['HOME'] + "/cmaq_forcing/forcing/src/")
+from bcolours import bcolours as bc
 
 
 #
@@ -26,7 +26,7 @@ j=19
 print "Cell i=%d j=%d"%(i,j)
 
 # Timezone?
-tzf="../GriddedTimeZoneMask.nc"
+tzf=os.environ['HOME'] + "/cmaq_forcing/forcing/src/GriddedTimeZoneMask.nc"
 src=NetCDFFile(tzf, 'r')
 
 # Get the variable
@@ -42,17 +42,18 @@ src.close()
 
 allfiles=[]
 
-cbase=os.environ['HOME'] + "/cmaq_forcing/forcing/src/morteza/"
-cfiles=["CCTM_fwdACONC.20070501", "CCTM_fwdACONC.20070502", "CCTM_fwdACONC.20070503"]
+#cbase=os.environ['HOME'] + "/cmaq_forcing/forcing/src/morteza/"
+cbase='/mnt/mediasonic/opt/output/base/'
+cfiles=["CCTM_fwdACONC.20070501", "CCTM_fwdACONC.20070502", "CCTM_fwdACONC.20070503", "CCTM_fwdACONC.20070504"]
 for f in cfiles:
 	allfiles.append(cbase+f)
 
-ffiles=["CCTM_fwdFRC.20070501", "CCTM_fwdFRC.20070502", "CCTM_fwdFRC.20070503"]
+ffiles=["CCTM_fwdFRC.20070501", "CCTM_fwdFRC.20070502", "CCTM_fwdFRC.20070503", "CCTM_fwdFRC.20070504"]
 fbase='/mnt/mediasonic/opt/output/morteza/frc-8h-US/'
 for f in ffiles:
 	allfiles.append(fbase+f)
 
-colours=[b.yesterday, b.today, b.tomorrow]
+colours=[b.yesterday, b.today, b.tomorrow, b.cyan]
 
 c_idx=0
 for f in allfiles:
@@ -67,7 +68,7 @@ for f in allfiles:
 	vec=np.zeros((25), dtype=np.float32)
 	vec[:]=data[:,0,j,i]
 
-	print "%s%s%s"%(colours[c_idx%len(colours)], ", ".join('%6.4f' % v for v in vec[:24]), bcolours.clear)
+	print "%s%s%s"%(colours[c_idx%len(colours)], ", ".join('%6.4f' % v for v in vec[:24]), b.clear)
 
 	# Copy over the value
 	src.close()

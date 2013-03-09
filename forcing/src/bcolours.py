@@ -1,7 +1,7 @@
 # Colour code things
 class bcolours:
 
-	colours = {'red': 91, 'green': 32, 'blue': 94, 'yellow': 43, 'purple': 35, 'orange': 40, 'clear': 0}
+	colours = {'red': 91, 'green': 32, 'blue': 94, 'yellow': 43, 'purple': 35, 'orange': 40, 'cyan': 36, 'clear': 0}
 
 	#red="\033[%dm"%_red
 
@@ -63,6 +63,10 @@ class bcolours:
 	@property
 	def yellow(self):
 		return self.ansiColour(bcolours.colours['yellow'])
+
+	@property
+	def cyan(self):
+		return self.ansiColour(bcolours.colours['cyan'])
 
 	@property
 	def orange(self):

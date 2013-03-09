@@ -548,19 +548,20 @@ class Forcing(object):
 
 					if debug:
 						print "\n%si=%d, j=%d, k=0, t=:24%s"%(c.HEADER, debug_i, debug_j, c.clear)
+						print "GMT:   %s\n"%('  '.join('%4.0d' % v for v in range(1,25)))
 
 					# Yesterday
 					if force_yest is not None:
 						var = force_yest.variables[species]
 						sum_fld = np.add(flds['yesterday'][idx_s], var.getValue())
 
-						print "Shapes:"
-						print "shape(var.getValue()): %s"%str(var.getValue().shape)
-						print "shape(fld[..]):        %s"%str(flds['yesterday'][idx_s].shape)
-						print "shape(sum_fld):        %s"%str(sum_fld.shape)
-						print ""
+						#print "Shapes:"
+						#print "shape(var.getValue()): %s"%str(var.getValue().shape)
+						#print "shape(fld[..]):        %s"%str(flds['yesterday'][idx_s].shape)
+						#print "shape(sum_fld):        %s"%str(sum_fld.shape)
+						#print ""
 
-						print "t=12, base: %4.3f, fld: %4.3f, sum: %s%4.3f%s, manual sum: %4.3f"%(var.getValue()[12,0,debug_j,debug_i], flds['yesterday'][idx_s][12,0,debug_j,debug_i], c.red, sum_fld[12,0,debug_j,debug_i], c.clear, var.getValue()[12,0,debug_j,debug_i] + flds['yesterday'][idx_s][12,0,debug_j,debug_i])
+						#print "t=12, base: %4.3f, fld: %4.3f, sum: %s%4.3f%s, manual sum: %4.3f"%(var.getValue()[12,0,debug_j,debug_i], flds['yesterday'][idx_s][12,0,debug_j,debug_i], c.red, sum_fld[12,0,debug_j,debug_i], c.clear, var.getValue()[12,0,debug_j,debug_i] + flds['yesterday'][idx_s][12,0,debug_j,debug_i])
 
 
 						if debug:
@@ -571,6 +572,7 @@ class Forcing(object):
 
 
 						var.assignValue(sum_fld)
+						force_yest.sync()
 
 					# Today's...
 					#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
@@ -590,30 +592,36 @@ class Forcing(object):
 
 
 					var.assignValue(sum_fld)
+					force_today.sync()
 
 
 					# Tomorrow
-					if force_tom is not None:
-						var = force_tom.variables[species]
-						# Tomorrow shouldn't have any values already, so that's why we're not fetching them here
+					if Forcing.default_averaging_direction:
+						# In the NA domain (negative timezones), with a backward forcing average, we'll never see
+						# it reach into tomorrow.  So, if this is false, don't do it
 
-						if debug:
-							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.light('tomorrow')), c.clear)
-							print "Tomo:  %s%s%s"%(c.tomorrow, printVec(flds['tomorrow'][idx_s][:24,0,debug_j,debug_i], c, c.tomorrow), c.clear)
-							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('tomorrow')), c.clear)
-							print "\n"
+						if force_tom is not None:
+							var = force_tom.variables[species]
+							# Tomorrow shouldn't have any values already, so that's why we're not fetching them here
 
-						var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
+							if debug:
+								#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.light('tomorrow')), c.clear)
+								print "Tomo:  %s%s%s"%(c.tomorrow, printVec(flds['tomorrow'][idx_s][:24,0,debug_j,debug_i], c, c.tomorrow), c.clear)
+								#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('tomorrow')), c.clear)
+								print "\n"
+
+							var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
+							force_tom.sync()
 
 					# In species loop
 					idx_s = idx_s + 1
 
-				# Sync netcdf files
-				if force_yest is not None:
-					force_yest.sync()
-				force_today.sync()
-				if force_tom is not None:
-					force_tom.sync()
+	#			# Sync netcdf files
+	#			if force_yest is not None:
+	#				force_yest.sync()
+	#			force_today.sync()
+	#			if force_tom is not None:
+	#				force_tom.sync()
 
 			# endif dryrun
 
@@ -945,15 +953,15 @@ class Forcing(object):
 				vec3=[]
 				# There are never "tomorrow" values with the timezones in our domains for backwards calcs
 
-			outs = "%s%s%s "%(bc.yesterday, ' '.join('%4.3f' % v for v in vec1), bc.clear)
-			outs = outs+"%s%s%s "%(bc.today, ' '.join('%4.3f' % v for v in vec2), bc.clear)
-			outs = outs+"%s%s%s "%(bc.tomorrow, ' '.join('%4.3f' % v for v in vec3), bc.clear)
+			outs = "%s%s%s "%(b.yesterday, ' '.join('%4.3f' % v for v in vec1), b.clear)
+			outs = outs+"%s%s%s "%(b.today, ' '.join('%4.3f' % v for v in vec2), b.clear)
+			outs = outs+"%s%s%s "%(b.tomorrow, ' '.join('%4.3f' % v for v in vec3), b.clear)
 
 			debug_vec=np.concatenate([vec1, vec2, vec3], axis=1)
 			print "Preped vec(len=%d)=%s"%(len(debug_vec), outs)
 
 			if not (debug_vec==vec).all():
-				print "%sError!!%s The debug vector does not match the actual returned vector"%(red, clear)
+				print "%sError!!%s The debug vector does not match the actual returned vector"%(b.red, b.clear)
 				print "Act    vec(len=%d)=%s\n"%(len(vec), ' '.join('%4.3f' % v for v in vec))
 
 		###
