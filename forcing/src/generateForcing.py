@@ -45,7 +45,7 @@ def ProgressBarCLI(prog, filename):
 	print "Time: %0.2d:%0.2d.%0.2d: Progress %f, filename: %s"%(d.hour,d.minute,d.second, prog, filename)
 	print "\n------------------------------------------------------------\n"
 
-if args.cli or True:
+if args.cli:
 
 	setup=2
 

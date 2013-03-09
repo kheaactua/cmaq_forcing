@@ -10,6 +10,8 @@ from DoForce import *
 import datetime
 
 class ForcingFrame(wx.Frame):
+	""" Main window for the forcing app.  The code in this file needs upgrading. (sloppy) """
+
 	LOG_HELP  = 2
 	LOG_ERROR = 4
 	LOG_WARN  = 8
@@ -22,29 +24,53 @@ class ForcingFrame(wx.Frame):
 	pan_inputs = None
 	fpm = None
 
-	# This list is populated upon enable, and read from the ForcingPanels
-	# that require time to be set
-	times_list = []
+	valid_times=[]
 
-	# Path where concnetration files can be found
-	conc_path = None
+	#
+	# State varibles
+	#
+	_species = []
+	_layers = []
+
+
+	# Path where concentration files can be found
+	input_path = None
 
 	# Boundary dates on concentration files
 	date_min = None
 	date_max = None
 
 	# Forcing file format
-	OutFormat = "Force.TYPE.YYYYMMDD"
-	
+	_outputFormat = "Force.TYPE.YYYYMMDD"
+
 
 	#def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
 	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=(1000,0), size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name="TopFrame"):
 		wx.Frame.__init__(self, parent, id=id, title=title, pos=pos, size=size, style=style, name=name)
 
+		# Used to capture CTRL-W and CTRL-Q to quit
 		randomId = wx.NewId()
 		self.Bind(wx.EVT_MENU, self.onKeyCombo, id=randomId)
 		accel_tbl = wx.AcceleratorTable([(wx.ACCEL_CTRL,  ord('W'), randomId), (wx.ACCEL_CTRL,  ord('Q'), randomId)])
 		self.SetAcceleratorTable(accel_tbl)
+
+		# Create a menu bar
+		menubar = wx.MenuBar()
+		mfile = wx.Menu()
+		mfile.Append(101, '&Load configuration', 'Load configuration options to populate GUI options')
+		mfile.Append(102, '&Save configuration', 'Save current settings to a file')
+		mfile.Append(103, '&Quit', 'Quit')
+
+		mhelp = wx.Menu()
+		mhelp.Append(201, '&About', 'About')
+
+		# Add these to the menu bar
+		menubar.Append(mfile, '&File')
+		menubar.Append(mhelp, '&help')
+
+		# Set the menu bar
+		self.SetMenuBar(menubar)
+		self.CreateStatusBar()
 
 
 		# Initialize the forcing panel manager
@@ -112,13 +138,16 @@ class ForcingFrame(wx.Frame):
 		self.SetSizerAndFit(sizerAll)
 
 		# TEMP!
-		self.conc_path = os.path.dirname(os.path.abspath('concentrations/CCTM.20070101'))
+		self.input_path = os.path.dirname(os.path.abspath('concentrations/CCTM.20070101'))
 		self.validator = ForcingValidator('conc.nc')
 		self.date_min  = self.validator.getDate()
 		self.date_max  = self.validator.getDate() + datetime.timedelta(days=2)
 		self.debug("Setting min date to sample conc date, i.e. %s"%self.date_min)
 		print "type(self.date_min) = %s "%(type(self.date_min))
 		self.pan_inputs.Enable(True)
+
+	def onKeyCombo(self, event):
+		self.Close()
 
 	"""
 	The following getters are used by the ForcingPanels as they know how to call
@@ -129,39 +158,33 @@ class ForcingFrame(wx.Frame):
 
 	These getters should be part of an interface
 	"""
-	def getSpecies(self):
-		species=list(self.pan_inputs.species.GetCheckedStrings())
-		self.debug("Returning species: %s"%', '.join(map(str, species)))
-		return species
+	@property
+	def species(self):
+		self._species=list(self.pan_inputs.species.GetCheckedStrings())
+		self.debug("Returning species: %s"%', '.join(map(str, self._species)))
+		return self._species
 
-	def getLayers(self):
-		layers=list(self.pan_inputs.layers.GetCheckedStrings())
-		if layers[0] == ForcingValidator.LAY_SURFACE_NAME:
-			layers[0] = 1
-		self.debug("Returning layers: %s"%', '.join(map(str, layers)))
-		return layers
+	@property
+	def layers(self):
+		self._layers=list(self.pan_inputs.layers.GetCheckedStrings())
+		if self._layers[0] == ForcingValidator.LAY_SURFACE_NAME:
+			self._layers[0] = 1
+		self.debug("Returning layers: %s"%', '.join(map(str, self._layers)))
+		return self._layers
 
-	def getFileFormat(self):
-		rstr=self.pan_inputs.Format.GetValue()
-		self.debug("Returning layers: %s"%rstr)
-		return rstr.split(' ')
+	@property
+	def inputFormat(self):
+		_inputFormat=self.pan_inputs.Format.GetValue()
+		return self._inputFormat
 
-	def getTimes(self):
-		rstr=self.pan_inputs.times.GetCheckedStrings()
-		return rstr.split(' ')
+	@property
+	def outputFormat(self):
+		return self._outputFormat
 
-	def getFormat(self):
-		fmt=self.pan_inputs.Format.GetValue()
-		return fmt
-
-	def getOutputFormat(self):
-		return self.OutFormat
-
-	def onKeyCombo(self, event):
-		self.Close()
 
 	""" Logging Methods """
 	def log(self, msg, level):
+		""" Basic logging function, intended to be called by self.debug(), or self.warn(), etc.. """
 		if level == self.LOG_ERROR:
 			prefix='E'
 		elif level == self.LOG_WARN:
@@ -178,19 +201,25 @@ class ForcingFrame(wx.Frame):
 		full_msg = "[%s] %s"%(prefix, msg)
 		self.logger.AppendText(full_msg + "\n")
 		print full_msg
+
 	def info(self, msg):
+		""" Generate an 'info' message """
 		self.log(msg,self.LOG_INFO)
 	def error(self, msg):
+		""" Generate an 'error' message """
 		self.log(msg,self.LOG_ERROR)
 	def warn(self, msg):
+		""" Generate a 'warning' message """
 		self.log(msg,self.LOG_WARN)
 	def debug(self, msg, level=0):
+		""" Generate a 'debug' message """
 		# HACK
 		# Filter out high level (low importance) debug messages
 		if level<=1:
 		# /HACK
 			self.log(msg,self.LOG_DEBUG)
 	def help(self, msg):
+		""" Generate a 'help' message """
 		self.log(msg,self.LOG_HELP)
 
 	#@staticmethod
@@ -247,8 +276,8 @@ class SampleConcPanel(wx.Panel):
 			paths = dlg.GetPaths()
 			path=paths[0]
 			self.parent.info("Sample concentration file: %s"%path)
-			self.parent.conc_path = os.path.dirname(os.path.abspath(path))
-			self.parent.debug("Concentration Path: %s"%self.parent.conc_path)
+			self.parent.input_path = os.path.dirname(os.path.abspath(path))
+			self.parent.debug("Concentration Path: %s"%self.parent.input_path)
 			self.conc_file.SetValue(path)
 			if self.parent.validator == None:
 				del self.parent.validator
@@ -353,7 +382,7 @@ class InputsPanel(wx.Panel):
 		sizerMain.Add(wx.StaticText(self, label="Enter output format"))
 		sizerOFormat = wx.FlexGridSizer(rows=1, cols=2, vgap=5, hgap=5)
 		sizerOFormat.Add(wx.StaticText(self, label="Format:"))
-		self.Out_Format = wx.TextCtrl(self, value=self.parent.OutFormat, size=(input_width,-1))
+		self.Out_Format = wx.TextCtrl(self, value=self.parent.outputFormat, size=(input_width,-1))
 		sizerOFormat.Add(self.Out_Format)
 		sizerMain.Add(sizerOFormat)	
 
@@ -457,7 +486,7 @@ class InputsPanel(wx.Panel):
 			self.date_min.SetValue(sdate)
 
 	def testFormat(self, event):
-		files=Forcing.FindFiles(self.parent.conc_path, self.Format.GetValue())
+		files=Forcing.FindFiles(self.parent.input_path, self.Format.GetValue())
 		self.parent.info("Found files: %s" % ', '.join(map(str, files)))
 		# Update date ranges
 		self.parent.date_min=files[0].date
@@ -556,8 +585,8 @@ class InputsPanel(wx.Panel):
 				self.parent.warn("Cannot load times!")
 				times_list = []
 
-			self.times_list = times_list
-			print "Set self.times_list = ", self.times_list
+			self.valid_times = times_list
+			#print "Set self.times_list = ", self.times_list
 
 			#self.times.Clear()
 			#self.parent.debug("Setting times in combo box")
