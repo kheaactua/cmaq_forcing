@@ -18,10 +18,14 @@ class ForcingFrame(wx.Frame):
 	LOG_INFO  = 16
 	LOG_DEBUG = 32
 
+	# The validator is not much of a validator anymore (it might be once the
+	# CLI interface is more complete) but more of a getter from the NetCDF file
 	validator=None
 
+	col1_width=500
+
 	pan_sample_conc = None
-	pan_inputs = None
+	pan_ginputs = None
 	fpm = None
 
 	valid_times=[]
@@ -40,7 +44,10 @@ class ForcingFrame(wx.Frame):
 	date_min = None
 	date_max = None
 
-	# Forcing file format
+	# File formats
+	inputFormatDefault = "CCTM*YYYYMMDD"
+	outputFormatDefault = "Force.TYPE.YYYYMMDD"
+	_inputFormat = "CCTM*YYYYMMDD"
 	_outputFormat = "Force.TYPE.YYYYMMDD"
 
 
@@ -79,15 +86,21 @@ class ForcingFrame(wx.Frame):
 		# Sample concentration Panel
 		self.pan_sample_conc = SampleConcPanel(self)
 
-		# Inputs Panel
-		self.pan_inputs = InputsPanel(self)
-		self.pan_inputs.Enable(False)
+		# Inputs panel
+		self.pan_input = InputPanel(self, size=(self.col1_width, -1))
+
+		# Outputs panel
+		self.pan_output = OutputPanel(self, size=(self.col1_width, -1))
+
+		# General Inputs Panel
+		self.pan_ginputs = GeneralInputsPanel(self)
+		self.pan_ginputs.Enable(False)
 
 		# Forcing Panel
 		self.pan_force = ForcingPanelBlank(self)
 
 		# Add events
-		panels = [self.pan_sample_conc, self.pan_inputs, self.pan_force];
+		panels = [self.pan_sample_conc, self.pan_ginputs, self.pan_force];
 		for p in panels:
 			p.Bind(wx.EVT_MENU, self.onKeyCombo, id=randomId)
 
@@ -102,14 +115,18 @@ class ForcingFrame(wx.Frame):
 		leftCol = wx.BoxSizer(wx.VERTICAL)
 		leftCol.Add(self.pan_sample_conc)
 		leftCol.AddSpacer(5)
-		leftCol.Add(self.pan_inputs)
+		leftCol.Add(self.pan_input)
+		leftCol.AddSpacer(5)
+		leftCol.Add(self.pan_output)
+		leftCol.AddSpacer(5)
+		leftCol.Add(self.pan_ginputs)
 
 		# Right column
 		rightCol = wx.BoxSizer(wx.VERTICAL)
 		title=wx.StaticText(self, label="Cost Function")
 		rightCol.Add(title)
 		rightCol.AddSpacer(10)
-		#self.pan_force.SetSize((-1, self.pan_inputs.GetSize()[1]*.9))
+		#self.pan_force.SetSize((-1, self.pan_ginputs.GetSize()[1]*.9))
 		rightCol.Add(self.pan_force, flag=wx.EXPAND)
 
 		self.runbtn=wx.Button(self, label="Run", name="runbtn")
@@ -127,6 +144,7 @@ class ForcingFrame(wx.Frame):
 		# Add columns
 		sizerAll.Add(self.cols)
 		sizerAll.AddSpacer(5)
+
 		# Add logger
 		print "Forcing frame size: ", self.GetSize()
 		self.logger=wx.TextCtrl(self, size=(-1, 200), style=wx.TE_MULTILINE | wx.TE_READONLY)
@@ -144,7 +162,7 @@ class ForcingFrame(wx.Frame):
 		self.date_max  = self.validator.getDate() + datetime.timedelta(days=2)
 		self.debug("Setting min date to sample conc date, i.e. %s"%self.date_min)
 		print "type(self.date_min) = %s "%(type(self.date_min))
-		self.pan_inputs.Enable(True)
+		self.pan_ginputs.Enable(True)
 
 	def onKeyCombo(self, event):
 		self.Close()
@@ -160,13 +178,13 @@ class ForcingFrame(wx.Frame):
 	"""
 	@property
 	def species(self):
-		self._species=list(self.pan_inputs.species.GetCheckedStrings())
+		self._species=list(self.pan_ginputs.species.GetCheckedStrings())
 		self.debug("Returning species: %s"%', '.join(map(str, self._species)))
 		return self._species
 
 	@property
 	def layers(self):
-		self._layers=list(self.pan_inputs.layers.GetCheckedStrings())
+		self._layers=list(self.pan_ginputs.layers.GetCheckedStrings())
 		if self._layers[0] == ForcingValidator.LAY_SURFACE_NAME:
 			self._layers[0] = 1
 		self.debug("Returning layers: %s"%', '.join(map(str, self._layers)))
@@ -174,12 +192,12 @@ class ForcingFrame(wx.Frame):
 
 	@property
 	def inputFormat(self):
-		_inputFormat=self.pan_inputs.Format.GetValue()
+		_inputFormat=self.pan_ginputs.Format.GetValue()
 		return self._inputFormat
 
 	@property
 	def outputFormat(self):
-		return self._outputFormat
+		return self.pan_output.outputFormatCtrl.getValue()
 
 
 	""" Logging Methods """
@@ -221,6 +239,10 @@ class ForcingFrame(wx.Frame):
 	def help(self, msg):
 		""" Generate a 'help' message """
 		self.log(msg,self.LOG_HELP)
+
+	def ShowFormatHelp(self, event):
+		self.help("To specify a format: year=YYYY (2007) or YY (07), juldate=JJJ, month=MM, day=DD")
+		event.Skip()
 
 	#@staticmethod
 	def SimpleProgress(self, prog, filename):
@@ -287,17 +309,17 @@ class SampleConcPanel(wx.Panel):
 				self.parent.date_min  = self.parent.validator.getDate()
 				#self.parent.date_max  = self.validator.getDate() + datetime.timedelta(days=2)
 				self.parent.debug("Setting min date to sample conc date, i.e. %s"%self.parent.date_min)
-				self.parent.pan_inputs.updateDate(self.parent.date_min)
-				self.parent.pan_inputs.Enable(True)
+				self.parent.pan_ginputs.updateDate(self.parent.date_min)
+				self.parent.pan_ginputs.Enable(True)
 			except IOError as e:
 				self.parent.error("I/O error({0}): {1}".format(e.errno, e.strerror))
 				self.parent.validator = None
-				self.parent.pan_inputs.Enable(False)
+				self.parent.pan_ginputs.Enable(False)
 
 class LoggingPanel(wx.Panel):
 	logger = None
-	def __init__(self, parent):
-		wx.Panel.__init__(self, parent)
+	def __init__(self, parent, size=wx.DefaultSize):
+		wx.Panel.__init__(self, parent, size=size)
 		self.parent = parent
 
 		fsize=parent.GetSize()
@@ -311,9 +333,88 @@ class LoggingPanel(wx.Panel):
 		self.logger.SetSize(fsize)
 
 
+class InputPanel(wx.Panel):
+	""" This panel requests concentration path and format from the user """
+
+	def __init__(self, parent, size = wx.DefaultSize):
+		wx.Panel.__init__(self, parent, size=size, style=wx.SUNKEN_BORDER)
+		self.parent = parent
+
+		input_width=180
+
+		sizerMain = wx.BoxSizer(wx.VERTICAL)
+
+		instFormat = wx.StaticText(self, label="Enter the format pattern for input concentration files.  i.e. aconc.*.YYYYJJJ")
+		instFormat.Wrap(400)
+		sizerMain.Add(instFormat)
+
+		# Create a sub sizer just for these inputs
+		sizer = wx.FlexGridSizer(rows=2, cols=2)
+
+		sizer.Add(wx.StaticText(self, label="Path:"))
+		self.inputPathCtrl = wx.TextCtrl(self, value=os.getcwd(), size=(input_width,-1))
+		sizer.Add(self.inputPathCtrl)
+
+		tmp=wx.StaticText(self, label="Format:")
+		sizer.Add(tmp)
+		self.inputFormatCtrl = wx.TextCtrl(self, value=self.parent.inputFormatDefault, size=(input_width,-1))
+		sizer.Add(self.inputFormatCtrl)
+
+		sizerMain.Add(sizer)
+
+		sizerMain.Add(HelpLink(self, label="Need help with formats?", onClick=self.parent.ShowFormatHelp))
+
+		testFormatCtrl = wx.Button(self, label="Test Format", pos=(200, 325))
+		testFormatCtrl.Bind(wx.EVT_BUTTON, self.testFormat)
+		sizerMain.Add(testFormatCtrl)
+
+		self.SetSizer(sizerMain)
+
+	def testFormat(self, event):
+		files=Forcing.FindFiles(file_format=self.inputFormatCtrl.GetValue(), path=self.inputPathCtrl.GetValue())
+		self.parent.info("Found files: %s" % ', '.join(map(str, files)))
+		# Update date ranges
+		# TEMP HACK, commented this out for simplicity
+		#self.parent.date_min=files[0].date
+		#self.parent.date_max=files[-1].date
+		#self.updateDateRange(self.parent.date_min, self.parent.date_max)
+		#self.updateDate(self.parent.date_min)
+		#self.updateDate(self.parent.date_max, True)
+		event.Skip()
+
+class OutputPanel(wx.Panel):
+	""" This panel requests output path and format from the user """
+
+	def __init__(self, parent, size = wx.DefaultSize):
+		wx.Panel.__init__(self, parent, size=size, style=wx.SUNKEN_BORDER)
+		self.parent = parent
+
+		input_width=180
+
+		sizerMain = wx.BoxSizer(wx.VERTICAL)
+
+		instFormat = wx.StaticText(self, label="Enter the format pattern for output concentration files. i.e. force.TYPE.YYYYJJJ")
+		instFormat.Wrap(400)
+		sizerMain.Add(instFormat)
+
+		# Create a sub sizer just for these outputs
+		sizer = wx.FlexGridSizer(rows=2, cols=2)
+
+		sizer.Add(wx.StaticText(self, label="Path:"))
+		self.outputPathCtrl = wx.TextCtrl(self, value=os.getcwd(), size=(input_width,-1))
+		sizer.Add(self.outputPathCtrl)
+
+		tmp=wx.StaticText(self, label="Format:")
+		sizer.Add(tmp)
+		self.outputFormatCtrl = wx.TextCtrl(self, value=self.parent.outputFormatDefault, size=(input_width,-1))
+		sizer.Add(self.outputFormatCtrl)
+
+		sizerMain.Add(sizer)
+
+		self.SetSizer(sizerMain)
 
 
-class InputsPanel(wx.Panel):
+class GeneralInputsPanel(wx.Panel):
 	parent = None
 
 	avgoption = None
@@ -334,28 +435,28 @@ class InputsPanel(wx.Panel):
 		dline=18
 		input_width=180
 
-		# Input file format
-		instFormat = wx.StaticText(self, label="Enter the format pattern for input concentration files in the same directory as the sample concentration file input above.  i.e. aconc.*.YYYYJJJ\nNote, the files are searched in the same directory as the sample file input above.")
-		instFormat.Wrap(mySize[0])
-		sizerMain.Add(instFormat)
-
-		lblFormat = wx.StaticText(self, label="Format:")
-		sizerFormat.Add(lblFormat)
-		self.Format = wx.TextCtrl(self, value="CCTM*YYYYMMDD", size=(input_width,-1))
-		sizerFormat.Add(self.Format)
-		testFormat = wx.Button(self, label="Test Format", pos=(200, 325))
-		testFormat.Bind(wx.EVT_BUTTON, self.testFormat)
-		sizerFormat.Add(testFormat)
-		sizerMain.Add(sizerFormat)
-
-		#instFormat2 = wx.HyperlinkText(self, id=-1, label="Need help with formats?", url="")
-		instFormat2 = wx.StaticText(self, id=-1, label="Need help with formats?")
-		instFormat2.SetForegroundColour((0,0,255))
-		font=instFormat2.GetFont();
-		font.SetUnderlined(True)
-		instFormat2.SetFont(font)
-		instFormat2.Bind(wx.EVT_LEFT_DOWN, self.ShowFormatHelp)
-		sizerMain.Add(instFormat2)
+#		# Input file format
+#		instFormat = wx.StaticText(self, label="Enter the format pattern for input concentration files in the same directory as the sample concentration file input above.  i.e. aconc.*.YYYYJJJ\nNote, the files are searched in the same directory as the sample file input above.")
+#		instFormat.Wrap(mySize[0])
+#		sizerMain.Add(instFormat)
+#
+#		lblFormat = wx.StaticText(self, label="Format:")
+#		sizerFormat.Add(lblFormat)
+#		self.Format = wx.TextCtrl(self, value="CCTM*YYYYMMDD", size=(input_width,-1))
+#		sizerFormat.Add(self.Format)
+#		testFormat = wx.Button(self, label="Test Format", pos=(200, 325))
+#		#testFormat.Bind(wx.EVT_BUTTON, self.testFormat)
+#		sizerFormat.Add(testFormat)
+#		sizerMain.Add(sizerFormat)
+#
+#		#instFormat2 = wx.HyperlinkText(self, id=-1, label="Need help with formats?", url="")
+#		instFormat2 = wx.StaticText(self, id=-1, label="Need help with formats?")
+#		instFormat2.SetForegroundColour((0,0,255))
+#		font=instFormat2.GetFont();
+#		font.SetUnderlined(True)
+#		instFormat2.SetFont(font)
+#		instFormat2.Bind(wx.EVT_LEFT_DOWN, self.ShowFormatHelp)
+#		sizerMain.Add(instFormat2)
 
 
 		# Input date range
@@ -376,16 +477,6 @@ class InputsPanel(wx.Panel):
 		self.date_max = wx.DatePickerCtrl(self)
 		sizerDates.Add(self.date_max)
 		sizerMain.Add(sizerDates)
-
-		# Output format
-		sizerMain.AddSpacer(10)
-		sizerMain.Add(wx.StaticText(self, label="Enter output format"))
-		sizerOFormat = wx.FlexGridSizer(rows=1, cols=2, vgap=5, hgap=5)
-		sizerOFormat.Add(wx.StaticText(self, label="Format:"))
-		self.Out_Format = wx.TextCtrl(self, value=self.parent.outputFormat, size=(input_width,-1))
-		sizerOFormat.Add(self.Out_Format)
-		sizerMain.Add(sizerOFormat)	
-
 
 		sizerMain.AddSpacer(10)
 		instruct1 = wx.StaticText(self, label="Choose the species you will input into the forcing function.")
@@ -485,16 +576,7 @@ class InputsPanel(wx.Panel):
 			print "Received %s, Setting date_min to %s"%(d, sdate)
 			self.date_min.SetValue(sdate)
 
-	def testFormat(self, event):
-		files=Forcing.FindFiles(self.parent.input_path, self.Format.GetValue())
-		self.parent.info("Found files: %s" % ', '.join(map(str, files)))
-		# Update date ranges
-		self.parent.date_min=files[0].date
-		self.parent.date_max=files[-1].date
-		self.updateDateRange(self.parent.date_min, self.parent.date_max)
-		self.updateDate(self.parent.date_min)
-		self.updateDate(self.parent.date_max, True)
-		event.Skip()
+
 
 	def ShowAvgHelp(self, event):
 		# MOVE TO forcingpanel
@@ -505,9 +587,6 @@ class InputsPanel(wx.Panel):
 		#self.parent.info("To specify a format: year=YYYY (2007) or YY (07), juldate=JJJ, month=MM, day=DD")
 		event.Skip()
 
-	def ShowFormatHelp(self, event):
-		self.parent.help("To specify a format: year=YYYY (2007) or YY (07), juldate=JJJ, month=MM, day=DD")
-		event.Skip()
 
 	def choseSpecies(self, event):
 		self.parent.debug('Chose species: [%s]' % ', '.join(map(str, self.species.GetCheckedStrings())))
@@ -598,3 +677,14 @@ class InputsPanel(wx.Panel):
 			self.parent.runbtn.Enable(True)
 
 
+class HelpLink(wx.StaticText):
+	""" Creates a StaticText control with an onclick event """
+
+	def __init__(self, parent, id=-1, label=wx.EmptyString, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0, name=wx.StaticTextNameStr, onClick=None):
+		wx.StaticText.__init__(self, parent, id, label, pos, size, style, name)
+
+		self.SetForegroundColour((0,0,255))
+		font=self.GetFont();
+		font.SetUnderlined(True)
+		self.SetFont(font)
+		self.Bind(wx.EVT_LEFT_DOWN, onClick)
