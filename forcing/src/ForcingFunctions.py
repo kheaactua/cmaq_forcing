@@ -65,6 +65,10 @@ class ForceOnAverageConcentration(Forcing):
 
 		# This is NOT efficient.  Could probably easily make it
 		# more efficient by implementing some sort of cache though..
+		#
+		# Evidentally this loop is considered non-pythonic, consider
+		# for idx_s, species in enumerate(self.species):
+
 		for idx_s in range(0, len(self.species)):
 			species = self.species[idx_s]
 			if conc_yest == None:

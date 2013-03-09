@@ -5,9 +5,11 @@ import numpy as np
 import re
 import dateutil.parser as dparser
 from datetime import *
+import math
 
 # This is mostly for debugging..  Just ansi colours
 from bcolours import bcolours as bc
+from bcolours import colouredNum as ci
 
 def getForcingObject(ni,nj,nk,nt):
 	return ForceOnSpecies(ni,nj,nk,nt)
@@ -59,7 +61,7 @@ class Forcing(object):
 
 	# True for forward, false for backward.  I'm told
 	# the standard is forward
-	default_averaging_direction = False
+	default_averaging_direction = True
 
 	# Obvious, but used a lot
 	dayLen=24
@@ -551,28 +553,32 @@ class Forcing(object):
 						print "GMT:   %s\n"%('  '.join('%4.0d' % v for v in range(1,25)))
 
 					# Yesterday
-					if force_yest is not None:
-						var = force_yest.variables[species]
-						sum_fld = np.add(flds['yesterday'][idx_s], var.getValue())
+					if Forcing.default_averaging_direction == False:
+						# In the NA domain (negative timezones), with a forward
+						# forcing average, we'll never see it reach back into
+						# yesterday.  So, if this is false, don't do it
+						if force_yest is not None:
+							var = force_yest.variables[species]
+							sum_fld = np.add(flds['yesterday'][idx_s], var.getValue())
 
-						#print "Shapes:"
-						#print "shape(var.getValue()): %s"%str(var.getValue().shape)
-						#print "shape(fld[..]):        %s"%str(flds['yesterday'][idx_s].shape)
-						#print "shape(sum_fld):        %s"%str(sum_fld.shape)
-						#print ""
+							#print "Shapes:"
+							#print "shape(var.getValue()): %s"%str(var.getValue().shape)
+							#print "shape(fld[..]):        %s"%str(flds['yesterday'][idx_s].shape)
+							#print "shape(sum_fld):        %s"%str(sum_fld.shape)
+							#print ""
 
-						#print "t=12, base: %4.3f, fld: %4.3f, sum: %s%4.3f%s, manual sum: %4.3f"%(var.getValue()[12,0,debug_j,debug_i], flds['yesterday'][idx_s][12,0,debug_j,debug_i], c.red, sum_fld[12,0,debug_j,debug_i], c.clear, var.getValue()[12,0,debug_j,debug_i] + flds['yesterday'][idx_s][12,0,debug_j,debug_i])
-
-
-						if debug:
-							print "Yestb: %s%s%s"%(c.light('yesterday'), printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.light('yesterday')), c.clear)
-							print "Yest:  %s%s%s"%(c.yesterday, printVec(flds['yesterday'][idx_s][:24,0,debug_j,debug_i], c, c.yesterday), c.clear)
-							print "Yests: %s%s%s"%(c.dark('yesterday'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('yesterday')), c.clear)
-							print "\n"
+							#print "t=12, base: %4.3f, fld: %4.3f, sum: %s%4.3f%s, manual sum: %4.3f"%(var.getValue()[12,0,debug_j,debug_i], flds['yesterday'][idx_s][12,0,debug_j,debug_i], c.red, sum_fld[12,0,debug_j,debug_i], c.clear, var.getValue()[12,0,debug_j,debug_i] + flds['yesterday'][idx_s][12,0,debug_j,debug_i])
 
 
-						var.assignValue(sum_fld)
-						force_yest.sync()
+							if debug:
+								print "Yestb: %s%s%s"%(c.light('yesterday'), printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.light('yesterday')), c.clear)
+								print "Yest:  %s%s%s"%(c.yesterday, printVec(flds['yesterday'][idx_s][:24,0,debug_j,debug_i], c, c.yesterday), c.clear)
+								print "Yests: %s%s%s"%(c.dark('yesterday'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('yesterday')), c.clear)
+								print "\n"
+
+
+							var.assignValue(sum_fld)
+							force_yest.sync()
 
 					# Today's...
 					#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
@@ -596,22 +602,18 @@ class Forcing(object):
 
 
 					# Tomorrow
-					if Forcing.default_averaging_direction:
-						# In the NA domain (negative timezones), with a backward forcing average, we'll never see
-						# it reach into tomorrow.  So, if this is false, don't do it
+					if force_tom is not None:
+						var = force_tom.variables[species]
+						# Tomorrow shouldn't have any values already, so that's why we're not fetching them here
 
-						if force_tom is not None:
-							var = force_tom.variables[species]
-							# Tomorrow shouldn't have any values already, so that's why we're not fetching them here
+						if debug:
+							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.light('tomorrow')), c.clear)
+							print "Tomo:  %s%s%s"%(c.tomorrow, printVec(flds['tomorrow'][idx_s][:24,0,debug_j,debug_i], c, c.tomorrow), c.clear)
+							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('tomorrow')), c.clear)
+							print "\n"
 
-							if debug:
-								#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.light('tomorrow')), c.clear)
-								print "Tomo:  %s%s%s"%(c.tomorrow, printVec(flds['tomorrow'][idx_s][:24,0,debug_j,debug_i], c, c.tomorrow), c.clear)
-								#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('tomorrow')), c.clear)
-								print "\n"
-
-							var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
-							force_tom.sync()
+						var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
+						force_tom.sync()
 
 					# In species loop
 					idx_s = idx_s + 1
@@ -909,8 +911,11 @@ class Forcing(object):
 			idx_end = 2*Forcing.dayLen
 
 		# Apply time zone  i.e. Montreal is -5
-		idx_start = idx_start + timezone
-		idx_end   = idx_end   + timezone
+		if math.floor(timezone) != timezone:
+			raise NotImplementedError("Timezone must be an integer.  Fractional timezones (e.g. Newfoundland) is not yet supported.")
+		# Change this to - timezone!!
+		idx_start = int(idx_start - timezone)
+		idx_end   = int(idx_end   - timezone)
 
 		vec = data[idx_start:idx_end]
 
@@ -923,46 +928,28 @@ class Forcing(object):
 			# Colours
 			b = bc()
 
-			# This would have been easier to do by defining a coloured number
-			# class, and simply printing out vec.  This method however allowed
-			# me to double check the math (since I pretty much did it from
-			# scratch again when doing this.)
+			# Create coloured ints, and re-create the list
+			cdata=[]
+			for i in range(0,Forcing.dayLen):
+				cdata.append(ci(data[i], b._yesterday))
+			for i in range(Forcing.dayLen,Forcing.dayLen*2):
+				cdata.append(ci(data[i], b._today))
+			for i in range(Forcing.dayLen*2,Forcing.dayLen*3):
+				cdata.append(ci(data[i], b._tomorrow))
 
-			if winLen<abs(timezone):
-				print "%sWarning!%s colour coding's don't work when winLen<abs(timezone) (%d>%d)"%(red, clear, winLen, abs(timezone))
+			# Slice the list the same way
+			cvec = cdata[idx_start:idx_end]
+			print "Preped vec(len=%d) = %s"%(len(cvec), " ".join(map(str, cvec)))
 
-			outs=''
-			if forwards_or_backwards:
-				# Forward
-				vec1=data[Forcing.dayLen+timezone:Forcing.dayLen]
+			same=True
+			for idx, val in enumerate(vec):
+				if val != cvec[idx].val:
+					same=False
+					break
 
-				vec2=data[Forcing.dayLen:Forcing.dayLen*2]
-
-				# The -1 is because the window can never be completely in the next day,
-				# The furthest it can be is including the last hour of today
-				vec3=data[Forcing.dayLen*2:Forcing.dayLen*2+(winLen-1)+timezone]
-			else:
-				# Backward
-
-				# Same reason for the -1 here, but it can't extend completely
-				# into the previous day
-				vec1=data[Forcing.dayLen-(winLen-1)+timezone:Forcing.dayLen]
-
-				vec2=data[Forcing.dayLen:Forcing.dayLen*2+timezone]
-
-				vec3=[]
-				# There are never "tomorrow" values with the timezones in our domains for backwards calcs
-
-			outs = "%s%s%s "%(b.yesterday, ' '.join('%4.3f' % v for v in vec1), b.clear)
-			outs = outs+"%s%s%s "%(b.today, ' '.join('%4.3f' % v for v in vec2), b.clear)
-			outs = outs+"%s%s%s "%(b.tomorrow, ' '.join('%4.3f' % v for v in vec3), b.clear)
-
-			debug_vec=np.concatenate([vec1, vec2, vec3], axis=1)
-			print "Preped vec(len=%d)=%s"%(len(debug_vec), outs)
-
-			if not (debug_vec==vec).all():
+			if not same:
 				print "%sError!!%s The debug vector does not match the actual returned vector"%(b.red, b.clear)
-				print "Act    vec(len=%d)=%s\n"%(len(vec), ' '.join('%4.3f' % v for v in vec))
+				print "Act    vec(len=%d) = %s\n"%(len(vec), ' '.join('%4.3f' % v for v in vec))
 
 		###
 		# /Debug stuff
@@ -1110,7 +1097,7 @@ class Forcing(object):
 		max_idx=avgs.argmax()
 
 		# Reverse the timezone shift
-		max_idx = max_idx + timezone
+		max_idx = max_idx - timezone
 
 		#forcing_value=float(1)/winLen
 		forcing_value=1

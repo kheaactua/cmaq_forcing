@@ -109,3 +109,17 @@ class bcolours:
 		return '\033[1;%d;40m'%c
 
 
+class colouredNum(object):
+	""" Classes used for debugging, it simply carries a number and a int """
+
+	val=0
+	c=0
+	bg=bcolours.colours['clear']
+
+	def __init__(self, val, c, bg=bcolours.colours['clear']):
+		self.val=val
+		self.c=c
+		self.bg=bg
+
+	def __str__(self):
+		return bcolours.ansiColour(self.c) + "%4.3f"%self.val + bcolours.ansiColour(self.bg)
