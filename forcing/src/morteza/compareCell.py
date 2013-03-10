@@ -10,7 +10,8 @@ from Scientific.IO.NetCDF import NetCDFFile
 import numpy as np
 
 # Graphing
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
+from matplotlib.pyplot import *
 
 matt_file=os.environ['HOME'] + "/cmaq_forcing/forcing/src/output/Forcing.ForceOnAverageConcentration.20070502"
 mort_file="/mnt/mediasonic/opt/output/morteza/frc-8h-US/CCTM_fwdFRC.20070502"
@@ -66,13 +67,19 @@ print "Mort: %s"%(", ".join('%4.3f' % v for v in vec_mort))
 print "Matt: %s"%(", ".join('%4.3f' % v for v in vec_matt))
 
 # Plot the data
-fig=plt.figure()
-ax = fig.add_subplot(111)
+fig=figure()
+# No idea why I'm doing this..
+#ax = fig.add_subplot(111)
 print "Morteza blue, matt red"
-ax.plot(range(1,26), vec_mort, 'b-', label="Morteza")
-ax.plot(range(1,26), vec_matt, 'r-', label="Matt")
-ax.legend()
-plt.show()
+#ax.plot(range(1,26), vec_mort, 'b-', label="Morteza")
+#ax.plot(range(1,26), vec_matt, 'r-', label="Matt")
+markerline_matt, stemlines_mort, baseline_mort = stem(range(1,26), vec_mort, linefmt='b-', markerfmt='b')
+stem(range(1,26), vec_matt, linefmt='ro', markerfmt='r')
+
+setp(stemlines_mort, linewidth=4)
+
+legend(('Morteza', 'Matt'))
+show()
 
 
 matt.close()
