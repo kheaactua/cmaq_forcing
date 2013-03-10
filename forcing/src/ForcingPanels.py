@@ -58,8 +58,8 @@ class ForcingPanel(wx.Panel):
 	# The main frame
 	top = None
 
-	def __init__(self, parent):
-		wx.Panel.__init__(self, parent)
+	def __init__(self, parent, style=0):
+		wx.Panel.__init__(self, parent=parent, style=style)
 		self.parent=parent
 
 		# Find the main frame
@@ -110,7 +110,7 @@ class ForcingPanelBlank(ForcingPanel):
 	def __init__(self, parent, style=wx.TAB_TRAVERSAL):
 
 		#wx.Panel.__init__(self, parent, style=wx.SIMPLE_BORDER)
-		wx.Panel.__init__(self, parent, style)
+		ForcingPanel.__init__(self, parent, style)
 		self.parent = parent
 
 		txt=wx.StaticText(self, label="Please choose a forcing function on the left panel")
@@ -153,28 +153,20 @@ class ForcingPanelWithAveraging(ForcingPanel):
 		sizerCombos = wx.FlexGridSizer(rows=1, cols=2, vgap=10, hgap=10)
 
 		lblAvg = wx.StaticText(self, label="Averaging Time")
-		#avgtimes = ['None', 'Max 1 hr', 'Max 8 hr', 'Max 24 h', 'Local Hours', 'Other']
-		avgtimes=Forcing.avgoptions.values()
-		rsizer=wx.FlexGridSizer(rows=len(avgtimes),cols=2,hgap=5)
-		for lbl in avgtimes:
-			radioinput=wx.RadioButton(self, label=lbl, name="avgtimes")
+		#avgtimes=Forcing.avgoptions.values()
+		#print "Avgtimes: ", avgtimes
+		rsizer=wx.FlexGridSizer(rows=len(Forcing.avgoptions),cols=2,hgap=5)
+		for at in Forcing.avgoptions:
+			radioinput=wx.RadioButton(self, label=at[1], name="avgtimes")
 			radioinput.Bind(wx.EVT_RADIOBUTTON, self.chooseAveraging, radioinput)
 			rsizer.Add(radioinput)
 			avghelp = HelpLink(self, label="Help", onClick=self.ShowAvgHelp)
-			#avghelp = wx.StaticText(self, label="Help")
-			#avghelp.SetForegroundColour((0,0,255))
-			#font=avghelp.GetFont();
-			#font.SetUnderlined(True)
-			#avghelp.SetFont(font)
-			#avghelp.Bind(wx.EVT_LEFT_DOWN, self.ShowAvgHelp, lbl)
 			rsizer.Add(avghelp)
 
 		lbltimes = wx.StaticText(self, label="Use Hours:")
 		# Take times from the top frame (it read them from the sample conc file)
 		times_list=self.top.valid_times
-		print "%sTop: %s%s"%(c.blue, str(self.top), c.clear)
-		print "Times_list: ", times_list
-		self.times = wx.CheckListBox(self, size=(self.input_width, 6*self.dline), choices=times_list)
+		self.times = wx.CheckListBox(self, size=(self.input_width, 6*self.dline), choices=map(str, times_list))
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseTimes, self.times)
 		self.times.Enable(False)
 

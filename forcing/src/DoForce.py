@@ -51,7 +51,7 @@ class Forcing(object):
 
 	"""
 
-	avgoptions={'AVG_NONE': 'None', 'AVG_MAX': 'Max 1 hr', 'AVG_MAX8': 'Max 8 hr', 'AVG_MAX24': 'Max 24 h', 'AVG_MASK': 'Local Hours'}
+	avgoptions = [('AVG_MAX8', 'Max 8 hr'),  ('AVG_MAX', 'Max 1 hr'), ('AVG_MAX24', 'Max 24 h'), ('AVG_MASK', 'Local Hours'), ('AVG_NONE', 'None')]
 
 	# Concentration files
 	conc_files = []
@@ -327,7 +327,7 @@ class Forcing(object):
 		   Any of the self.avgoptions values
 		"""
 
-		for key,val in self.avgoptions.items():
+		for key,val in self.avgoptions:
 			if avg==val:
 				self.averaging=key
 

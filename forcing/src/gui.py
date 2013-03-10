@@ -52,7 +52,7 @@ class ForcingFrame(wx.Frame):
 
 
 	#def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
-	def __init__(self,parent, id=-1, title="Forcing File Generator", pos=(1000,0), size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name="TopFrame"):
+	def __init__(self, parent, id=-1, title="Forcing File Generator", pos=(1000,0), size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name="TopFrame"):
 		wx.Frame.__init__(self, parent, id=id, title=title, pos=pos, size=size, style=style, name=name)
 
 		# Used to capture CTRL-W and CTRL-Q to quit
@@ -435,30 +435,6 @@ class GeneralInputsPanel(wx.Panel):
 		dline=18
 		input_width=180
 
-#		# Input file format
-#		instFormat = wx.StaticText(self, label="Enter the format pattern for input concentration files in the same directory as the sample concentration file input above.  i.e. aconc.*.YYYYJJJ\nNote, the files are searched in the same directory as the sample file input above.")
-#		instFormat.Wrap(mySize[0])
-#		sizerMain.Add(instFormat)
-#
-#		lblFormat = wx.StaticText(self, label="Format:")
-#		sizerFormat.Add(lblFormat)
-#		self.Format = wx.TextCtrl(self, value="CCTM*YYYYMMDD", size=(input_width,-1))
-#		sizerFormat.Add(self.Format)
-#		testFormat = wx.Button(self, label="Test Format", pos=(200, 325))
-#		#testFormat.Bind(wx.EVT_BUTTON, self.testFormat)
-#		sizerFormat.Add(testFormat)
-#		sizerMain.Add(sizerFormat)
-#
-#		#instFormat2 = wx.HyperlinkText(self, id=-1, label="Need help with formats?", url="")
-#		instFormat2 = wx.StaticText(self, id=-1, label="Need help with formats?")
-#		instFormat2.SetForegroundColour((0,0,255))
-#		font=instFormat2.GetFont();
-#		font.SetUnderlined(True)
-#		instFormat2.SetFont(font)
-#		instFormat2.Bind(wx.EVT_LEFT_DOWN, self.ShowFormatHelp)
-#		sizerMain.Add(instFormat2)
-
-
 		# Input date range
 		sizerMain.AddSpacer(10)
 		instruct_dates = wx.StaticText(self, label="Time frame to process")
@@ -577,17 +553,6 @@ class GeneralInputsPanel(wx.Panel):
 			self.date_min.SetValue(sdate)
 
 
-
-	def ShowAvgHelp(self, event):
-		# MOVE TO forcingpanel
-		# MOVE TO forcingpanel
-		# MOVE TO forcingpanel
-		# MOVE TO forcingpanel
-		# MOVE TO forcingpanel
-		#self.parent.info("To specify a format: year=YYYY (2007) or YY (07), juldate=JJJ, month=MM, day=DD")
-		event.Skip()
-
-
 	def choseSpecies(self, event):
 		self.parent.debug('Chose species: [%s]' % ', '.join(map(str, self.species.GetCheckedStrings())))
 
@@ -601,6 +566,7 @@ class GeneralInputsPanel(wx.Panel):
 
 		# Get an object for this panel
 		oldPanForce=self.parent.pan_force
+		print "0000 time list: ", self.parent.valid_times
 		newPanForce=ForcingPanelManager.factory(item, self.parent)
 
 		sizer=self.parent.forcingSizer
@@ -664,8 +630,8 @@ class GeneralInputsPanel(wx.Panel):
 				self.parent.warn("Cannot load times!")
 				times_list = []
 
-			self.valid_times = map(int, times_list)
-			print "Set self.valid_times = ", self.valid_times
+			self.parent.valid_times = map(int, times_list)
+			print "Set self.valid_times = ", self.parent.valid_times
 
 			#self.times.Clear()
 			#self.parent.debug("Setting times in combo box")
