@@ -68,8 +68,6 @@ print "Matt: %s"%(", ".join('%4.3f' % v for v in vec_matt))
 
 # Plot the data
 fig=figure()
-# No idea why I'm doing this..
-#ax = fig.add_subplot(111)
 print "Morteza blue, matt red"
 #ax.plot(range(1,26), vec_mort, 'b-', label="Morteza")
 #ax.plot(range(1,26), vec_matt, 'r-', label="Matt")
