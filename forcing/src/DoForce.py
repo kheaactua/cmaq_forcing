@@ -3,12 +3,12 @@ from numpy import shape
 import os
 import numpy as np
 import re
-import dateutil.parser as dparser
-from datetime import *
 import math
 
+from extendedClasses import DataFile, dateE
+
 # This is mostly for debugging..  Just ansi colours
-from bcolours import bcolours as bc
+from bcolours import bcolours as bc, colouredNum as ci
 from bcolours import colouredNum as ci
 
 def getForcingObject(ni,nj,nk,nt):
@@ -364,7 +364,7 @@ class Forcing(object):
 		# Minus 1 because layer 1 is at index 0
 		self._layers=np.zeros(len(mask))
 		for i in range(0, len(mask)-1):
-			sekf._layers[i] = mask[i]-1
+			self._layers[i] = mask[i]-1
 
 	def maskSpace(self, maskf, variable, value=1):
 		""" Set a grid mask
@@ -989,19 +989,22 @@ class Forcing(object):
 		if dl != proper_data_len:
 			raise RuntimeWarning("Invalid length of data.  Data should be %d elements for an %d-window.  Given %d."%(proper_data_len, winLen, dl))
 
-		y = []
+		if winLen == 1:
+			y = data[0:Forcing.dayLen]
+		else:
+			y = []
 
-		i = 0
-		# Loop over 24 hours.  Recall, prepareTimeVectorForAvg already accounted for weather we are counting
-		# forwards or backwards
-		while i < Forcing.dayLen:
-			#print "i=%0.2d"%(i)
-			#print "Forward Window[%d:%d] (or hours [%d:%d])\n"%(i,i+winLen, i,i+winLen)
-			vec=data[i:i+winLen]
-			#print "Stats of [%s]: Count: %d, Sum: %d, Avg: %f"%(', '.join(map(str, vec)), len(vec), sum(vec), float(sum(vec))/winLen)
-			y.append(float(sum(data[i:i+winLen]))/winLen)
+			i = 0
+			# Loop over 24 hours.  Recall, prepareTimeVectorForAvg already accounted for weather we are counting
+			# forwards or backwards
+			while i < Forcing.dayLen:
+				#print "i=%0.2d"%(i)
+				#print "Forward Window[%d:%d] (or hours [%d:%d])\n"%(i,i+winLen, i,i+winLen)
+				vec=data[i:i+winLen]
+				#print "Stats of [%s]: Count: %d, Sum: %d, Avg: %f"%(', '.join(map(str, vec)), len(vec), sum(vec), float(sum(vec))/winLen)
+				y.append(float(sum(data[i:i+winLen]))/winLen)
 
-			i += winLen - winOverlap
+				i += winLen - winOverlap
 
 		###
 		# Debug stuff
@@ -1045,7 +1048,7 @@ class Forcing(object):
 		return y
 
 	@staticmethod
-	def applyForceToAvgTime(avgs_today, winLen=8, timezone = 0, forwards_or_backwards = default_averaging_direction):
+	def applyForceToAvgTime(avgs_today, winLen=8, timezone = 0, min_threshold = None, forwards_or_backwards = default_averaging_direction):
 		""" Apply the forcing terms to the max X-hour average.
 
 		This function finds the max value in the provided list and writes a 1/winLen to the return vector at the location of the max and for the next (if forward) or last (if backward) winLen-1 elements.
@@ -1066,6 +1069,9 @@ class Forcing(object):
 
 		timezone=0:*float32*
 		   Timezone that this occurs in.  This is required to re-shift the values back into GTM, as they were earlier shifted into local time by prepareTimeVectorForAvg
+
+		min_threshold:*float32*
+		   Minimum acceptable value.  If the max is below this, discard it (as if it were 0)
 
 		forwards_or_backwards:*bool*
 		   True means set it up for a forward avg
@@ -1095,6 +1101,15 @@ class Forcing(object):
 
 		# Where's the max?
 		max_idx=avgs.argmax()
+		if min_threshold is not None:
+			if avgs[max_idx]<min_threshold:
+				# Leave the whole vector as zero
+				yesterday = np.zeros((Forcing.dayLen), dtype=np.float32)
+				today     = yesterday.copy()
+				tomorrow  = yesterday.copy()
+				return yesterday, today, tomorrow
+
+		# If there is no threshold, or we haven't hit it, continue on..
 
 		# Reverse the timezone shift
 		max_idx = max_idx - timezone
@@ -1111,99 +1126,6 @@ class Forcing(object):
 		today = forcing[Forcing.dayLen:Forcing.dayLen*2]
 		tomorrow = forcing[Forcing.dayLen*2:Forcing.dayLen*3]
 
-		return {'yesterday': yesterday, 'today': today, 'tomorrow': tomorrow}
-
-# This should be moved into another file
-class DataFile(object):
-	""" Used encase we want any more info on the input files.
-	Currently, name, path and date are all we care about
-	"""
-
-	_date = None
-	@property
-	def date(self):
-		return self._date
-	@date.setter
-	def date(self, dt):
-		self._date=dateE(dt.year, dt.month, dt.day)
-
-	# Simply the file name (basename)
-	name = None
-
-	# Full path and file name
-	path = None
-
-	def __init__(self, filename, path="./", file_format=""):
-		self.name=filename
-		self.path=path
-
-		# Try to determine the date
-		try:
-			# Should check if day is first
-			day_is_first=None
-			try:
-				day_is_first = file_format.index('MM') > file_format.index('DD')
-			except ValueError:
-				# Meh
-				day_is_first=None
-
-			#print "Day is first? ", day_is_first
-			self.date=dparser.parse(filename, fuzzy=True, dayfirst=day_is_first)
-		except ValueError as e:
-			print "Manually interpreting %s"%filename
-
-			# YYYYMMDD
-			match = re.match(r'.*[^\d]\d{4}\d{2}\d{2}.*', filename)
-			if match:
-				datestr = re.search(r'[^\d](\d{4})(\d{2})(\d{2})', '\1-\2-\3', filename)
-				self.date=dparser.parse(datestr, fuzzy=True, dayfirst=day_is_first)
-				return
-
-			# Is it a julian date?
-			match = re.match('.*[^\d]\d{4}\d{3}.*', filename)
-			print match
-			if match:
-				raise NotImplementedError( "[TODO] Interpreting Julian date is not yet implemented" )
-				return
-
-	def __str__(self):
-		return self.name
-
-	# Used for sorting
-	def __cmp__(self, other):
-		if self._date > other._date:
-			return 1
-		elif self._date < other._date:
-			return -1
-		else:
-			return 0 
-
-# This should also be moved into another file
-class dateE(date, object):
-	""" Extends datetime.datetime by adding juldate operators """
-
-	_julday = -1
-
-	def __init__(self, year, month, day):
-		date.__init__(year, month, day)
-
-		self.SetJulDay(year, month, day)
-
-	@property
-	def julday(self):
-		#date_s = datetime.datetime(self.year, 1, 1)
-		#date_e = datetime.datetime(self.year, self.month, self.day)
-		#delta = date_s - date_e
-		#self.julday = delta.days
-		return self._julday
-	@julday.setter
-	def julday(self, val):
-		# Needs to know the year
-		raise NotImplementedError( "Not yet implemented" )
-
-	def SetJulDay(self, year, month, day):
-		date_s = datetime(self.year, 1, 1)
-		date_e = datetime(self.year, self.month, self.day)
-		delta = date_s - date_e
-		self._julday = delta.days
+		#return {'yesterday': yesterday, 'today': today, 'tomorrow': tomorrow}
+		return yesterday, today, tomorrow
 

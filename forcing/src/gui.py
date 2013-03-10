@@ -6,7 +6,7 @@ import os
 
 from Validator import *
 from ForcingPanels import *
-from DoForce import *
+from DoForce import Forcing
 import datetime
 
 class ForcingFrame(wx.Frame):
@@ -73,7 +73,7 @@ class ForcingFrame(wx.Frame):
 
 		# Add these to the menu bar
 		menubar.Append(mfile, '&File')
-		menubar.Append(mhelp, '&help')
+		menubar.Append(mhelp, '&Help')
 
 		# Set the menu bar
 		self.SetMenuBar(menubar)
@@ -664,8 +664,8 @@ class GeneralInputsPanel(wx.Panel):
 				self.parent.warn("Cannot load times!")
 				times_list = []
 
-			self.valid_times = times_list
-			#print "Set self.times_list = ", self.times_list
+			self.valid_times = map(int, times_list)
+			print "Set self.valid_times = ", self.valid_times
 
 			#self.times.Clear()
 			#self.parent.debug("Setting times in combo box")
@@ -677,14 +677,3 @@ class GeneralInputsPanel(wx.Panel):
 			self.parent.runbtn.Enable(True)
 
 
-class HelpLink(wx.StaticText):
-	""" Creates a StaticText control with an onclick event """
-
-	def __init__(self, parent, id=-1, label=wx.EmptyString, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0, name=wx.StaticTextNameStr, onClick=None):
-		wx.StaticText.__init__(self, parent, id, label, pos, size, style, name)
-
-		self.SetForegroundColour((0,0,255))
-		font=self.GetFont();
-		font.SetUnderlined(True)
-		self.SetFont(font)
-		self.Bind(wx.EVT_LEFT_DOWN, onClick)

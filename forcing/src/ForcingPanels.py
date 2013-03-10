@@ -1,7 +1,10 @@
 import wx
-import ForcingFunctions as f
-import DoForce as df
+import ForcingFunctions as ff
+from DoForce import Forcing
+from extendedClasses import HelpLink
 
+# Just for debugging
+from bcolours import bcolours as bc
 
 class ForcingPanelManager:
 	panels=['ForcingPanelBlank', 'ForcingPanelAverageConcentration',
@@ -144,28 +147,32 @@ class ForcingPanelWithAveraging(ForcingPanel):
 		sizer - The controls in a sizer
 		"""
 
+		c = bc()
+
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		sizerCombos = wx.FlexGridSizer(rows=1, cols=2, vgap=10, hgap=10)
 
 		lblAvg = wx.StaticText(self, label="Averaging Time")
 		#avgtimes = ['None', 'Max 1 hr', 'Max 8 hr', 'Max 24 h', 'Local Hours', 'Other']
-		avgtimes=df.Forcing.avgoptions.values()
+		avgtimes=Forcing.avgoptions.values()
 		rsizer=wx.FlexGridSizer(rows=len(avgtimes),cols=2,hgap=5)
 		for lbl in avgtimes:
 			radioinput=wx.RadioButton(self, label=lbl, name="avgtimes")
 			radioinput.Bind(wx.EVT_RADIOBUTTON, self.chooseAveraging, radioinput)
 			rsizer.Add(radioinput)
-			avghelp = wx.StaticText(self, label="Help")
-			avghelp.SetForegroundColour((0,0,255))
-			font=avghelp.GetFont();
-			font.SetUnderlined(True)
-			avghelp.SetFont(font)
+			avghelp = HelpLink(self, label="Help", onClick=self.ShowAvgHelp)
+			#avghelp = wx.StaticText(self, label="Help")
+			#avghelp.SetForegroundColour((0,0,255))
+			#font=avghelp.GetFont();
+			#font.SetUnderlined(True)
+			#avghelp.SetFont(font)
 			#avghelp.Bind(wx.EVT_LEFT_DOWN, self.ShowAvgHelp, lbl)
 			rsizer.Add(avghelp)
 
 		lbltimes = wx.StaticText(self, label="Use Hours:")
 		# Take times from the top frame (it read them from the sample conc file)
-		times_list=self.top.times_list
+		times_list=self.top.valid_times
+		print "%sTop: %s%s"%(c.blue, str(self.top), c.clear)
 		print "Times_list: ", times_list
 		self.times = wx.CheckListBox(self, size=(self.input_width, 6*self.dline), choices=times_list)
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseTimes, self.times)
@@ -201,6 +208,10 @@ class ForcingPanelWithAveraging(ForcingPanel):
 
 		event.Skip()
 
+	def ShowAvgHelp(self):
+		# Fill in later
+		pass
+
 	def choseTimes(self, event):
 		self.parent.debug('Chose times: [%s]' % ', '.join(map(str, self.times.GetCheckedStrings())))
 		event.Skip()
@@ -219,9 +230,12 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 	def __init__(self, parent):
 		ForcingPanel.__init__(self, parent)
 
+		c = bc()	
+		print "\n\n%sInitializing ForcingPanelAverageConcentration%s"%(c.red, c.clear)
+
 		# Get an instance of our forcing class
 		tv=self.top.validator
-		self.forcingClass=f.ForceOnAverageConcentration(tv.ni,tv.nj,tv.nk,tv.nt)
+		self.forcingClass=ff.ForceOnAverageConcentration(tv.ni,tv.nj,tv.nk,tv.nt)
 
 		mySize=self.parent.GetSize()
 		#mySize[0]=mySize[0]*0.98

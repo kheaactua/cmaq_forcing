@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Colour code things
 class bcolours:
 
@@ -109,7 +111,7 @@ class bcolours:
 		return '\033[1;%d;40m'%c
 
 
-class colouredNum(object):
+class colouredNum():
 	""" Classes used for debugging, it simply carries a number and a int """
 
 	val=0
