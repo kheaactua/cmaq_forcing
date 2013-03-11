@@ -82,6 +82,9 @@ class Forcing(object):
 	# The actual gridded field
 	griddedTimeZoneFld = None
 
+	# Averaging option
+	averaging = None
+
 	def __init__(self,ni=0,nj=0,nk=0,nt=0,sample_conc=''):
 		""" Initialize Forcing object.  Dimentions will be used if given,
 		    but if a sample concentration file is given, it will be read
@@ -320,10 +323,11 @@ class Forcing(object):
 		   Any of the self.avgoptions values
 		"""
 
-		for key,val in self.avgoptions:
-			if avg==val:
-				self.averaging=key
+		for t in self.avgoptions:
+			if avg==t[1]:
+				self.averaging=t[0]
 
+		print "Set averaging to %s"%self.averaging
 		# Should probably raise an exception if it's not found		
 
 

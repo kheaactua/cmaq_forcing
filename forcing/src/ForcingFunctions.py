@@ -59,6 +59,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 		# We doing time averaging?
 		if self.averaging in ['AVG_MAX', 'AVG_MAX8', 'AVG_MAX24']:
 			do_averaging=True
+			averaging_window = 8 # Default
 			averaging_window = 1  if self.averaging == 'AVG_MAX'   else averaging_window
 			averaging_window = 8  if self.averaging == 'AVG_MAX8'  else averaging_window
 			averaging_window = 24 if self.averaging == 'AVG_MAX24' else averaging_window
@@ -73,9 +74,9 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 
 		# Create zero fields to allocate our arrays
 		#print "111 Self.species: ", self.species
-		fld_empty=range(0, len(self.species))
-		for idx_s, species in enumerate(self.species):
-			fld_empty[idx_s] = np.zeros((self.nt, self.nk, self.nj, self.ni))
+		fld_empty=np.zeros((len(self.species), self.nt, self.nk, self.nj, self.ni), dtype=np.float32)
+		#for idx_s, species in enumerate(self.species):
+		#	fld_empty[idx_s] = np.zeros((self.nt, self.nk, self.nj, self.ni))
 
 		#print "222 Self.species: ", self.species
 		#print "Initializing flds dict"
@@ -169,8 +170,8 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 							# forcing term, generate a vector for yesterday,
 							# today and tomorrow with the forcing terms in them
 # NOTE: Ensure that this is above the threshold
-							if scalarMultiplcativeFld is not None:
-								scalar = scalarMultiplcativeFld[j][i]
+							if self.timeInvariantScalarMultiplcativeFld is not None:
+								scalar = self.timeInvariantScalarMultiplcativeFld[j][i]
 							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar)
 							#print "i=%d,j=%d, avg fvec[%d]   = %s"%(i,j,len(forcing_vectors['today'])," ".join(map(str, forcing_vectors['today'])))
 
@@ -220,7 +221,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 								ffld[t_loc,k,j,i] = force
 
 						else:
-							raise NotImplementedError( "Unselected time averaging method selected" )
+							raise NotImplementedError( "Unavailable time averaging method (%s) selected"%self.averaging )
 
 						#endif averaging
 					#endfor j

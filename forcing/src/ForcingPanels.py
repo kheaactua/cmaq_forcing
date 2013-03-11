@@ -159,6 +159,10 @@ class ForcingPanelWithAveraging(ForcingPanel):
 			avghelp = HelpLink(self, label="Help", onClick=self.ShowAvgHelp)
 			rsizer.Add(avghelp)
 
+		# Need to set the default.  Assuming that the first one is the default selected
+		# radiobutton (this isn't a great assumption, fix when I have more time.)
+		self.avgoption = Forcing.avgoptions[0][1]
+
 		lbltimes = wx.StaticText(self, label="Use Hours:")
 		# Take times from the top frame (it read them from the sample conc file)
 		times_list=self.top.valid_times
@@ -184,9 +188,9 @@ class ForcingPanelWithAveraging(ForcingPanel):
 
 		return sizer
 
-	def getAveraging(self):
-		rstr=self.avgoption
-		return rstr.split(' ')
+#	def getAveraging(self):
+#		rstr=self.avgoption
+#		return rstr.split(' ')
 
 	def chooseAveraging(self, event):
 		radioSelected = event.GetEventObject()
@@ -297,7 +301,7 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		fc.species = top.species
 
 		# Custom inputs
-		fc.setAveraging(self.getAveraging())
+		fc.setAveraging(self.avgoption)
 		fc.threshold = self.threshold.GetValue()
 
 		# Inputs

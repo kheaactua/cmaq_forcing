@@ -5,7 +5,7 @@ import os
 from Validator import *
 from ForcingPanels import *
 from DoForce import Forcing
-import datetime
+from datetime import date
 
 # Just for debugging
 from bcolours import bcolours as bc
@@ -167,10 +167,12 @@ class ForcingFrame(wx.Frame):
 		#self.Layout()
 
 		# TEMP!
-		self.pan_input.inputPathCtrl.SetValue('/mnt/mediasonic/opt/output/base/')
-		self.validator = ForcingValidator('/mnt/mediasonic/opt/output/base/CCTM_fwdACONC.20070501')
-		self.date_min  = self.validator.getDate()
-		self.date_max  = self.validator.getDate() + datetime.timedelta(days=2)
+		conc_dir = os.getcwd() + '/dena/'
+		self.pan_input.inputPathCtrl.SetValue(conc_dir)
+		self.pan_output.outputPathCtrl.SetValue(os.getcwd() + '/output/')
+		self.validator = ForcingValidator(conc_dir + 'CCTM_fwdACONC.20070910')
+		self.date_min  = date(2007,9,10)
+		self.date_max  = date(2007,9,11)
 		self.debug("Setting min date to sample conc date, i.e. %s"%self.date_min)
 		print "type(self.date_min) = %s "%(type(self.date_min))
 		self.pan_ginputs.Enable(True)
