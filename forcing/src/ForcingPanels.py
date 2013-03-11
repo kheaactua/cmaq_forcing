@@ -1,7 +1,7 @@
 import wx
 import ForcingFunctions as ff
 from DoForce import Forcing
-from extendedClasses import HelpLink
+from extendedClasses import HelpLink, SingleFileChooser
 
 # Just for debugging
 from bcolours import bcolours as bc
@@ -113,7 +113,7 @@ class ForcingPanelBlank(ForcingPanel):
 		ForcingPanel.__init__(self, parent, style)
 		self.parent = parent
 
-		txt=wx.StaticText(self, label="Please choose a forcing function on the left panel")
+		txt=wx.StaticText(self, label="Please choose a forcing function on the left panel", size=(self.parent.col2_width, -1))
 
 		sizer = wx.BoxSizer(wx.ALIGN_CENTER_VERTICAL)
 		sizer.Add(txt, 0, wx.EXPAND)
@@ -147,14 +147,10 @@ class ForcingPanelWithAveraging(ForcingPanel):
 		sizer - The controls in a sizer
 		"""
 
-		c = bc()
-
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		sizerCombos = wx.FlexGridSizer(rows=1, cols=2, vgap=10, hgap=10)
 
 		lblAvg = wx.StaticText(self, label="Averaging Time")
-		#avgtimes=Forcing.avgoptions.values()
-		#print "Avgtimes: ", avgtimes
 		rsizer=wx.FlexGridSizer(rows=len(Forcing.avgoptions),cols=2,hgap=5)
 		for at in Forcing.avgoptions:
 			radioinput=wx.RadioButton(self, label=at[1], name="avgtimes")
@@ -178,7 +174,8 @@ class ForcingPanelWithAveraging(ForcingPanel):
 		sizer.Add(sizerCombos)
 
 		# Time (hour) Mask
-		time_warning=wx.StaticText(self, label="Note, there is currently no functionality to exclude specific days.")
+		time_warning=wx.StaticText(self, label="Note, there is currently no functionality to exclude specific days.", size=(self.parent.col2_width, -1))
+		time_warning.Wrap(self.parent.col2_width*0.95)
 
 		sizer.Add(time_warning)
 
@@ -222,6 +219,7 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 	def __init__(self, parent):
 		ForcingPanel.__init__(self, parent)
 
+		# Debug stuff
 		c = bc()	
 		print "\n\n%sInitializing ForcingPanelAverageConcentration%s"%(c.red, c.clear)
 
@@ -231,7 +229,7 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 
 		mySize=self.parent.GetSize()
 		#mySize[0]=mySize[0]*0.98
-		mySize[0]=300
+		mySize[0]=self.parent.col2_width*0.97
 
 		sizer = wx.FlexGridSizer(rows=3, cols=1)
 		sizerHead = wx.BoxSizer(wx.VERTICAL)
@@ -253,7 +251,7 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		"""
 
 		title=wx.StaticText(self, label=title_txt)
-		descrip=wx.StaticText(self, label=descrip_txt)
+		descrip=wx.StaticText(self, label=descrip_txt, size=(self.parent.col2_width, -1))
 		descrip.Wrap(mySize[0])
 
 		# Add title and description to sizer
@@ -334,11 +332,10 @@ class ForcingPanelMortality(ForcingPanelWithAveraging):
 		/User Edit
 		"""
 
-		title=wx.StaticText(self, label=title_txt)
+		sizerHead.Add(wx.StaticText(self, label=title_txt))
 		descrip=wx.StaticText(self, label=descrip_txt)
 
 		# Add title and description to sizer
-		sizerHead.Add(title, wx.ALL)
 		sizerHead.Add(descrip)
 
 		"""
@@ -353,11 +350,10 @@ class ForcingPanelMortality(ForcingPanelWithAveraging):
 		self.statlife = wx.TextCtrl(self, value="", size=(100,-1))
 
 		baseline_lbl = wx.StaticText(self, label="Baseline Mortality:")
-		self.baseline = wx.Button(self, label="Browse..")
+		self.baseline = SingleFileChooser(self, label="Browse", name="mortality_baseline", fname="Baseline Mortality", fmessage="Choose baseline mortality file")
 
 		pop_lbl = wx.StaticText(self, label="Population File Mortality:")
-		self.pop = wx.Button(self, label="Browse..")
-
+		self.pop=SingleFileChooser(self, label="Browse", name="pop_button", fname="Population", fmessage="Choose population file")
 
 		# Add Options to sizer
 		sizerOpts.Add(threshold_lbl)
@@ -373,6 +369,7 @@ class ForcingPanelMortality(ForcingPanelWithAveraging):
 		sizerOpts.Add(self.pop)
 
 
+
 		"""
 		/User Edit
 		"""
@@ -382,7 +379,8 @@ class ForcingPanelMortality(ForcingPanelWithAveraging):
 		sizer.AddSpacer(10)
 		sizer.Add(sizerOpts, wx.EXPAND)
 
-		self.SetSizer(sizer)
+		#self.SetSizer(sizer)
+		self.SetSizerAndFit(sizer)
 
 
 
@@ -416,11 +414,10 @@ class ForcingPanelDistance(ForcingPanelWithAveraging):
 		/User Edit
 		"""
 
-		title=wx.StaticText(self, label=title_txt)
+		sizerHead.Add(wx.StaticText(self, label=title_txt))
 		descrip=wx.StaticText(self, label=descrip_txt)
 
 		# Add title and description to sizer
-		sizerHead.Add(title, wx.ALL)
 		sizerHead.Add(descrip)
 
 		"""

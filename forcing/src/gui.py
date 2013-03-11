@@ -1,13 +1,14 @@
 # GUY Lib
-import wx
-#from wxPython.calendar import *
-#import wxPython.calendar as wxc
+import wx, wx.richtext
 import os
 
 from Validator import *
 from ForcingPanels import *
 from DoForce import Forcing
 import datetime
+
+# Just for debugging
+from bcolours import bcolours as bc
 
 class ForcingFrame(wx.Frame):
 	""" Main window for the forcing app.  The code in this file needs upgrading. (sloppy) """
@@ -22,7 +23,9 @@ class ForcingFrame(wx.Frame):
 	# CLI interface is more complete) but more of a getter from the NetCDF file
 	validator=None
 
+	# This does nothing
 	col1_width=500
+	col2_width=400
 
 	pan_sample_conc = None
 	pan_ginputs = None
@@ -87,10 +90,13 @@ class ForcingFrame(wx.Frame):
 		self.pan_sample_conc = SampleConcPanel(self)
 
 		# Inputs panel
-		self.pan_input = InputPanel(self, size=(self.col1_width, -1))
+		self.pan_input = InputPanel(self)
 
 		# Outputs panel
-		self.pan_output = OutputPanel(self, size=(self.col1_width, -1))
+		self.pan_output = OutputPanel(self)
+
+		# Dates panel
+		self.pan_dates = DatePanel(self)
 
 		# General Inputs Panel
 		self.pan_ginputs = GeneralInputsPanel(self)
@@ -118,6 +124,8 @@ class ForcingFrame(wx.Frame):
 		leftCol.Add(self.pan_input)
 		leftCol.AddSpacer(5)
 		leftCol.Add(self.pan_output)
+		leftCol.AddSpacer(5)
+		leftCol.Add(self.pan_dates)
 		leftCol.AddSpacer(5)
 		leftCol.Add(self.pan_ginputs)
 
@@ -147,13 +155,15 @@ class ForcingFrame(wx.Frame):
 
 		# Add logger
 		print "Forcing frame size: ", self.GetSize()
-		self.logger=wx.TextCtrl(self, size=(-1, 200), style=wx.TE_MULTILINE | wx.TE_READONLY)
+		#self.logger=wx.TextCtrl(self, size=(-1, 200), style=wx.TE_MULTILINE | wx.TE_READONLY)
+		self.logger=wx.richtext.RichTextCtrl(self, size=(-1, 200), style=wx.TE_MULTILINE | wx.TE_READONLY)
 		#sizerAll.Add(self.logger, proportion=1, flag=wx.EXPAND)
 		sizerAll.Add(self.logger, flag=wx.EXPAND)
 
 		#self.SetSizer(sizerAll)
 		#self.Fit()
 		self.SetSizerAndFit(sizerAll)
+		#self.Layout()
 
 		# TEMP!
 		self.input_path = os.path.dirname(os.path.abspath('concentrations/CCTM.20070101'))
@@ -203,22 +213,38 @@ class ForcingFrame(wx.Frame):
 	""" Logging Methods """
 	def log(self, msg, level):
 		""" Basic logging function, intended to be called by self.debug(), or self.warn(), etc.. """
+		c = bc()
 		if level == self.LOG_ERROR:
 			prefix='E'
+			mc=bc.red
+			rc=(255,0,0)
 		elif level == self.LOG_WARN:
 			prefix='W'
+			mc=c.yellow
+			rc=(218,165,32)
 		elif level == self.LOG_HELP:
 			prefix='H'
+			mc=c.clear
+			rc=(0,0,0)
 		elif level == self.LOG_INFO:
 			prefix='I'
+			mc=c.blue
+			rc=(0,0,200)
 		elif level == self.LOG_DEBUG:
 			prefix = 'D'
+			mc=c.green
+			rc=(0,200,0)
 		else:
 			prefix='U'
+			mc=c.clear
+			rc=(0,0,0)
 
-		full_msg = "[%s] %s"%(prefix, msg)
-		self.logger.AppendText(full_msg + "\n")
-		print full_msg
+		coloured_msg = "[%s] %s%s%s"%(prefix, mc, msg, c.clear)
+		plain_msg = "[%s] %s\n"%(prefix, msg)
+		self.logger.BeginTextColour(rc)
+		self.logger.WriteText(plain_msg)
+		self.logger.BeginTextColour((0,0,0))
+		print coloured_msg
 
 	def info(self, msg):
 		""" Generate an 'info' message """
@@ -344,8 +370,8 @@ class InputPanel(wx.Panel):
 
 		sizerMain = wx.BoxSizer(wx.VERTICAL)
 
-		instFormat = wx.StaticText(self, label="Enter the format pattern for input concentration files.  i.e. aconc.*.YYYYJJJ")
-		instFormat.Wrap(400)
+		instFormat = wx.StaticText(self, label="Enter the format pattern for input concentration files.  i.e. aconc.*.YYYYJJJ", size=(self.parent.col1_width, -1))
+		#instFormat.Wrap(400)
 		sizerMain.Add(instFormat)
 
 		# Create a sub sizer just for these inputs
@@ -385,16 +411,15 @@ class InputPanel(wx.Panel):
 class OutputPanel(wx.Panel):
 	""" This panel requests output path and format from the user """
 
-	def __init__(self, parent, size = wx.DefaultSize):
-		wx.Panel.__init__(self, parent, size=size, style=wx.SUNKEN_BORDER)
+	def __init__(self, parent, size = wx.DefaultSize, style=wx.SUNKEN_BORDER):
+		wx.Panel.__init__(self, parent, size=size, style=style)
 		self.parent = parent
 
 		input_width=180
 
 		sizerMain = wx.BoxSizer(wx.VERTICAL)
 
-		instFormat = wx.StaticText(self, label="Enter the format pattern for output concentration files. i.e. force.TYPE.YYYYJJJ")
-		instFormat.Wrap(400)
+		instFormat = wx.StaticText(self, label="Enter the format pattern for output concentration files. i.e. force.TYPE.YYYYJJJ", size=(self.parent.col1_width,-1))
 		sizerMain.Add(instFormat)
 
 		# Create a sub sizer just for these outputs
@@ -413,31 +438,17 @@ class OutputPanel(wx.Panel):
 
 		self.SetSizer(sizerMain)
 
+class DatePanel(wx.Panel):
 
-class GeneralInputsPanel(wx.Panel):
-	parent = None
-
-	avgoption = None
-
-	def __init__(self, parent):
-		wx.Panel.__init__(self, parent)
+	def __init__(self, parent, size = wx.DefaultSize, style=wx.SUNKEN_BORDER):
+		wx.Panel.__init__(self, parent, size=size, style=style)
 		self.parent = parent
 
-		mySize=self.parent.GetSize()
-		print "Inputs Panel: Parent size: ", mySize
-		mySize[0]=mySize[0]*0.98
-
 		sizerMain = wx.BoxSizer(wx.VERTICAL)
-		sizerCombos = wx.FlexGridSizer(rows=2, cols=2, vgap=10, hgap=10)
-		sizerTexts = wx.FlexGridSizer(rows=3, cols=2, vgap=10, hgap=5)
-		sizerFormat = wx.FlexGridSizer(rows=1, cols=3, hgap=10)
-		
-		dline=18
-		input_width=180
 
 		# Input date range
 		sizerMain.AddSpacer(10)
-		instruct_dates = wx.StaticText(self, label="Time frame to process")
+		instruct_dates = wx.StaticText(self, label="Time frame to process", size=(self.parent.col1_width,-1))
 		sizerMain.Add(instruct_dates)
 		sizerDates = wx.FlexGridSizer(rows=2, cols=2, vgap=5, hgap=5)
 
@@ -454,9 +465,67 @@ class GeneralInputsPanel(wx.Panel):
 		sizerDates.Add(self.date_max)
 		sizerMain.Add(sizerDates)
 
+		self.SetSizer(sizerMain)
+
+	def updateDateRange(self, d1, d2):
+		""" Updates the available date ranges """
+
+		sdate=wx.DateTime.Now()
+		if d1 != None:
+			sdate.Set(d1.day, d1.month, d1.year)
+		edate=wx.DateTime.Now()
+		if d2 != None:
+			sdate.Set(d2.day, d2.month, d2.year)
+		self.date_min.SetRange(sdate, edate)
+		self.date_max.SetRange(sdate, edate)
+
+	def updateDate(self, d, mm=0):
+		""" Updates the date choosers
+
+		Keyword Arguments:
+
+			d:*datetime*
+			  Datetime to set it to
+
+			mm:*bool*
+			  False for min date, true for max date
+
+		"""
+		sdate=wx.DateTime.Now()
+		if d != None:
+			sdate.Set(d.day, d.month, d.year)
+		if mm:
+			print "Received %s, Setting date_max to %s"%(d, sdate)
+			self.date_max.SetValue(sdate)
+		else:
+			print "Received %s, Setting date_min to %s"%(d, sdate)
+			self.date_min.SetValue(sdate)
+
+
+class GeneralInputsPanel(wx.Panel):
+	parent = None
+
+	avgoption = None
+
+	def __init__(self, parent, size = wx.DefaultSize, style=wx.SUNKEN_BORDER):
+		wx.Panel.__init__(self, parent, size=size, style=style)
+		self.parent = parent
+
+		mySize=self.parent.GetSize()
+		print "Inputs Panel: Parent size: ", mySize
+		mySize[0]=mySize[0]*0.98
+
+		sizerMain = wx.BoxSizer(wx.VERTICAL)
+		sizerCombos = wx.FlexGridSizer(rows=2, cols=2, vgap=10, hgap=10)
+		sizerTexts = wx.FlexGridSizer(rows=3, cols=2, vgap=10, hgap=5)
+		sizerFormat = wx.FlexGridSizer(rows=1, cols=3, hgap=10)
+		
+		dline=18
+		input_width=180
+
 		sizerMain.AddSpacer(10)
-		instruct1 = wx.StaticText(self, label="Choose the species you will input into the forcing function.")
-		instruct1.Wrap(mySize[0])
+		instruct1 = wx.StaticText(self, label="Choose the species you will input into the forcing function.", size=(self.parent.col1_width, -1))
+		#instruct1.Wrap(mySize[0])
 		sizerMain.Add(instruct1)
 		sizerMain.AddSpacer(10)
 
@@ -513,44 +582,9 @@ class GeneralInputsPanel(wx.Panel):
 		#self.button =wx.Button(self, label="Save", pos=(200, 325))
 		#self.Bind(wx.EVT_BUTTON, self.OnClick,self.button)
 
-
 		sizerMain.AddSpacer(15)
 		sizerMain.Add(sizerTexts)
 		self.SetSizer(sizerMain)
-
-	def updateDateRange(self, d1, d2):
-		""" Updates the available date ranges """
-
-		sdate=wx.DateTime.Now()
-		if d1 != None:
-			sdate.Set(d1.day, d1.month, d1.year)
-		edate=wx.DateTime.Now()
-		if d2 != None:
-			sdate.Set(d2.day, d2.month, d2.year)
-		self.date_min.SetRange(sdate, edate)
-		self.date_max.SetRange(sdate, edate)
-
-	def updateDate(self, d, mm=0):
-		""" Updates the date choosers
-
-		Keyword Arguments:
-
-			d:*datetime*
-			  Datetime to set it to
-
-			mm:*bool*
-			  False for min date, true for max date
-
-		"""
-		sdate=wx.DateTime.Now()
-		if d != None:
-			sdate.Set(d.day, d.month, d.year)
-		if mm:
-			print "Received %s, Setting date_max to %s"%(d, sdate)
-			self.date_max.SetValue(sdate)
-		else:
-			print "Received %s, Setting date_min to %s"%(d, sdate)
-			self.date_min.SetValue(sdate)
 
 
 	def choseSpecies(self, event):
@@ -566,7 +600,6 @@ class GeneralInputsPanel(wx.Panel):
 
 		# Get an object for this panel
 		oldPanForce=self.parent.pan_force
-		print "0000 time list: ", self.parent.valid_times
 		newPanForce=ForcingPanelManager.factory(item, self.parent)
 
 		sizer=self.parent.forcingSizer
@@ -575,9 +608,11 @@ class GeneralInputsPanel(wx.Panel):
 		# Replace this in the sizer
 		res=sizer.Detach(panel_id)
 		#res=self.parent.sizer.Detach(oldPanForce)
-		print "Panel was detached? ", res
+		self.parent.debug("Panel was detached? %r"%res)
 		oldPanForce.Hide()
-		oldPanForce.Destroy()
+		#oldPanForce.Destroy()
+		self.parent.debug("Panel was destroyed? %s"%str(oldPanForce))
+
 		sizer.Insert(panel_id, newPanForce, wx.EXPAND)
 
 		self.parent.pan_force=newPanForce

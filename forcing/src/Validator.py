@@ -187,5 +187,14 @@ class ForcingValidator:
 		# Not yet implemented
 		return True
 
+	def ValidateDataFileSurface(self, filename):
+		""" Validates a NetCDF file by checking if it's 2D surface domani
+			(ni,nj) matches the sample file """
+
+		datafile=NetCDFFile(filename, 'r')
+
+		#print "COL %d, self.ni: %d   -  ROW: %d, self.nj: %d"%(datafile.dimensions['COL'], self.ni, datafile.dimensions['ROW'], self.nj)
+		return datafile.dimensions['COL'] == self.ni and datafile.dimensions['ROW'] == self.nj
+			
 class ValidationError(Exception):
 	pass

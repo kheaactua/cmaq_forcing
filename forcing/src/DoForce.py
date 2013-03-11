@@ -1048,12 +1048,12 @@ class Forcing(object):
 		return y
 
 	@staticmethod
-	def applyForceToAvgTime(avgs_today, winLen=8, timezone = 0, min_threshold = None, forwards_or_backwards = default_averaging_direction):
+	def applyForceToAvgTime(avgs_today, winLen=8, timezone = 0, min_threshold = None, forcingValue = None, forwards_or_backwards = default_averaging_direction):
 		""" Apply the forcing terms to the max X-hour average.
 
 		This function finds the max value in the provided list and writes a 1/winLen to the return vector at the location of the max and for the next (if forward) or last (if backward) winLen-1 elements.
 
-		So, if the max occurred at hour 0, we were calculating forward and winLen=8, the return value would be::
+		So, if the max occurred at hour 0, we were calculating forward and winLen=8, and forcingValue=1/8 (or None in this case), the return value would be::
 
 		   [1/8 1/8 1/8 1/8 1/8 1/8 1/8 1/8 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
 
@@ -1072,6 +1072,9 @@ class Forcing(object):
 
 		min_threshold:*float32*
 		   Minimum acceptable value.  If the max is below this, discard it (as if it were 0)
+
+		forcingValue:*float32*
+		   Value to insert when forcing.  By default it's 1/winLen
 
 		forwards_or_backwards:*bool*
 		   True means set it up for a forward avg
@@ -1114,18 +1117,19 @@ class Forcing(object):
 		# Reverse the timezone shift
 		max_idx = max_idx - timezone
 
-		#forcing_value=float(1)/winLen
-		forcing_value=1
+		if forcingValue == None:
+			#forcingValue=float(1)/winLen
+			forcingValue=1
+
 		if forwards_or_backwards == True:
 			# Moving forward
-			forcing[max_idx:max_idx+winLen] = forcing_value
+			forcing[max_idx:max_idx+winLen] = forcingValue
 		else:
-			forcing[max_idx-winLen+1:max_idx+1] = forcing_value
+			forcing[max_idx-winLen+1:max_idx+1] = forcingValue
 
 		yesterday = forcing[0:Forcing.dayLen]
 		today = forcing[Forcing.dayLen:Forcing.dayLen*2]
 		tomorrow = forcing[Forcing.dayLen*2:Forcing.dayLen*3]
 
-		#return {'yesterday': yesterday, 'today': today, 'tomorrow': tomorrow}
 		return yesterday, today, tomorrow
 

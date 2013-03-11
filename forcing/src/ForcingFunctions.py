@@ -1,12 +1,17 @@
+from Scientific.IO.NetCDF import NetCDFFile
 from DoForce import Forcing
 import numpy as np
 
-class ForceOnAverageConcentration(Forcing):
-	""" These are here and not in the panel's such that they can
-	work via the command line """
-
+class ForceWithThreshold(Forcing):
 	# Concentration threshold
 	threshold=None
+class ForceWithTimeInvariantScalarFld(Forcing):
+	# Time invariant scalar multiplcative fld (nj, ni)
+	timeInvariantScalarMultiplcativeFld = None
+
+class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScalarFld):
+	""" These are here and not in the panel's such that they can
+	work via the command line """
 
 	# Time Mask
 	timeMask=range(0,Forcing.dayLen+1)
@@ -36,6 +41,9 @@ class ForceOnAverageConcentration(Forcing):
 		"""
 
 		#print "In ForceOnAverageConcentration:generateForcingFields()"
+
+		# Some variable used later
+		scalar = None
 
 		if self.griddedTimeZoneFld == None:
 			# Assume all timezones are GMT
@@ -161,7 +169,9 @@ class ForceOnAverageConcentration(Forcing):
 							# forcing term, generate a vector for yesterday,
 							# today and tomorrow with the forcing terms in them
 # NOTE: Ensure that this is above the threshold
-							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold)
+							if scalarMultiplcativeFld is not None:
+								scalar = scalarMultiplcativeFld[j][i]
+							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar)
 							#print "i=%d,j=%d, avg fvec[%d]   = %s"%(i,j,len(forcing_vectors['today'])," ".join(map(str, forcing_vectors['today'])))
 
 							# Now, write these out to the flds
@@ -232,6 +242,63 @@ class ForceOnAverageConcentration(Forcing):
 		#endfor species
 
 		return flds
+
+
+######################################################################
+# Mortality
+######################################################################
+
+class ForceOnMortality(ForceOnAverageConcentration):
+	"""
+	Force on mortality.  User must supply:
+	- Time variant:
+		- Concentration
+
+	- Time invariant:
+		- Value of statistical life (in millions of dollars)
+		- Gridded baseline mortality file
+		- Gridded populated mortality file
+
+	This class is extremely similar to ForceOnAverageConcentration.  There are ways
+	to re-use the code above, but for now we'll just duplicate it.
+	"""
+
+	# Value of statistical life (millions)
+	vsl = None
+
+	# Gridded baseline mortality file
+	mortality_fname = None
+
+	# Gridded populated mortality file
+	pop_fname = None
+
+	def loadScalarField(self):
+		""" Open up the mortality and population files and read
+		their values.  Generate a field to multiply forcing by.
+
+		Forcing = F * Pop * Mortality * VSL
+		"""
+
+		# Open the mortality file
+		try:
+			mortality = NetCDFFile(self.mortality_fname, 'r')
+		except IOError as ex:
+			print "Error!  Cannot open mortality file %s"%(self.mortality_fname)
+			raise	
+
+		# Open the population file
+		try:
+			pop = NetCDFFile(self.pop_fname, 'r')
+		except IOError as ex:
+			print "Error!  Cannot open population file %s"%(self.pop_fname)
+			raise
+
+		#mfld = mortality.variables['']
+		#pfld = mortality.variables['']
+
+		# (mfld * pfld) is element wise multiplication, not matrix multiplication
+		self.timeInvariantScalarMultiplcativeFld = mfld * pfld * vsl
+
 
 class ForcingException(Exception):
 	pass
