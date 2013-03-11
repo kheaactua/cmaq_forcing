@@ -166,6 +166,9 @@ class ForcingPanelWithAveraging(ForcingPanel):
 		self.Bind(wx.EVT_CHECKLISTBOX, self.choseTimes, self.times)
 		self.times.Enable(False)
 
+		atdescription = wx.StaticText(self, size=(self.top.col2_width, -1),
+		   label="This option finds the maximum X-hr average in a day and applies the forcing term to hours in that X-hr block.  Timezones are taken into account if input.")
+
 		sizerCombos.Add(lblAvg)
 		sizerCombos.Add(lbltimes)
 		sizerCombos.Add(rsizer)
@@ -265,11 +268,11 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 
 		# Options
 		threshold_lbl = wx.StaticText(self, label="Specify threshold (ppb):")
-		self.threshold = wx.TextCtrl(self, value="Threshold avg conc", size=(300,-1))
+		self.threshold = wx.TextCtrl(self, value="0", size=(40,-1))
 
 		# Add Options to sizer
 		sizerOpts.Add(threshold_lbl, pos=(1,1))
-		sizerOpts.Add(self.threshold, pos=(2,1))
+		sizerOpts.Add(self.threshold, pos=(1,2))
 
 		# Add averaging and time options
 		sizerOpts.Add(self.getAveragingControls(), pos=(3,1), span=(1,2))
@@ -284,24 +287,41 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		sizer.Add(sizerOpts, wx.EXPAND)
 		self.SetSizer(sizer)
 
-	def runForce(self, common):
+	def runForce(self, top):
 
 		# Forcing class
 		fc = self.forcingClass
 
-		# Get all the info we need
-		layers = common.getLayers()
-		fc.maskLayers(common.getLayers())
-		fc.setSpecies(common.getSpecies())
-		fc.setOutputFormat(common.getOutputFormat())
-		fc.setAveraging(self.getAveraging())
+		# General inputs
+		fc.maskLayers(top.layers)
+		fc.species = top.species
 
-		fformat = common.getFormat()
-		concs=fc.FindFiles(file_format=fformat, path=self.top.conc_path, date_min=self.top.date_min, date_max=self.top.date_max)
+		# Custom inputs
+		fc.setAveraging(self.getAveraging())
+		fc.threshold = self.threshold.GetValue()
+
+		# Inputs
+		inputPath = top.inputPath
+		inputFormat = top.inputFormat
+
+		# Outputs
+		fc.outputPath = top.outputPath
+		fc.outputFormat = top.outputFormat
+
+		#
+		# Find the files we need
+		concs=fc.FindFiles(file_format=inputFormat, path=inputPath,
+		   date_min=top.date_min, date_max=top.date_max)
+
+		# Load the input files into our forcing generator
 		fc.loadConcentrationFiles(concs)
 
-		# Produce the forcing feilds
-		fc.produceForcingField(self.top.SimpleProgress, dryrun=False)
+		# Debug..
+		top.debug("Starting %s with files %s"%(type(fc), " ".join(map(str, concs))))
+
+		#
+		# Produce the forcing fields
+		fc.produceForcingField(top.SimpleProgress)
 
 class ForcingPanelMortality(ForcingPanelWithAveraging):
 	# The name of the forcing function

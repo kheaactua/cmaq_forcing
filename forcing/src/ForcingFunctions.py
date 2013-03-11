@@ -204,6 +204,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 									#ffld = fld_tomorrow
 
 								# I have to write in GMT
+# This is wrong, as local times can write into another day.. maybe.. but since there's no averaging, another iteration will take care of that..
 								ffld = fld_today
 
 								# fld[-6] is fld[18]
@@ -257,6 +258,8 @@ class ForceOnMortality(ForceOnAverageConcentration):
 	- Time invariant:
 		- Value of statistical life (in millions of dollars)
 		- Gridded baseline mortality file
+			- BMR units of deaths per 10^6 or 10^5 population per year.  Devide
+			  BMR by 10^6 or 10^5 and divide by 365 to get deaths per day
 		- Gridded populated mortality file
 
 	This class is extremely similar to ForceOnAverageConcentration.  There are ways
@@ -267,10 +270,19 @@ class ForceOnMortality(ForceOnAverageConcentration):
 	vsl = None
 
 	# Gridded baseline mortality file
-	mortality_fname = None
+	_mortality_fname = None
+	_mortality_var = None
+
+	def SetMortality(fname, var):
+		""" Provide a gridded NetCDF file name and variable name.  This will
+		save the info for later reading. """
+
+		self._mortality_fname = fname
+		self._mortality_var = var
 
 	# Gridded populated mortality file
-	pop_fname = None
+	_pop_fname = None
+	_pop_var = None
 
 	def loadScalarField(self):
 		""" Open up the mortality and population files and read
@@ -279,25 +291,55 @@ class ForceOnMortality(ForceOnAverageConcentration):
 		Forcing = F * Pop * Mortality * VSL
 		"""
 
+		if self._mortality_fname is None or self._mortality_var is None:
+			raise ForcingException("Must supply mortality file")
+
+		if self._pop_fname is None or self._pop_var is None:
+			raise ForcingException("Must supply population file")
+
+		if self.vsl is None:
+			raise ForcingException("Must specify statistical value of life (in millions)")
+
 		# Open the mortality file
 		try:
-			mortality = NetCDFFile(self.mortality_fname, 'r')
+			mortality = NetCDFFile(self._mortality_fname, 'r')
 		except IOError as ex:
-			print "Error!  Cannot open mortality file %s"%(self.mortality_fname)
-			raise	
-
-		# Open the population file
-		try:
-			pop = NetCDFFile(self.pop_fname, 'r')
-		except IOError as ex:
-			print "Error!  Cannot open population file %s"%(self.pop_fname)
+			print "Error!  Cannot open mortality file %s"%(self._mortality_fname)
 			raise
 
-		#mfld = mortality.variables['']
-		#pfld = mortality.variables['']
+		# Check dimensions
+		if not (mortality.dimensions['COL'] == self.ni and mortality.dimensions['ROW'] == self.nj):
+			raise ValueError("Error, dimensions in mortality file %s do not match domain."%self._mortality_fname)
+
+		# Read the field
+		try:
+			mfld = mortality.variables[self._mortality_var].getValue()[0]
+		except IOError as e:
+			raise e
+
+		# Close the file
+		if self._pop_fname != self._pop_fname:
+			mortality.close()
+
+			# Open the population file
+			try:
+				pop = NetCDFFile(self._pop_fname, 'r')
+			except IOError as ex:
+				print "Error!  Cannot open population file %s"%(self._pop_fname)
+				raise
+
+			# Check dimensions
+			if not (pop.dimensions['COL'] == self.ni and pop.dimensions['ROW'] == self.nj):
+				raise ValueError("Error, dimensions in population file %s do not match domain."%self._pop_fname)
+
+		# Read the field
+		try:
+			pfld = mortality.variables[self._mortality_var].getValue()[0]
+		except IOError as e:
+			raise e
 
 		# (mfld * pfld) is element wise multiplication, not matrix multiplication
-		self.timeInvariantScalarMultiplcativeFld = mfld * pfld * vsl
+		self.timeInvariantScalarMultiplcativeFld = (mfld/10^6)/365 * pfld * vsl
 
 
 class ForcingException(Exception):

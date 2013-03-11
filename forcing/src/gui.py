@@ -40,18 +40,19 @@ class ForcingFrame(wx.Frame):
 	_layers = []
 
 
-	# Path where concentration files can be found
-	input_path = None
-
 	# Boundary dates on concentration files
 	date_min = None
 	date_max = None
 
 	# File formats
-	inputFormatDefault = "CCTM*YYYYMMDD"
+	inputFormatDefault = "CCTM_fwdACONC*YYYYMMDD"
 	outputFormatDefault = "Force.TYPE.YYYYMMDD"
 	_inputFormat = "CCTM*YYYYMMDD"
 	_outputFormat = "Force.TYPE.YYYYMMDD"
+
+	# Paths
+	inputPath = None
+	outputPath = None
 
 
 	#def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
@@ -166,8 +167,8 @@ class ForcingFrame(wx.Frame):
 		#self.Layout()
 
 		# TEMP!
-		self.input_path = os.path.dirname(os.path.abspath('concentrations/CCTM.20070101'))
-		self.validator = ForcingValidator('conc.nc')
+		self.pan_input.inputPathCtrl.SetValue('/mnt/mediasonic/opt/output/base/')
+		self.validator = ForcingValidator('/mnt/mediasonic/opt/output/base/CCTM_fwdACONC.20070501')
 		self.date_min  = self.validator.getDate()
 		self.date_max  = self.validator.getDate() + datetime.timedelta(days=2)
 		self.debug("Setting min date to sample conc date, i.e. %s"%self.date_min)
@@ -201,14 +202,21 @@ class ForcingFrame(wx.Frame):
 		return self._layers
 
 	@property
+	def inputPath(self):
+		return self.pan_input.inputPathCtrl.GetValue()
+
+	@property
 	def inputFormat(self):
-		_inputFormat=self.pan_ginputs.Format.GetValue()
+		_inputFormat=self.pan_input.inputFormatCtrl.GetValue()
 		return self._inputFormat
 
 	@property
-	def outputFormat(self):
-		return self.pan_output.outputFormatCtrl.getValue()
+	def outputPath(self):
+		return self.pan_output.outputPathCtrl.GetValue()
 
+	@property
+	def outputFormat(self):
+		return self.pan_output.outputFormatCtrl.GetValue()
 
 	""" Logging Methods """
 	def log(self, msg, level):
@@ -666,7 +674,6 @@ class GeneralInputsPanel(wx.Panel):
 				times_list = []
 
 			self.parent.valid_times = map(int, times_list)
-			print "Set self.valid_times = ", self.parent.valid_times
 
 			#self.times.Clear()
 			#self.parent.debug("Setting times in combo box")

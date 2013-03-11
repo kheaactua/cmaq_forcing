@@ -4,6 +4,7 @@ import os
 import numpy as np
 import re
 import math
+from datetime import date
 
 from extendedClasses import DataFile, dateE
 
@@ -57,7 +58,7 @@ class Forcing(object):
 	conc_files = []
 
 	# Concentration file path
-	_conc_path = None
+	_inputPath = None
 
 	# True for forward, false for backward.  I'm told
 	# the standard is forward
@@ -67,7 +68,7 @@ class Forcing(object):
 	dayLen=24
 
 	# Output file name format
-	_outputFormat = 'Forcing.TYPE.YYYYMMDD'
+	outputFormat = 'Forcing.TYPE.YYYYMMDD'
 
 	# Output path
 	_outputPath = None
@@ -141,7 +142,7 @@ class Forcing(object):
 
 		# Empty set of concentration files
 		self.conc_files = []
-		self.conc_path  = None
+		self.inputPath  = None
 
 		self._outputPath = os.getcwd() + '/output'
 
@@ -242,13 +243,13 @@ class Forcing(object):
 
 	# Not a good use of a property, but it's my first one
 	@property
-	def conc_path(self):
+	def inputPath(self):
 		""" Getter for the concentration path """
-		return self._conc_path
-	@conc_path.setter
-	def conc_path(self, path):
+		return self._inputPath
+	@inputPath.setter
+	def inputPath(self, path):
 		""" Path that'll be used to look for concentration files """
-		self._conc_path = path
+		self._inputPath = path
 
 	@property
 	def species(self):
@@ -265,14 +266,6 @@ class Forcing(object):
 		   List of species
 		"""
 		self._species=species_list
-
-	@property
-	def outputFormat(self):
-		return self._outputFormat
-	@outputFormat.setter
-	def outputFormat(self, fmt):
-		""" Format for output files.  See generateForceFileName for notes on format """
-		self._outputFormat=fmt
 
 	@property
 	def outputPath(self):
@@ -786,8 +779,8 @@ class Forcing(object):
 		   Returns a list of Datafiles
 		"""
 
-		#if path == None:
-		#	path = self.conc_path
+		if path == None:
+			path = self.inputPath
 		if path == None:
 			raise ValueError("Must provide a path to search")
 

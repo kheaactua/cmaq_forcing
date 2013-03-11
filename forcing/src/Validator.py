@@ -14,6 +14,8 @@ class ForcingValidator:
 	ns=None
 	nt=None
 
+	conc = None
+
 	def __init__(self,filename):
 		self.conc=NetCDFFile(filename, 'r')
 
@@ -94,7 +96,8 @@ class ForcingValidator:
 		nt = shape[0]
 
 		times=list(xrange(nt))
-		for t in range(0, nt):
+		# Cut off the 25th time
+		for t in range(0, nt-1):
 			times[t]=str(t)
 		return times
 
@@ -106,11 +109,23 @@ class ForcingValidator:
 		list of species
 		"""
 		vars = self.conc.variables.keys()
-		for i in range(0, len(vars)):
-			vars[i]=vars[i].upper()
+		for i, var in enumerate(vars):
+			vars[i]=var.upper()
 
+		vars=sorted(vars)
 
-		return sorted(vars)
+		pri_vars = []
+		normal_vars = []
+
+		# Put some of the important ones up top
+		for var in vars:
+			# Select case basically
+			if var in ['O3', 'NO', 'NO2']:
+				pri_vars.append(var)
+			else:
+				normal_vars.append(var)
+
+		return pri_vars+normal_vars
 
 
 	# Check to ensure all the chosen species are available 
