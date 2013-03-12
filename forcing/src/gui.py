@@ -107,9 +107,12 @@ class ForcingFrame(wx.Frame):
 		self.pan_force = ForcingPanelBlank(self)
 
 		# Add events
-		panels = [self.pan_sample_conc, self.pan_ginputs, self.pan_force];
+		panels = [self.pan_sample_conc, self.pan_input, self.pan_output, self.pan_dates, self.pan_ginputs, self.pan_force];
 		for p in panels:
 			p.Bind(wx.EVT_MENU, self.onKeyCombo, id=randomId)
+		panels = [self.pan_input, self.pan_output, self.pan_dates, self.pan_ginputs, self.pan_force];
+		for p in panels:
+			p.Enable(False)
 
 
 		# Put logger at bottom
@@ -171,19 +174,20 @@ class ForcingFrame(wx.Frame):
 #		self.validator = ForcingValidator(conc_dir + 'CCTM_fwdACONC.20070910')
 #		self.date_min  = date(2007,9,10)
 #		self.date_max  = date(2007,9,11)
-		conc_dir = os.getcwd() + '/basic_concentrations/'
-		self.pan_input.inputPathCtrl.SetValue(conc_dir)
-		self.pan_output.outputPathCtrl.SetValue(os.getcwd() + '/output/')
-		self.validator = ForcingValidator(conc_dir + 'CCTM.20050505')
-		self.date_min  = date(2005,5,5)
-		self.date_max  = date(2005,5,7)
-		self.pan_ginputs.timezone_fname.path = conc_dir + 'timezones.nc'
 
-		self.debug("Setting min date to sample conc date, i.e. %s"%self.date_min)
-		self.pan_ginputs.Enable(True)
-
-		# TEMP
-		self.pan_ginputs.species.SetChecked([0])
+#!		conc_dir = os.getcwd() + '/basic_concentrations/'
+#!		self.pan_input.inputPathCtrl.SetValue(conc_dir)
+#!		self.pan_output.outputPathCtrl.SetValue(os.getcwd() + '/output/')
+#!		self.validator = ForcingValidator(conc_dir + 'CCTM.20050505')
+#!		self.date_min  = date(2005,5,5)
+#!		self.date_max  = date(2005,5,7)
+#!		self.pan_ginputs.timezone_fname.path = conc_dir + 'timezones.nc'
+#!
+#!		self.debug("Setting min date to sample conc date, i.e. %s"%self.date_min)
+#!		self.pan_ginputs.Enable(True)
+#!
+#!		# TEMP
+#!		self.pan_ginputs.species.SetChecked([0])
 
 	def onKeyCombo(self, event):
 		self.Close()
@@ -361,7 +365,7 @@ class SampleConcPanel(wx.Panel):
 			self.parent.input_path = os.path.dirname(os.path.abspath(path))
 			self.parent.debug("Concentration Path: %s"%self.parent.input_path)
 			self.conc_file.SetValue(path)
-			if self.parent.validator == None:
+			if self.parent.validator != None:
 				del self.parent.validator
 
 			try:
@@ -369,8 +373,13 @@ class SampleConcPanel(wx.Panel):
 				self.parent.date_min  = self.parent.validator.getDate()
 				#self.parent.date_max  = self.validator.getDate() + datetime.timedelta(days=2)
 				self.parent.debug("Setting min date to sample conc date, i.e. %s"%self.parent.date_min)
-				self.parent.pan_ginputs.updateDate(self.parent.date_min)
-				self.parent.pan_ginputs.Enable(True)
+				self.parent.pan_dates.updateDate(self.parent.date_min)
+				self.parent.pan_dates.updateDate(self.parent.date_min, True)
+
+				# Enable the input panels
+				panels = [self.parent.pan_input, self.parent.pan_output, self.parent.pan_dates, self.parent.pan_ginputs];
+				for p in panels:
+					p.Enable(True)
 			except IOError as e:
 				self.parent.error("I/O error({0}): {1}".format(e.errno, e.strerror))
 				self.parent.validator = None
@@ -384,8 +393,7 @@ class LoggingPanel(wx.Panel):
 
 		fsize=parent.GetSize()
 
-		print parent
-		print "Logging Panel [%s]: Parent size: "%parent.GetName(), fsize
+		#print "Logging Panel [%s]: Parent size: "%parent.GetName(), fsize
 
 		# A multiline TextCtrl - This is here to show how the events work in this program, don't pay too much attention to it
 		#self.logger = wx.TextCtrl(self, pos=(10,fsize[1]-200), size=(fsize[0]-20,190), style=wx.TE_MULTILINE | wx.TE_READONLY)
@@ -400,7 +408,6 @@ class InputPanel(wx.Panel):
 		wx.Panel.__init__(self, parent, size=size, style=wx.SUNKEN_BORDER)
 		self.parent = parent
 
-		input_width=180
 
 		sizerMain = wx.BoxSizer(wx.VERTICAL)
 
@@ -411,11 +418,13 @@ class InputPanel(wx.Panel):
 		# Create a sub sizer just for these inputs
 		sizer = wx.FlexGridSizer(rows=2, cols=2)
 
+		tmp=wx.StaticText(self, label="Format:")
+		input_width=parent.col1_width-tmp.GetSize()[0]
+
 		sizer.Add(wx.StaticText(self, label="Path:"))
 		self.inputPathCtrl = wx.TextCtrl(self, value=os.getcwd(), size=(input_width,-1))
 		sizer.Add(self.inputPathCtrl)
 
-		tmp=wx.StaticText(self, label="Format:")
 		sizer.Add(tmp)
 		self.inputFormatCtrl = wx.TextCtrl(self, value=self.parent.inputFormatDefault, size=(input_width,-1))
 		sizer.Add(self.inputFormatCtrl)
@@ -449,21 +458,21 @@ class OutputPanel(wx.Panel):
 		wx.Panel.__init__(self, parent, size=size, style=style)
 		self.parent = parent
 
-		input_width=180
-
 		sizerMain = wx.BoxSizer(wx.VERTICAL)
 
-		instFormat = wx.StaticText(self, label="Enter the format pattern for output concentration files. i.e. force.TYPE.YYYYJJJ", size=(self.parent.col1_width,-1))
+		instFormat = wx.StaticText(self, label="Enter the format pattern for output concentration files. i.e. Force.TYPE.YYYYJJJ", size=(self.parent.col1_width,-1))
 		sizerMain.Add(instFormat)
 
 		# Create a sub sizer just for these outputs
 		sizer = wx.FlexGridSizer(rows=2, cols=2)
 
+		tmp=wx.StaticText(self, label="Format:")
+		input_width=parent.col1_width-tmp.GetSize()[0]
+
 		sizer.Add(wx.StaticText(self, label="Path:"))
 		self.outputPathCtrl = wx.TextCtrl(self, value=os.getcwd(), size=(input_width,-1))
 		sizer.Add(self.outputPathCtrl)
 
-		tmp=wx.StaticText(self, label="Format:")
 		sizer.Add(tmp)
 		self.outputFormatCtrl = wx.TextCtrl(self, value=self.parent.outputFormatDefault, size=(input_width,-1))
 		sizer.Add(self.outputFormatCtrl)
@@ -488,14 +497,22 @@ class DatePanel(wx.Panel):
 
 		sizerDates.Add(wx.StaticText(self, label="Start date"))
 		sizerDates.Add(wx.StaticText(self, label="End date"))
-		md=self.parent.date_min
+
+		sd=self.parent.date_min
 		sdate=wx.DateTime.Now()
-		if md != None:
+		if sd != None:
 			sdate.Set(md.day, md.month, md.year)
-		self.date_min = wx.DatePickerCtrl(self, dt=sdate)
+		self.date_min = wx.DatePickerCtrl(self, dt=sdate, size=(200, -1) )
 # Matt: Figure out how to get rid of the retarded US format
 		sizerDates.Add(self.date_min)
-		self.date_max = wx.DatePickerCtrl(self)
+
+		ed=self.parent.date_max
+		edate=wx.DateTime.Now()
+		if ed != None:
+			edate.Set(md.day, md.month, md.year)
+		elif ed is None and sd is not None:
+			edate=sdate
+		self.date_max = wx.DatePickerCtrl(self, dt=edate, size=(200,-1))
 		sizerDates.Add(self.date_max)
 		sizerMain.Add(sizerDates)
 
@@ -527,7 +544,7 @@ class DatePanel(wx.Panel):
 		"""
 		sdate=wx.DateTime.Now()
 		if d != None:
-			sdate.Set(d.day, d.month, d.year)
+			sdate.Set(d.day, d.month-1, d.year)
 		if mm:
 			print "Received %s, Setting date_max to %s"%(d, sdate)
 			self.date_max.SetValue(sdate)
@@ -546,7 +563,6 @@ class GeneralInputsPanel(wx.Panel):
 		self.parent = parent
 
 		mySize=self.parent.GetSize()
-		print "Inputs Panel: Parent size: ", mySize
 		mySize[0]=mySize[0]*0.98
 
 		sizerMain = wx.BoxSizer(wx.VERTICAL)

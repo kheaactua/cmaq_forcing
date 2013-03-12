@@ -59,12 +59,14 @@ class ForcingValidator:
 
 		# Get the sdate, in the format YYYYJJJ
 		sdate=getattr(self.conc, 'SDATE')
-		year=int(str(sdate[0])[:4])
-		jday=int(str(sdate[0])[4:])
+		year=int(str(sdate)[:4])
+		jday=int(str(sdate)[4:])
 
-		date = datetime.datetime(year, 1, 1)
+		date = datetime.date(year, 1, 1)
 		days = datetime.timedelta(days=jday-1) # -1 because we started at day 1
 		date=date+days
+
+		print "Sum date: ", date
 
 		return date
 

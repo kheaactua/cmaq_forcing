@@ -75,7 +75,6 @@ class SingleFileChooser(wx.Button):
 				self.parent.parent.warn("Could not open %s.  %s"%(self.path, str(e)))
 
 
-# This should be moved into another file
 class DataFile(object):
 	""" Used encase we want any more info on the input files.
 	Currently, name, path and date are all we care about
