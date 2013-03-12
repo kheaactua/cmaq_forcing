@@ -5,7 +5,7 @@ import os
 from Validator import *
 from ForcingPanels import *
 from DoForce import Forcing
-from datetime import date
+from datetime import date, timedelta
 
 # Just for debugging
 from bcolours import bcolours as bc
@@ -40,9 +40,6 @@ class ForcingFrame(wx.Frame):
 	_layers = []
 
 
-	# Boundary dates on concentration files
-	date_min = None
-	date_max = None
 
 	# File formats
 	inputFormatDefault = "CCTM_fwdACONC*YYYYMMDD"
@@ -55,7 +52,7 @@ class ForcingFrame(wx.Frame):
 	outputPath = None
 
 
-	#def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=(500,400), style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
+	#def __init__(self,parent, id=-1, title="Forcing File Generator", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name=wx.FrameNameStr):
 	def __init__(self, parent, id=-1, title="Forcing File Generator", pos=(1000,0), size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE, name="TopFrame"):
 		wx.Frame.__init__(self, parent, id=id, title=title, pos=pos, size=size, style=style, name=name)
 
@@ -159,7 +156,7 @@ class ForcingFrame(wx.Frame):
 		sizerAll.AddSpacer(5)
 
 		# Add logger
-		self.logger=wx.richtext.RichTextCtrl(self, size=(-1, 200), style=wx.TE_MULTILINE | wx.TE_READONLY)
+		self.logger=wx.richtext.RichTextCtrl(self, size=(-1, 300), style=wx.TE_MULTILINE | wx.TE_READONLY)
 		sizerAll.Add(self.logger, flag=wx.EXPAND)
 
 		#self.SetSizer(sizerAll)
@@ -247,6 +244,17 @@ class ForcingFrame(wx.Frame):
 	@property
 	def timezone_fname(self):
 		return self.pan_ginputs.timezone_fname.path
+
+	# Boundary dates on concentration files
+	@property
+	def date_min(self):
+		wxdate = self.pan_dates.date_min.GetValue()
+		# The +1 is because wxDateTime starts months at 0
+		return date(wxdate.GetYear(), wxdate.GetMonth()+1, wxdate.GetDay())
+	@property
+	def date_max(self):
+		wxdate = self.pan_dates.date_max.GetValue()
+		return date(wxdate.GetYear(), wxdate.GetMonth()+1, wxdate.GetDay())
 
 	""" Logging Methods """
 	def log(self, msg, level):
@@ -370,11 +378,11 @@ class SampleConcPanel(wx.Panel):
 
 			try:
 				self.parent.validator = ForcingValidator(path)
-				self.parent.date_min  = self.parent.validator.getDate()
+				date_min  = self.parent.validator.getDate()
 				#self.parent.date_max  = self.validator.getDate() + datetime.timedelta(days=2)
 				self.parent.debug("Setting min date to sample conc date, i.e. %s"%self.parent.date_min)
-				self.parent.pan_dates.updateDate(self.parent.date_min)
-				self.parent.pan_dates.updateDate(self.parent.date_min, True)
+				self.parent.pan_dates.updateDate(date_min)
+				self.parent.pan_dates.updateDate(date_min + timedelta(days=2), True)
 
 				# Enable the input panels
 				panels = [self.parent.pan_input, self.parent.pan_output, self.parent.pan_dates, self.parent.pan_ginputs];
@@ -483,6 +491,9 @@ class OutputPanel(wx.Panel):
 
 class DatePanel(wx.Panel):
 
+	date_min = None
+	date_max = None
+
 	def __init__(self, parent, size = wx.DefaultSize, style=wx.SUNKEN_BORDER):
 		wx.Panel.__init__(self, parent, size=size, style=style)
 		self.parent = parent
@@ -490,6 +501,7 @@ class DatePanel(wx.Panel):
 		sizerMain = wx.BoxSizer(wx.VERTICAL)
 
 		# Input date range
+		# This is messy.....
 		sizerMain.AddSpacer(10)
 		instruct_dates = wx.StaticText(self, label="Time frame to process", size=(self.parent.col1_width,-1))
 		sizerMain.Add(instruct_dates)
@@ -498,37 +510,27 @@ class DatePanel(wx.Panel):
 		sizerDates.Add(wx.StaticText(self, label="Start date"))
 		sizerDates.Add(wx.StaticText(self, label="End date"))
 
-		sd=self.parent.date_min
-		sdate=wx.DateTime.Now()
-		if sd != None:
-			sdate.Set(md.day, md.month, md.year)
-		self.date_min = wx.DatePickerCtrl(self, dt=sdate, size=(200, -1) )
+		self.date_min = wx.DatePickerCtrl(self, size=(200, -1) )
 # Matt: Figure out how to get rid of the retarded US format
 		sizerDates.Add(self.date_min)
 
-		ed=self.parent.date_max
-		edate=wx.DateTime.Now()
-		if ed != None:
-			edate.Set(md.day, md.month, md.year)
-		elif ed is None and sd is not None:
-			edate=sdate
-		self.date_max = wx.DatePickerCtrl(self, dt=edate, size=(200,-1))
+		self.date_max = wx.DatePickerCtrl(self, size=(200,-1))
 		sizerDates.Add(self.date_max)
 		sizerMain.Add(sizerDates)
 
 		self.SetSizer(sizerMain)
 
-	def updateDateRange(self, d1, d2):
-		""" Updates the available date ranges """
-
-		sdate=wx.DateTime.Now()
-		if d1 != None:
-			sdate.Set(d1.day, d1.month, d1.year)
-		edate=wx.DateTime.Now()
-		if d2 != None:
-			sdate.Set(d2.day, d2.month, d2.year)
-		self.date_min.SetRange(sdate, edate)
-		self.date_max.SetRange(sdate, edate)
+#	def updateDateRange(self, d1, d2):
+#		""" Updates the available date ranges """
+#
+#		sdate=wx.DateTime.Now()
+#		if d1 != None:
+#			sdate.Set(d1.day, d1.month, d1.year)
+#		edate=wx.DateTime.Now()
+#		if d2 != None:
+#			sdate.Set(d2.day, d2.month, d2.year)
+#		self.date_min.SetRange(sdate, edate)
+#		self.date_max.SetRange(sdate, edate)
 
 	def updateDate(self, d, mm=0):
 		""" Updates the date choosers
@@ -674,11 +676,10 @@ class GeneralInputsPanel(wx.Panel):
 
 		# Replace this in the sizer
 		res=sizer.Detach(panel_id)
-		#res=self.parent.sizer.Detach(oldPanForce)
-		self.parent.debug("Panel was detached? %r"%res)
+		#self.parent.debug("Panel was detached? %r"%res)
 		oldPanForce.Hide()
 		res=oldPanForce.Destroy()
-		self.parent.debug("Panel (%s) was destroyed? %r"%(str(oldPanForce), res))
+		#self.parent.debug("Panel (%s) was destroyed? %r"%(str(oldPanForce), res))
 
 		sizer.Insert(panel_id, newPanForce, wx.EXPAND)
 
@@ -691,6 +692,8 @@ class GeneralInputsPanel(wx.Panel):
 
 		self.parent.debug('Chose forcing: [%s]' % item)
 
+		# Enable run button
+		self.parent.runbtn.Enable(True)
 
 	def Enable(self, doEnable):
 		""" When enabled, populate stuff that was waiting on a concentration file """
@@ -741,6 +744,6 @@ class GeneralInputsPanel(wx.Panel):
 			#	self.times.Check(i)
 
 			# Enable run button
-			self.parent.runbtn.Enable(True)
+			#self.parent.runbtn.Enable(True)
 
 

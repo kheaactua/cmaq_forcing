@@ -84,14 +84,68 @@ class ForcingPanel(wx.Panel):
 				print "Skipping ", c
 		event.Skip()
 
-	def runForce(self, common):
+	def runForce(self, top):
 		""" This method passes all the required info to the actual forcing function.
 
 		Keyword Arguments:
-		common The parent frame with all the getters.  If CLI, this could be
-		whatever object has the getters on it.
+
+		top:*wx.Frame*:
+		  The parent frame with all the getters.  If CLI, this could be
+		  whatever object has the getters on it.
 		"""
-		raise NotImplementedError( "Abstract Method" )
+
+		#raise NotImplementedError( "Abstract Method" )
+
+		# Forcing class
+		fc = self.forcingClass
+
+		# General inputs
+		fc.maskLayers(top.layers)
+		if len(top.species) == 0:
+			mesg="Must select a species!"
+			top.warn(mesg)
+			wx.MessageBox(mesg, 'Error', 
+			   wx.OK | wx.ICON_INFORMATION)
+			return
+		fc.species = top.species
+		fc.maskSpace(top.spacialmask_fname, top.spacialmask_var, top.spacialmask_val)
+		fc.griddedTimeZone = top.timezone_fname
+
+		# Inputs
+		inputPath = top.inputPath
+		inputFormat = top.inputFormat
+
+		# Outputs
+		fc.outputPath = top.outputPath
+		fc.outputFormat = top.outputFormat
+
+		#
+		# Find the files we need
+		concs=fc.FindFiles(file_format=inputFormat, path=inputPath,
+		   date_min=top.date_min, date_max=top.date_max)
+
+		if len(concs) == 0:
+			mesg="No input files found, check your path and dates?"
+			top.warn(mesg)
+			wx.MessageBox(mesg, 'Error', 
+			   wx.OK | wx.ICON_INFORMATION)
+			return	
+
+		# Load the input files into our forcing generator
+		fc.loadConcentrationFiles(concs)
+
+		# Debug..
+		top.debug("Starting %s with files %s.\nTimezones=%s\nSpacial Mask File=%s\nAveraging: %s\nDate Range: %s %s\nInput Path: %s\nInput format: %s\nNo. of files found: %d"%(type(fc), " ".join(map(str, concs)), fc.griddedTimeZone, top.spacialmask_fname, fc.averaging, top.date_min, top.date_max, inputPath, inputFormat, len(concs)))
+
+		#
+		# Produce the forcing fields
+		top.info("Processing ....")
+		try:
+			fc.produceForcingField(top.SimpleProgress, debug=True)
+			top.info("Done!")
+		except IOError as e:
+			top.error("Encountered an I/O Error.\n%s"%str(e))
+			print e
 
 	@staticmethod
 	def ProcessCLI():
@@ -216,6 +270,13 @@ class ForcingPanelWithAveraging(ForcingPanel):
 		self.parent.debug('Chose times: [%s]' % ', '.join(map(str, self.times.GetCheckedStrings())))
 		event.Skip()
 
+	def runForce(self, top):
+		# Set the averaging
+		self.forcingClass.setAveraging(self.avgoption)
+
+		# Pass it up
+		super(ForcingPanelWithAveraging, self).runForce(top)
+		
 
 
 class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
@@ -301,39 +362,59 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		fc = self.forcingClass
 
 		# General inputs
-		fc.maskLayers(top.layers)
-		fc.species = top.species
-		fc.maskSpace(top.spacialmask_fname, top.spacialmask_var, top.spacialmask_val)
-		fc.griddedTimeZone = top.timezone_fname
+		#M#fc.maskLayers(top.layers)
+		#M#if len(top.species) == 0:
+			#M#mesg="Must select a species!"
+			#M#top.warn(mesg)
+			#M#wx.MessageBox(mesg, 'Error', 
+			   #M#wx.OK | wx.ICON_INFORMATION)
+			#M#return
+		#M#fc.species = top.species
+		#M#fc.maskSpace(top.spacialmask_fname, top.spacialmask_var, top.spacialmask_val)
+		#M#fc.griddedTimeZone = top.timezone_fname
 
 		# Custom inputs
-		fc.setAveraging(self.avgoption)
+		#M#fc.setAveraging(self.avgoption)
 		fc.threshold = self.threshold.GetValue()
 
+		# Move up
+		super(ForcingPanelAverageConcentration, self).runForce(top)
+
 		# Inputs
-		inputPath = top.inputPath
-		inputFormat = top.inputFormat
+		#M#inputPath = top.inputPath
+		#M#inputFormat = top.inputFormat
 
 		# Outputs
-		fc.outputPath = top.outputPath
-		fc.outputFormat = top.outputFormat
+		#M#fc.outputPath = top.outputPath
+		#M#fc.outputFormat = top.outputFormat
 
 		#
 		# Find the files we need
-		concs=fc.FindFiles(file_format=inputFormat, path=inputPath,
-		   date_min=top.date_min, date_max=top.date_max)
+		#M#concs=fc.FindFiles(file_format=inputFormat, path=inputPath,
+		   #M#date_min=top.date_min, date_max=top.date_max)
+
+		#M#if len(concs) == 0:
+			#M#mesg="No input files found, check your path and dates?"
+			#M#top.warn(mesg)
+			#M#wx.MessageBox(mesg, 'Error', 
+			   #M#wx.OK | wx.ICON_INFORMATION)
+			#M#return	
 
 		# Load the input files into our forcing generator
-		fc.loadConcentrationFiles(concs)
+		#M#fc.loadConcentrationFiles(concs)
 
 		# Debug..
-		top.debug("Starting %s with files %s.\nTimezones=%s\nSpacial Mask File=%s\nAveraging:%s"%(type(fc), " ".join(map(str, concs)), fc.griddedTimeZone, top.spacialmask_fname, fc.averaging))
+		#M#top.debug("Starting %s with files %s.\nTimezones=%s\nSpacial Mask File=%s\nAveraging: %s\nDate Range: %s %s\nInput Path: %s\nInput format: %s\nNo. of files found: %d"%(type(fc), " ".join(map(str, concs)), fc.griddedTimeZone, top.spacialmask_fname, fc.averaging, top.date_min, top.date_max, inputPath, inputFormat, len(concs)))
 
 		#
 		# Produce the forcing fields
-		top.info("Processing ....")
-		fc.produceForcingField(top.SimpleProgress, debug=True)
-		top.info("Done!")
+		#M#top.info("Processing ....")
+		#M#try:
+			#M#fc.produceForcingField(top.SimpleProgress, debug=True)
+			#M#top.info("Done!")
+		#M#except IOError as e:
+			#M#top.error("Encountered an I/O Error.\n%s"%str(e))
+			#M#print e
 
 class ForcingPanelMortality(ForcingPanelWithAveraging):
 	# The name of the forcing function

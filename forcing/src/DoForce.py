@@ -293,24 +293,27 @@ class Forcing(object):
 		    i.e. a NetCDF file with a variable LTIME(TSTEP, LAY, ROW, COL) where the
 		    data can be found at TSTEP=0, LAY=0
 		"""
-		self._griddedTimeZone = path
 
-		# Open the file and load in the field
-		try:
-			tz = NetCDFFile(path, 'r')
-		except IOError as ex:
-			print "Error!  Cannot open gridded timezone file %s"%(path)
-			raise
+		if path is not None:
 
-		var = tz.variables['LTIME']
-		# The field should be at t=0,k=0
-		fld = var.getValue()[0,0]
-		#print "shape(timezones) = ", fld.shape
+			self._griddedTimeZone = path
 
-		if fld.shape != (self.nj, self.ni):
-			raise ValueError("Error.  Gridded time zone file has a different domain than input concentration files.  Current domain=%s, timezone domain=%s"%(str(fld.shape), str( (self.ni, self.nj) ) ))
+			# Open the file and load in the field
+			try:
+				tz = NetCDFFile(path, 'r')
+			except IOError as ex:
+				print "Error!  Cannot open gridded timezone file %s"%(path)
+				raise
 
-		self.griddedTimeZoneFld=fld
+			var = tz.variables['LTIME']
+			# The field should be at t=0,k=0
+			fld = var.getValue()[0,0]
+			#print "shape(timezones) = ", fld.shape
+
+			if fld.shape != (self.nj, self.ni):
+				raise ValueError("Error.  Gridded time zone file has a different domain than input concentration files.  Current domain=%s, timezone domain=%s"%(str(fld.shape), str( (self.ni, self.nj) ) ))
+
+			self.griddedTimeZoneFld=fld
 
 
 	# Should replace this setter with a property
