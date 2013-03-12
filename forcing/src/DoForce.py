@@ -787,6 +787,8 @@ class Forcing(object):
 			path = self.inputPath
 		if path == None:
 			raise ValueError("Must provide a path to search")
+		if path[-1] != "/":
+			path=path+"/"
 
 		#files=os.listdir( "/mnt/mediasonic/opt/output/morteza/frc-8h-US/" ) # Obviously change this..
 		files=os.listdir(path)

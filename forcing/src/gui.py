@@ -133,6 +133,9 @@ class ForcingFrame(wx.Frame):
 		# Right column
 		rightCol = wx.BoxSizer(wx.VERTICAL)
 		title=wx.StaticText(self, label="Cost Function")
+		font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+		title.SetFont(font)
+
 		rightCol.Add(title)
 		rightCol.AddSpacer(10)
 		#self.pan_force.SetSize((-1, self.pan_ginputs.GetSize()[1]*.9))
@@ -176,14 +179,14 @@ class ForcingFrame(wx.Frame):
 #!		self.pan_input.inputPathCtrl.SetValue(conc_dir)
 #!		self.pan_output.outputPathCtrl.SetValue(os.getcwd() + '/output/')
 #!		self.validator = ForcingValidator(conc_dir + 'CCTM.20050505')
-#!		self.date_min  = date(2005,5,5)
-#!		self.date_max  = date(2005,5,7)
+#!		self.pan_dates.updateDate(date(2005,5,5))
+#!		self.pan_dates.updateDate(date(2005,5,7), True)
 #!		self.pan_ginputs.timezone_fname.path = conc_dir + 'timezones.nc'
 #!
 #!		self.debug("Setting min date to sample conc date, i.e. %s"%self.date_min)
 #!		self.pan_ginputs.Enable(True)
-#!
-#!		# TEMP
+
+		# TEMP
 #!		self.pan_ginputs.species.SetChecked([0])
 
 	def onKeyCombo(self, event):

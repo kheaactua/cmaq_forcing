@@ -12,9 +12,10 @@ class ForceWithThreshold(Forcing):
 	@threshold.setter
 	def threshold(self, val):
 		# If 0, set as None
-		if val == 0:
+		if val == 0 or val is None:
 			self._threshold = None
 		else:
+			print "val = ", val
 			self._threshold = float(val)
 
 class ForceWithTimeInvariantScalarFld(Forcing):
@@ -85,20 +86,15 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 			# If it's the mask, then the timemask should already be set
 
 		# Create zero fields to allocate our arrays
-		#print "111 Self.species: ", self.species
 		fld_empty=np.zeros((len(self.species), self.nt, self.nk, self.nj, self.ni), dtype=np.float32)
-		#for idx_s, species in enumerate(self.species):
-		#	fld_empty[idx_s] = np.zeros((self.nt, self.nk, self.nj, self.ni))
 
-		#print "222 Self.species: ", self.species
-		#print "Initializing flds dict"
 		flds={'yesterday': fld_empty, 'today': fld_empty.copy(), 'tomorrow': fld_empty.copy()}
 
 
 		# This is NOT efficient.  Could probably easily make it
 		# more efficient by implementing some sort of cache though..
 		for idx_s, species in enumerate(self.species):
-			print "Iteratiing through species %d=%s"%(idx_s, species)
+			#print "Iteratiing through species %d=%s"%(idx_s, species)
 			if conc_yest == None:
 				# If we're on day 1..
 				# This is inefficient, will upgrade later
@@ -131,7 +127,6 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 						# Spatial mask
 						if not self.space[j,i]:
 							# This is masked out.  Set to zero and go to the next cell
-							#print "Shape(fld_yest) = %s, shape(np.zeros) = %s"%(str(fld_yest[0:self.nt,k,j,i].shape), str(np.zeros((self.nt, 1, 1, 1), dtype=np.float32).shape))
 							fld_yest[0:self.nt,k,j,i]  = np.zeros((self.nt), dtype=np.float32)
 							fld_today[0:self.nt,k,j,i] = np.zeros((self.nt), dtype=np.float32)
 							fld_tom[0:self.nt,k,j,i]   = np.zeros((self.nt), dtype=np.float32)
@@ -170,14 +165,12 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 							# And then, for the 8-hour max to be used for a
 							# forcing term, generate a vector for yesterday,
 							# today and tomorrow with the forcing terms in them
-# NOTE: Ensure that this is above the threshold
+
 							if self.timeInvariantScalarMultiplcativeFld is not None:
 								scalar = self.timeInvariantScalarMultiplcativeFld[j][i]
 
-							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar, debug=True)
-							#print "Yest: ", yesterday
-							#print "Toda: ", today
-							#print "Tomo: ", tomorrow
+							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar)
+
 
 							fld_yest[:self.nt-1,k,j,i]  = yesterday[:self.nt-1]
 							fld_today[:self.nt-1,k,j,i] = today[:self.nt-1]
@@ -231,13 +224,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 
 			flds['yesterday'][idx_s] = fld_yest
 			flds['today'][idx_s]     = fld_today
-			#print "flds['today'][s=0][t=8]:\n", flds['today'][0][8,:,:,:]
 			flds['tomorrow'][idx_s]  = fld_tom
-			#print "flds['today'][s=0][t=8] 22222:\n", flds['today'][0][8,:,:,:]
-
-			#print "flds['yesterday'][%s].shape = "%(species), flds['yesterday'][idx_s].shape
-			#print "BREAKING!!!"
-			#break
 
 		#endfor species
 
@@ -271,7 +258,6 @@ class ForceOnMortality(ForceOnAverageConcentration):
 	# Gridded baseline mortality file
 	_mortality_fname = None
 	_mortality_var = None
-
 	def SetMortality(fname, var):
 		""" Provide a gridded NetCDF file name and variable name.  This will
 		save the info for later reading. """
@@ -282,6 +268,12 @@ class ForceOnMortality(ForceOnAverageConcentration):
 	# Gridded populated mortality file
 	_pop_fname = None
 	_pop_var = None
+	def SetPop(fname, var):
+		""" Provide a gridded NetCDF file name and variable name.  This will
+		save the info for later reading. """
+
+		self._pop_fname = fname
+		self._pop_var = var
 
 	def loadScalarField(self):
 		""" Open up the mortality and population files and read
