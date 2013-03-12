@@ -23,9 +23,11 @@ class ForcingPanelManager:
 	@staticmethod
 	def factory(name, parent):
 		""" Return an object that has the class name.name of name """
+# I think this is creating a bunch!
 		for className in ForcingPanelManager.panels:
-			c = (globals()[className])(parent)
-			if c.name == name:
+			sc=globals()[className]
+			if sc.name == name:
+				c = (globals()[className])(parent)
 				return c
 
 		raise ForcingException("No forcing method found for %s"%name)

@@ -661,8 +661,8 @@ class GeneralInputsPanel(wx.Panel):
 		#res=self.parent.sizer.Detach(oldPanForce)
 		self.parent.debug("Panel was detached? %r"%res)
 		oldPanForce.Hide()
-		#oldPanForce.Destroy()
-		self.parent.debug("Panel was destroyed? %s"%str(oldPanForce))
+		res=oldPanForce.Destroy()
+		self.parent.debug("Panel (%s) was destroyed? %r"%(str(oldPanForce), res))
 
 		sizer.Insert(panel_id, newPanForce, wx.EXPAND)
 
