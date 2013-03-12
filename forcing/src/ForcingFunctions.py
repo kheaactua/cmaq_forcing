@@ -1,4 +1,5 @@
-from Scientific.IO.NetCDF import NetCDFFile
+#from Scientific.IO.NetCDF import NetCDFFile
+import netCDF4 as NetCDFFile
 from DoForce import Forcing
 import numpy as np
 

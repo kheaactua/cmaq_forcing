@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!python
 
 # Gui
-import wx
+import wx  #glade
 from gui import *
 
 # Include Forcing.py
@@ -13,7 +13,7 @@ from Validator import *
 import wx.lib.inspection
 
 # CLI arguments
-import argparse
+import optparse #argparse
 
 # System functions
 import sys
@@ -21,13 +21,22 @@ import sys
 # Date stuff
 from datetime import *
 
+# Argument parsing - old version
+from optparse import OptionParser
+
 # For now, I'll hard code most of the inputs.  Eventually I'll make a config
 # file, as there are just too many inputs.
-parser = argparse.ArgumentParser(description='Use GUI or CLI?')
-parser.add_argument('--cli', action='store_true', help='Use CLI interface')
+#parser = argparse.ArgumentParser(description='Use GUI or CLI?')
+#parser.add_argument('--cli', action='store_true', help='Use CLI interface')
+
+#args = parser.parse_args()
+
+parser = OptionParser(description="Use GUI or CLI?")
+parser.add_option("--cli", action="store_true", help="Use CLI interface")
 
 args = parser.parse_args()
-#print args
+
+print args
 
 """
 #
@@ -45,92 +54,92 @@ def ProgressBarCLI(prog, filename):
 	print "Time: %0.2d:%0.2d.%0.2d: Progress %f, filename: %s"%(d.hour,d.minute,d.second, prog, filename)
 	print "\n------------------------------------------------------------\n"
 
-if args.cli:
-
-	setup=1
-
-	if setup==0:
-		fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
-		date_min = dateE(1999,07,03)
-		date_max = dateE(1999,07,06)
-		fc.conc_path = os.getcwd() + '/concentrations/'
-	elif setup==1:
-		fc = f.ForceOnAverageConcentration(sample_conc='basic_concentrations/CCTM.20050505')
-		fc.conc_path = os.getcwd() + '/basic_concentrations/'
-		date_min = dateE(2005,05,05)
-		date_max = dateE(2005,05,07)
-	elif setup==2:
-		fc = f.ForceOnAverageConcentration(sample_conc='/mnt/mediasonic/opt/output/base/CCTM_fwdACONC.20070501')
-		date_min = dateE(2007,05,01)
-		date_max = dateE(2007,05,03)
-		fc.conc_path = '/mnt/mediasonic/opt/output/base/'
-	elif setup==3:
-		fc = f.ForceOnMortality(sample_conc='/mnt/mediasonic/opt/output/base/CCTM_fwdACONC.20070501')
-		date_min = dateE(2007,05,01)
-		date_max = dateE(2007,05,03)
-		fc.conc_path = '/mnt/mediasonic/opt/output/base/'
-
-		fc.vsl=10
-		fc.SetMortality(fname = os.getcwd() + '/mortality/DOMAIN_POP_BMR', var='BMR')
-		fc.SetPopulation(fname = os.getcwd() + '/mortality/DOMAIN_POP_BMR', var='POP')
-
-		fc.loadScalarField()
-
-	fc.setAveraging('Max 8 hr')
-
-	fc.maskLayers([1])
-	fc.species=['O3']
-
-	# These two are default values
-	#fc.outputFormat = 'Force.TYPE.YYYYMMDD'
-	#fc.outputPath=os.getcwd() + 'output/'
-
-	if setup==0:
-		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
-
-	elif setup==1:
-		fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
-		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
-	elif setup==2:
-		fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
-		conc_files=fc.FindFiles(file_format="CCTM_fwdACONC.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
-		# Mask space
-		fc.maskSpace('/opt/home/morteza/Codes/Force8hr/usa.nc', 'USA', 2)
-
-
-	fc.loadConcentrationFiles(conc_files)
-	fc.produceForcingField(ProgressBarCLI, dryrun=False, debug=True)
-
-
-	## Parse species string
-	#species_str="O,O3,NO2"
-	#species=species_str.upper()
-	#species=species_str.split(',');
-
-	#files=['conc.nc'];
-
-##	# Get a validator
-##	try:
-##		v=ForcingValidator('conc.nc')
-##		v.validateSpecies(species)
-##
-##		if len(layers):
-##			v.validateLayers(layers);
-##
-##		if len(times):
-##			v.validateTimes(times);
-##
-##		# If we got here, it means everything validated
-##		v.close();
-##	except ValidationError as e:
-##		print "An exception was raise: ", e
-##
-##	# Now, get the forcing object
-##	dims=Forcing.loadDims('conc.nc')
-##	force = getForcingObject(dims['ni'], dims['nj'], dims['nk'], dims['nt'])
-##	force.setSpecies(species)
-
-else:
+#if args.cli:
+#
+#	setup=1
+#
+#	if setup==0:
+#		fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
+#		date_min = dateE(1999,07,03)
+#		date_max = dateE(1999,07,06)
+#		fc.conc_path = os.getcwd() + '/concentrations/'
+#	elif setup==1:
+#		fc = f.ForceOnAverageConcentration(sample_conc='basic_concentrations/CCTM.20050505')
+#		fc.conc_path = os.getcwd() + '/basic_concentrations/'
+#		date_min = dateE(2005,05,05)
+#		date_max = dateE(2005,05,07)
+#	elif setup==2:
+#		fc = f.ForceOnAverageConcentration(sample_conc='/mnt/mediasonic/opt/output/base/CCTM_fwdACONC.20070501')
+#		date_min = dateE(2007,05,01)
+#		date_max = dateE(2007,05,03)
+#		fc.conc_path = '/mnt/mediasonic/opt/output/base/'
+#	elif setup==3:
+#		fc = f.ForceOnMortality(sample_conc='/mnt/mediasonic/opt/output/base/CCTM_fwdACONC.20070501')
+#		date_min = dateE(2007,05,01)
+#		date_max = dateE(2007,05,03)
+#		fc.conc_path = '/mnt/mediasonic/opt/output/base/'
+#
+#		fc.vsl=10
+#		fc.SetMortality(fname = os.getcwd() + '/mortality/DOMAIN_POP_BMR', var='BMR')
+#		fc.SetPopulation(fname = os.getcwd() + '/mortality/DOMAIN_POP_BMR', var='POP')
+#
+#		fc.loadScalarField()
+#
+#	fc.setAveraging('Max 8 hr')
+#
+#	fc.maskLayers([1])
+#	fc.species=['O3']
+#
+#	# These two are default values
+#	#fc.outputFormat = 'Force.TYPE.YYYYMMDD'
+#	#fc.outputPath=os.getcwd() + 'output/'
+#
+#	if setup==0:
+#		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
+#
+#	elif setup==1:
+#		fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
+#		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
+#	elif setup==2:
+#		fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
+#		conc_files=fc.FindFiles(file_format="CCTM_fwdACONC.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
+#		# Mask space
+#		fc.maskSpace('/opt/home/morteza/Codes/Force8hr/usa.nc', 'USA', 2)
+#
+#
+#	fc.loadConcentrationFiles(conc_files)
+#	fc.produceForcingField(ProgressBarCLI, dryrun=False, debug=True)
+#
+#
+#	## Parse species string
+#	#species_str="O,O3,NO2"
+#	#species=species_str.upper()
+#	#species=species_str.split(',');
+#
+#	#files=['conc.nc'];
+#
+###	# Get a validator
+###	try:
+###		v=ForcingValidator('conc.nc')
+###		v.validateSpecies(species)
+###
+###		if len(layers):
+###			v.validateLayers(layers);
+###
+###		if len(times):
+###			v.validateTimes(times);
+###
+###		# If we got here, it means everything validated
+###		v.close();
+###	except ValidationError as e:
+###		print "An exception was raise: ", e
+###
+###	# Now, get the forcing object
+###	dims=Forcing.loadDims('conc.nc')
+###	force = getForcingObject(dims['ni'], dims['nj'], dims['nk'], dims['nt'])
+###	force.setSpecies(species)
+#
+#else:
 	# Use GUI
 	app = wx.App(False)
 	frame = ForcingFrame(None, name="TopFrame")
