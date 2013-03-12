@@ -148,6 +148,7 @@ class ForcingFrame(wx.Frame):
 
 		# Add columns
 		self.cols.Add(leftCol)
+		self.cols.AddSpacer(10)
 		self.cols.Add(rightCol, flag=wx.EXPAND)
 
 		# Add columns
@@ -155,10 +156,7 @@ class ForcingFrame(wx.Frame):
 		sizerAll.AddSpacer(5)
 
 		# Add logger
-		print "Forcing frame size: ", self.GetSize()
-		#self.logger=wx.TextCtrl(self, size=(-1, 200), style=wx.TE_MULTILINE | wx.TE_READONLY)
 		self.logger=wx.richtext.RichTextCtrl(self, size=(-1, 200), style=wx.TE_MULTILINE | wx.TE_READONLY)
-		#sizerAll.Add(self.logger, proportion=1, flag=wx.EXPAND)
 		sizerAll.Add(self.logger, flag=wx.EXPAND)
 
 		#self.SetSizer(sizerAll)
@@ -182,7 +180,6 @@ class ForcingFrame(wx.Frame):
 		self.pan_ginputs.timezone_fname.path = conc_dir + 'timezones.nc'
 
 		self.debug("Setting min date to sample conc date, i.e. %s"%self.date_min)
-		print "type(self.date_min) = %s "%(type(self.date_min))
 		self.pan_ginputs.Enable(True)
 
 		# TEMP
@@ -320,7 +317,7 @@ class ForcingFrame(wx.Frame):
 		   The file currently being worked on
 		"""
 
-		self.info("Progress: %f, file: %s"%(prog, dfile.name))
+		self.info("Progress: %0.0f%%, file: %s"%(prog*100.0, dfile.name))
 		
 
 	def runForce(self, event):

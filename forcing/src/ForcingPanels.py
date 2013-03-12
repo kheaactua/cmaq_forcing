@@ -252,7 +252,7 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		title_txt=self.name
 
 		# Description
-		descrip_txt="Represents the spatial and temporal average of a particular species for the selected running period and layers in the previous step. The user should specify"
+		descrip_txt="Represents the spatial and temporal average of a particular species for the selected running period and layers in the previous step. Note, if the threshold is set to \"0\", it will be ignored."
 
 
 		"""
@@ -325,12 +325,12 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		fc.loadConcentrationFiles(concs)
 
 		# Debug..
-		top.debug("Starting %s with files %s.\nTimezones=%s\nSpacial Mask File=%s"%(type(fc), " ".join(map(str, concs)), fc.griddedTimeZone, top.spacialmask_fname))
+		top.debug("Starting %s with files %s.\nTimezones=%s\nSpacial Mask File=%s\nAveraging:%s"%(type(fc), " ".join(map(str, concs)), fc.griddedTimeZone, top.spacialmask_fname, fc.averaging))
 
 		#
 		# Produce the forcing fields
 		top.info("Processing ....")
-		fc.produceForcingField(top.SimpleProgress)
+		fc.produceForcingField(top.SimpleProgress, debug=True)
 		top.info("Done!")
 
 class ForcingPanelMortality(ForcingPanelWithAveraging):

@@ -136,7 +136,7 @@ else:
 	frame = ForcingFrame(None, name="TopFrame")
 	frame.Show()
 
-	#wx.lib.inspection.InspectionTool().Show()
+	wx.lib.inspection.InspectionTool().Show()
 	app.MainLoop()
 
 

@@ -4,7 +4,19 @@ import numpy as np
 
 class ForceWithThreshold(Forcing):
 	# Concentration threshold
-	threshold=None
+	_threshold=None
+
+	@property
+	def threshold(self):
+		return self._threshold
+	@threshold.setter
+	def threshold(self, val):
+		# If 0, set as None
+		if val == 0:
+			self._threshold = None
+		else:
+			self._threshold = float(val)
+
 class ForceWithTimeInvariantScalarFld(Forcing):
 	# Time invariant scalar multiplcative fld (nj, ni)
 	timeInvariantScalarMultiplcativeFld = None
@@ -86,39 +98,28 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 		# This is NOT efficient.  Could probably easily make it
 		# more efficient by implementing some sort of cache though..
 		for idx_s, species in enumerate(self.species):
+			print "Iteratiing through species %d=%s"%(idx_s, species)
 			if conc_yest == None:
 				# If we're on day 1..
 				# This is inefficient, will upgrade later
 				data_yest = np.zeros((self.nt, self.nk, self.nj, self.ni))
 			else:
 				var_yest  = conc_yest.variables[species]
-				data_yest  = var_yest.getValue()
-
+				data_yest = var_yest.getValue()
 
 			if conc_tom == None:
 				data_tom   = np.zeros((self.nt, self.nk, self.nj, self.ni))
 			else:
 				#print "Looking for variable %s"%species
 				var_tom   = conc_tom.variables[species]
-				data_tom   = var_tom.getValue()
+				data_tom  = var_tom.getValue()
 
-			var_today = conc_today.variables[species]
+			var_today  = conc_today.variables[species]
 			data_today = var_today.getValue()
 
-			#print "Initialized data_today with shape=", data_today.shape
-			#print "data_today[t=8]: ", data_today[8,:,:,:]
-
-#			src_yesterday=conc_yest.getValue()
-#			data=np.concatenate([yesterday, today, tomorrow])
-
-			## Remove the 25th timestep
-			#data_shape=(data_yest.shape[0]-1, data_yest.shape[1], data_yest.shape[2], data_yest.shape[3])
 			fld_yest  = np.zeros(data_yest.shape, dtype=np.float32)
 			fld_today = fld_yest.copy()
 			fld_tom   = fld_yest.copy()
-
-			#print "Initialized fld_today with shape=", fld_today.shape
-
 
 
 			# Recall, mask is already considered in these vectors
@@ -172,7 +173,8 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 # NOTE: Ensure that this is above the threshold
 							if self.timeInvariantScalarMultiplcativeFld is not None:
 								scalar = self.timeInvariantScalarMultiplcativeFld[j][i]
-							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar)
+
+							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar, debug=True)
 							#print "Yest: ", yesterday
 							#print "Toda: ", today
 							#print "Tomo: ", tomorrow
@@ -183,6 +185,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 
 						elif self.averaging == 'AVG_MASK' or self.averaging == 'AVG_NONE':
 # NOT YET TESTED
+							raise NotImplementedError( "Mask timing or no averaging is not yet tested.  Averaging options=%s"%self.averaging )
 							# The comments assume timezone = -6
 							for t_gmt in self.timeMask:
 								# when t_gmt = 0, t_loc = -6, so we're into yesterday

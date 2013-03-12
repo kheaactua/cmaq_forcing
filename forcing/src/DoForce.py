@@ -622,7 +622,7 @@ class Forcing(object):
 			# endif dryrun
 
 			# Perform a call back to update the progress
-			progress_callback(float(conc_idx)/len(conc_files), self.conc_files[conc_idx-1])
+			progress_callback(float(conc_idx)/(len(conc_files)-2), self.conc_files[conc_idx-1])
 
 		# endfor days loop (day1, day2, day3, ...)
 
@@ -1042,7 +1042,7 @@ class Forcing(object):
 		return y
 
 	@staticmethod
-	def applyForceToAvgTime(avgs_today, winLen=8, timezone = 0, min_threshold = None, forcingValue = None, forwards_or_backwards = default_averaging_direction):
+	def applyForceToAvgTime(avgs_today, winLen=8, timezone = 0, min_threshold = None, forcingValue = None, forwards_or_backwards = default_averaging_direction, debug=False):
 		""" Apply the forcing terms to the max X-hour average.
 
 		This function finds the max value in the provided list and writes a 1/winLen to the return vector at the location of the max and for the next (if forward) or last (if backward) winLen-1 elements.
@@ -1073,6 +1073,9 @@ class Forcing(object):
 		forwards_or_backwards:*bool*
 		   True means set it up for a forward avg
 
+		debug:*bool*
+		   Prints out some extra information
+
 		Returns:
 
 		*dict[yesterday[], today[], tomorrow[]]*:
@@ -1101,6 +1104,8 @@ class Forcing(object):
 		if min_threshold is not None:
 			if avgs[max_idx]<min_threshold:
 				# Leave the whole vector as zero
+				if debug:
+					print "Max value (%f) is below threshold (%f).  Returning zero vectors"%(avgs[max_idx], min_threshold)
 				yesterday = np.zeros((Forcing.dayLen), dtype=np.float32)
 				today     = yesterday.copy()
 				tomorrow  = yesterday.copy()
@@ -1113,7 +1118,10 @@ class Forcing(object):
 
 		if forcingValue is None:
 			#forcingValue=float(1)/winLen
-			forcingValue=1
+			forcingValue=1.0
+
+		#if debug:
+		#	print "max_idx=%d\nwinLen=%d\ttimezone=%d\nValue = %f"%(max_idx, winLen, timezone, forcingValue)
 
 		if forwards_or_backwards == True:
 			# Moving forward
@@ -1122,7 +1130,7 @@ class Forcing(object):
 			forcing[max_idx-winLen+1:max_idx+1] = forcingValue
 
 		yesterday = forcing[0:Forcing.dayLen]
-		today = forcing[Forcing.dayLen:Forcing.dayLen*2]
-		tomorrow = forcing[Forcing.dayLen*2:Forcing.dayLen*3]
+		today     = forcing[Forcing.dayLen:Forcing.dayLen*2]
+		tomorrow  = forcing[Forcing.dayLen*2:Forcing.dayLen*3]
 
 		return yesterday, today, tomorrow
