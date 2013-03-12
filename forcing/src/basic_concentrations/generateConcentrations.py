@@ -33,6 +33,8 @@ for d in range(sdate, edate):
 	conc.createDimension('VAR',   len(species))
 	conc.createDimension('DATE-TIME', 2)
 
+	setattr(conc, 'SDATE', d)
+
 	# Create tflag
 	var=conc.createVariable('TFLAG', 'i', ('TSTEP', 'VAR', 'DATE-TIME'))
 	dts=np.zeros((nt,len(species),2), dtype=np.int32)
