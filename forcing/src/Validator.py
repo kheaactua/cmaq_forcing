@@ -58,6 +58,9 @@ class ForcingValidator:
 		"""
 
 		# Get the sdate, in the format YYYYJJJ
+		if not hasattr(self.conc, 'SDATE'):
+			raise IOError("Sample concentration file does not seem to be a proper I/O Api file.")
+
 		sdate=getattr(self.conc, 'SDATE')
 		year=int(str(sdate)[:4])
 		jday=int(str(sdate)[4:])
@@ -65,8 +68,6 @@ class ForcingValidator:
 		date = datetime.date(year, 1, 1)
 		days = datetime.timedelta(days=jday-1) # -1 because we started at day 1
 		date=date+days
-
-		print "Sum date: ", date
 
 		return date
 

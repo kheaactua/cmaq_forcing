@@ -265,7 +265,7 @@ class ForcingFrame(wx.Frame):
 		c = bc()
 		if level == self.LOG_ERROR:
 			prefix='E'
-			mc=bc.red
+			mc=c.red
 			rc=(255,0,0)
 		elif level == self.LOG_WARN:
 			prefix='W'
@@ -381,7 +381,11 @@ class SampleConcPanel(wx.Panel):
 
 			try:
 				self.parent.validator = ForcingValidator(path)
-				date_min  = self.parent.validator.getDate()
+				try:
+					date_min  = self.parent.validator.getDate()
+				except IOError as e:
+					self.parent.error("%s.  Please select a new sample concentration file."%str(e))
+					return
 				#self.parent.date_max  = self.validator.getDate() + datetime.timedelta(days=2)
 				self.parent.debug("Setting min date to sample conc date, i.e. %s"%self.parent.date_min)
 				self.parent.pan_dates.updateDate(date_min)

@@ -242,6 +242,7 @@ class ForceOnMortality(ForceOnAverageConcentration):
 		- Concentration
 
 	- Time invariant:
+		- Concentration response factor (beta) = percent increase in deaths per ppb
 		- Value of statistical life (in millions of dollars)
 		- Gridded baseline mortality file
 			- BMR units of deaths per 10^6 or 10^5 population per year.  Devide
@@ -254,6 +255,9 @@ class ForceOnMortality(ForceOnAverageConcentration):
 
 	# Value of statistical life (millions)
 	vsl = None
+
+	# Concentration response factor
+	beta = None
 
 	# Gridded baseline mortality file
 	_mortality_fname = None
@@ -281,6 +285,9 @@ class ForceOnMortality(ForceOnAverageConcentration):
 
 		Forcing = F * Pop * Mortality * VSL
 		"""
+
+		if self.beta is None:
+			raise ForcingException("Must supply concentration response factor")
 
 		if self._mortality_fname is None or self._mortality_var is None:
 			raise ForcingException("Must supply mortality file")
@@ -330,7 +337,8 @@ class ForceOnMortality(ForceOnAverageConcentration):
 			raise e
 
 		# (mfld * pfld) is element wise multiplication, not matrix multiplication
-		self.timeInvariantScalarMultiplcativeFld = (mfld/10^6)/365 * pfld * vsl
+		# Take leap years into account?
+		self.timeInvariantScalarMultiplcativeFld = (mfld/10^6)/365 * pfld * vsl * beta
 
 
 class ForcingException(Exception):
