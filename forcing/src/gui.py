@@ -189,6 +189,29 @@ class ForcingFrame(wx.Frame):
 		# TEMP
 #!		self.pan_ginputs.species.SetChecked([0])
 
+
+		conc_dir = os.getcwd() + '/mortality/'
+		self.pan_input.inputPathCtrl.SetValue(conc_dir)
+		self.pan_output.outputPathCtrl.SetValue(os.getcwd() + '/output/')
+		self.validator = ForcingValidator(conc_dir + 'CCTM_fwdACONC.20070701')
+		self.pan_input.inputFormatCtrl.SetValue('CCTM_fwdACONC.YYYYMMDD')
+		self.pan_dates.updateDate(date(2007,7,1))
+		self.pan_dates.updateDate(date(2007,7,3), True)
+		self.pan_ginputs.timezone_fname.path = os.getcwd() + '/GriddedTimeZoneMask.nc'
+		self.pan_ginputs.spacialmask_fname.path='SpacialMask.nc'
+		self.pan_ginputs.spacialmask_var.SetValue('USA')
+		self.pan_ginputs.spacialmask_val.SetValue(str(2))
+
+		self.pan_dates.Enable(True)
+		self.pan_ginputs.Enable(True)
+		self.pan_ginputs.species.SetChecked([0])
+		fp = self.pan_ginputs.setForcingPanel('Mortality/Marginal Damage')
+		fp.beta.SetValue(str(0.000427))
+		fp.mortality_fname.path=conc_dir + '/DOMAIN_POP_BMR'
+		fp.mortality_var.SetValue('BMR')
+		fp.pop_fname.path=fp.mortality_fname.path
+		fp.pop_var.SetValue('POP')
+
 	def onKeyCombo(self, event):
 		self.Close()
 
@@ -485,7 +508,7 @@ class OutputPanel(wx.Panel):
 		input_width=parent.col1_width-tmp.GetSize()[0]
 
 		sizer.Add(wx.StaticText(self, label="Path:"))
-		self.outputPathCtrl = wx.TextCtrl(self, value=os.getcwd(), size=(input_width,-1))
+		self.outputPathCtrl = wx.TextCtrl(self, value=os.getcwd() + "/output/", size=(input_width,-1))
 		sizer.Add(self.outputPathCtrl)
 
 		sizer.Add(tmp)
@@ -644,13 +667,12 @@ class GeneralInputsPanel(wx.Panel):
 		sizerTexts.Add(self.timezone_fname)
 
 
-
 		# Forcing Options
 		sizerTexts.Add(wx.StaticText(self, label="Forcing Function:"))
 
 		options = self.parent.fpm.getNames()
 		self.forcing = wx.ComboBox(self, value="Choose", choices=options, size=(input_width, -1), style=wx.CB_READONLY)
-		self.Bind(wx.EVT_COMBOBOX, self.chooseForce, self.forcing)
+		self.Bind(wx.EVT_COMBOBOX, self.chooseForce)
 
 		sizerTexts.Add(self.forcing)
 
@@ -674,9 +696,17 @@ class GeneralInputsPanel(wx.Panel):
 		item_id = event.GetSelection()
 		item = self.forcing.GetValue()
 
+		self.setForcingPanel(item)
+		pass
+
+	def setForcingPanel(self, forcing_name):
+		""" This code was broken off of the above 'chooseForce' simply so I could set the panel
+		without creating a fake event or anything.  This function removes the current forcing
+		panel and replaces it with the one specified by forcing_name """
+
 		# Get an object for this panel
 		oldPanForce=self.parent.pan_force
-		newPanForce=ForcingPanelManager.factory(item, self.parent)
+		newPanForce=ForcingPanelManager.factory(forcing_name, self.parent)
 
 		sizer=self.parent.forcingSizer
 		panel_id=1
@@ -697,10 +727,12 @@ class GeneralInputsPanel(wx.Panel):
 		#self.parent.Fit()
 		self.parent.Update()
 
-		self.parent.debug('Chose forcing: [%s]' % item)
+		self.parent.debug('Chose forcing: [%s]' % forcing_name)
 
 		# Enable run button
 		self.parent.runbtn.Enable(True)
+
+		return newPanForce
 
 	def Enable(self, doEnable):
 		""" When enabled, populate stuff that was waiting on a concentration file """

@@ -262,7 +262,8 @@ class ForceOnMortality(ForceOnAverageConcentration):
 	# Gridded baseline mortality file
 	_mortality_fname = None
 	_mortality_var = None
-	def SetMortality(fname, var):
+
+	def SetMortality(self, fname, var):
 		""" Provide a gridded NetCDF file name and variable name.  This will
 		save the info for later reading. """
 
@@ -272,7 +273,8 @@ class ForceOnMortality(ForceOnAverageConcentration):
 	# Gridded populated mortality file
 	_pop_fname = None
 	_pop_var = None
-	def SetPop(fname, var):
+
+	def SetPop(self, fname, var):
 		""" Provide a gridded NetCDF file name and variable name.  This will
 		save the info for later reading. """
 
@@ -338,7 +340,9 @@ class ForceOnMortality(ForceOnAverageConcentration):
 
 		# (mfld * pfld) is element wise multiplication, not matrix multiplication
 		# Take leap years into account?
-		self.timeInvariantScalarMultiplcativeFld = (mfld/10^6)/365 * pfld * vsl * beta
+		self.timeInvariantScalarMultiplcativeFld = (mfld/10^6)/365 * pfld * beta
+		if self.vsl is not None:
+			self.timeInvariantScalarMultiplcativeFld = self.timeInvariantScalarMultiplcativeFld * self.vsl
 
 
 class ForcingException(Exception):

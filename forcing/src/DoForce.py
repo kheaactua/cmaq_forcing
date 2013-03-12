@@ -1,4 +1,6 @@
+# Maybe I should use the netcdf4 package?
 from Scientific.IO.NetCDF import NetCDFFile
+
 from numpy import shape
 import os
 import numpy as np
@@ -384,7 +386,7 @@ class Forcing(object):
 		if maskf is not None:
 			try:
 				f=NetCDFFile(maskf, 'r')
-				print "Opened spacial mask file %s"%maskf
+				#print "Opened spacial mask file %s"%maskf
 				var = f.variables[variable]
 				mask=var.getValue()[0][0]
 				self.space = mask==value
@@ -655,11 +657,13 @@ class Forcing(object):
 		   Writable NetCDF File
 		"""
 
+		c=bc()
+
 		# fpath should not exist
 		if os.path.exists(fpath):
 			# TEMP, remove
 			os.remove(fpath)
-			#print "Deleted %s !"%fpath
+			print "%sDeleted %s%s!"%(c.green, fpath, c.clear)
 			#raise IOError("%s already exists."%fpath)
 
 		#print "Opening %s for writing"%fpath
@@ -676,17 +680,21 @@ class Forcing(object):
 		for s in species:
 			try:
 				var = force.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
-				var.assignValue(np.zeros((self.nt,self.nk,self.nj,self.ni), dtype=np.float32))
-			except IOError as ex:
-				print "Writing error trying to create variable %s in today's file"%s, ex
+				z=np.zeros((self.nt,self.nk,self.nj,self.ni), dtype=np.float32)
+				var.assignValue(z)
+			except (IOError, ValueError) as ex:
+				print "%sWriting error %s%s when trying to create variable %s (%sTSTEP=%d, LAY=%d, ROW=%d, COL=%d%s)=%s%s%s in today's file.\n"%(c.red, type(ex), c.clear, s, c.blue, self.nt, self.nk, self.nj, self.ni, c.clear, c.orange, str(z.shape), c.clear), ex
 				print "Current variable names: %s\n"%(" ".join(map(str, force.variables.keys())))
 
 		# Copy over TFLAG
 		vsrc = conc.variables['TFLAG']
 		force.createVariable('TFLAG', 'i', ('TSTEP', 'VAR', 'DATE-TIME'))
 		vdest = force.variables['TFLAG']
-		#print "shape(vsrc)=%s, shape(vdest)=%s"%(str(vsrc.shape), str(vdest.shape))
-		vdest.assignValue(vsrc.getValue())
+		try:
+			vdest.assignValue(vsrc.getValue())
+		except (IOError, ValueError) as ex:
+			print "%sWriting error %s%s when trying to write TFLAG variable"%(c.red, type(ex), c.clear)
+			print "%sshape(vsrc)=%s, shape(vdest)=%s%s"%(c.cyan, str(vsrc.shape), str(vdest.shape), c.clear)
 
 
 		## Fix geocode data
