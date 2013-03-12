@@ -2,6 +2,7 @@
 import os
 import numpy as np
 from Scientific.IO.NetCDF import NetCDFFile
+from datetime import date
 
 # Read in dimensions from a sample concentration
 #...
@@ -33,7 +34,15 @@ for d in range(sdate, edate):
 	conc.createDimension('VAR',   len(species))
 	conc.createDimension('DATE-TIME', 2)
 
-	setattr(conc, 'SDATE', d)
+	# This is a julian date...
+	year  = int(str(d)[:4])
+	month = int(str(d)[4:6])
+	day   = int(str(d)[6:])
+	date_base = date(year, 1, 1)
+	date_act  = date(year, month, day)
+	jday      = (date_act - date_base).days
+	jdate=str(year)+str(jday+1)
+	setattr(conc, 'SDATE', jdate)
 
 	# Create tflag
 	var=conc.createVariable('TFLAG', 'i', ('TSTEP', 'VAR', 'DATE-TIME'))
