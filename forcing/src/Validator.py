@@ -61,9 +61,12 @@ class ForcingValidator:
 		if not hasattr(self.conc, 'SDATE'):
 			raise IOError("Sample concentration file does not seem to be a proper I/O Api file.")
 
-		sdate=getattr(self.conc, 'SDATE')
-		year=int(str(sdate)[:4])
-		jday=int(str(sdate)[4:])
+		sdate=str(getattr(self.conc, 'SDATE'))
+		# Sometimes sdate has brackets around it
+		if sdate[0] == "[" and sdate[-1] == "]":
+			sdate=sdate[1:-1]
+		year=int(sdate[:4])
+		jday=int(sdate[4:])
 
 		date = datetime.date(year, 1, 1)
 		days = datetime.timedelta(days=jday-1) # -1 because we started at day 1
