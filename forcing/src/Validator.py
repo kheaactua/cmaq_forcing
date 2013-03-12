@@ -122,6 +122,8 @@ class ForcingValidator:
 			# Select case basically
 			if var in ['O3', 'NO', 'NO2']:
 				pri_vars.append(var)
+			elif var == "TFLAG":
+				continue
 			else:
 				normal_vars.append(var)
 

@@ -172,6 +172,8 @@ class ForcingPanelWithAveraging(ForcingPanel):
 
 		atdescription = wx.StaticText(self, size=(self.top.col2_width, -1),
 		   label="This option finds the maximum X-hr average in a day and applies the forcing term to hours in that X-hr block.  Timezones are taken into account if input.")
+		atdescription.Wrap(self.top.col2_width*.95)
+		sizer.Add(atdescription)
 
 		sizerCombos.Add(lblAvg)
 		sizerCombos.Add(lbltimes)

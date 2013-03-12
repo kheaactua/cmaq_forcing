@@ -625,7 +625,7 @@ class Forcing(object):
 			# endif dryrun
 
 			# Perform a call back to update the progress
-			progress_callback(float(conc_idx)/len(self.conc_files), conc_files[conc_idx])
+			progress_callback(float(conc_idx)/len(conc_files), self.conc_files[conc_idx-1])
 
 		# endfor days loop (day1, day2, day3, ...)
 
@@ -672,7 +672,7 @@ class Forcing(object):
 			species = self.species
 
 		# Create the variables we'll be writing to
-		print "Working on %s"%fpath
+		print "Initializing %s"%fpath
 		for s in species:
 			try:
 				var = force.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
@@ -1129,4 +1129,3 @@ class Forcing(object):
 		tomorrow = forcing[Forcing.dayLen*2:Forcing.dayLen*3]
 
 		return yesterday, today, tomorrow
-

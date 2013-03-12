@@ -80,7 +80,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 
 		#print "222 Self.species: ", self.species
 		#print "Initializing flds dict"
-		flds={'yesterday': fld_empty, 'today': fld_empty.copy(), 'tomorrow': fld_empty.copy}
+		flds={'yesterday': fld_empty, 'today': fld_empty.copy(), 'tomorrow': fld_empty.copy()}
 
 
 		# This is NOT efficient.  Could probably easily make it
@@ -114,8 +114,8 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 			## Remove the 25th timestep
 			#data_shape=(data_yest.shape[0]-1, data_yest.shape[1], data_yest.shape[2], data_yest.shape[3])
 			fld_yest  = np.zeros(data_yest.shape, dtype=np.float32)
-			fld_today = fld_yest.copy
-			fld_tom   = fld_yest.copy
+			fld_today = fld_yest.copy()
+			fld_tom   = fld_yest.copy()
 
 			#print "Initialized fld_today with shape=", fld_today.shape
 
@@ -173,14 +173,6 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 							if self.timeInvariantScalarMultiplcativeFld is not None:
 								scalar = self.timeInvariantScalarMultiplcativeFld[j][i]
 							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar)
-							#print "i=%d,j=%d, avg fvec[%d]   = %s"%(i,j,len(forcing_vectors['today'])," ".join(map(str, forcing_vectors['today'])))
-
-							# Now, write these out to the flds
-							#print "Shape(fld_yest): ", fld_yest.shape, ", shape(forcing_vectors['yesterday']): ", forcing_vectors['yesterday'].shape
-							#print "yesterday: ", forcing_vectors['yesterday']
-							#print "len(yesterday) : ", len(forcing_vectors['yesterday'])
-							#print "len(today) : ", len(forcing_vectors['today'])
-							#print "len(tomorrow) : ", len(forcing_vectors['tomorrow'])
 
 							fld_yest[:self.nt-1,k,j,i]  = yesterday[:self.nt-1]
 							fld_today[:self.nt-1,k,j,i] = today[:self.nt-1]

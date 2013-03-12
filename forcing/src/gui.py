@@ -167,15 +167,27 @@ class ForcingFrame(wx.Frame):
 		#self.Layout()
 
 		# TEMP!
-		conc_dir = os.getcwd() + '/dena/'
+#		conc_dir = os.getcwd() + '/dena/'
+#		self.pan_input.inputPathCtrl.SetValue(conc_dir)
+#		self.pan_output.outputPathCtrl.SetValue(os.getcwd() + '/output/')
+#		self.validator = ForcingValidator(conc_dir + 'CCTM_fwdACONC.20070910')
+#		self.date_min  = date(2007,9,10)
+#		self.date_max  = date(2007,9,11)
+		conc_dir = os.getcwd() + '/basic_concentrations/'
 		self.pan_input.inputPathCtrl.SetValue(conc_dir)
 		self.pan_output.outputPathCtrl.SetValue(os.getcwd() + '/output/')
-		self.validator = ForcingValidator(conc_dir + 'CCTM_fwdACONC.20070910')
-		self.date_min  = date(2007,9,10)
-		self.date_max  = date(2007,9,11)
+		self.validator = ForcingValidator(conc_dir + 'CCTM.20050505')
+		self.date_min  = date(2005,5,5)
+		self.date_max  = date(2005,5,7)
+		#self.pan_ginputs.species.SetFirstItem(1)
+		#self.pan_ginputs.species.SetChecked(['O3'])
+
 		self.debug("Setting min date to sample conc date, i.e. %s"%self.date_min)
 		print "type(self.date_min) = %s "%(type(self.date_min))
 		self.pan_ginputs.Enable(True)
+
+		# TEMP
+		self.pan_ginputs.species.SetChecked([0])
 
 	def onKeyCombo(self, event):
 		self.Close()
@@ -281,7 +293,7 @@ class ForcingFrame(wx.Frame):
 		event.Skip()
 
 	#@staticmethod
-	def SimpleProgress(self, prog, filename):
+	def SimpleProgress(self, prog, dfile):
 		""" Simple file to output progress to the logging pane
 
 		Keyword Arguments:
@@ -289,11 +301,11 @@ class ForcingFrame(wx.Frame):
 		prog:*float*
 		   Percentage of files processed
 
-		filename:*Datafile*
+		dfile:*Datafile*
 		   The file currently being worked on
 		"""
 
-		self.info("Progress: %f, file: %s"%(prog, filename.name))
+		self.info("Progress: %f, file: %s"%(prog, dfile.name))
 		
 
 	def runForce(self, event):
@@ -547,7 +559,7 @@ class GeneralInputsPanel(wx.Panel):
 		else:
 			species_list = []
 		self.species = wx.CheckListBox(self, size=(input_width, 4*dline), choices=species_list)
-		self.Bind(wx.EVT_CHECKLISTBOX, self.choseSpecies, self.species)
+		self.Bind(wx.EVT_CHECKLISTBOX, self.choseSpecies)
 
 
 		# Layer mask
