@@ -47,7 +47,7 @@ def ProgressBarCLI(prog, filename):
 
 if args.cli:
 
-	setup=3
+	setup=1
 
 	if setup==0:
 		fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
@@ -58,7 +58,7 @@ if args.cli:
 		fc = f.ForceOnAverageConcentration(sample_conc='basic_concentrations/CCTM.20050505')
 		fc.conc_path = os.getcwd() + '/basic_concentrations/'
 		date_min = dateE(2005,05,05)
-		date_max = dateE(2005,05,05)
+		date_max = dateE(2005,05,07)
 	elif setup==2:
 		fc = f.ForceOnAverageConcentration(sample_conc='/mnt/mediasonic/opt/output/base/CCTM_fwdACONC.20070501')
 		date_min = dateE(2007,05,01)
@@ -82,7 +82,7 @@ if args.cli:
 	fc.species=['O3']
 
 	# These two are default values
-	#fc.outputFormat = 'Forcing.TYPE.YYYYMMDD'
+	#fc.outputFormat = 'Force.TYPE.YYYYMMDD'
 	#fc.outputPath=os.getcwd() + 'output/'
 
 	if setup==0:

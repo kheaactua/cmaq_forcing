@@ -179,8 +179,7 @@ class ForcingFrame(wx.Frame):
 		self.validator = ForcingValidator(conc_dir + 'CCTM.20050505')
 		self.date_min  = date(2005,5,5)
 		self.date_max  = date(2005,5,7)
-		#self.pan_ginputs.species.SetFirstItem(1)
-		#self.pan_ginputs.species.SetChecked(['O3'])
+		self.pan_ginputs.timezone_fname.path = conc_dir + 'timezones.nc'
 
 		self.debug("Setting min date to sample conc date, i.e. %s"%self.date_min)
 		print "type(self.date_min) = %s "%(type(self.date_min))
@@ -231,6 +230,22 @@ class ForcingFrame(wx.Frame):
 	@property
 	def outputFormat(self):
 		return self.pan_output.outputFormatCtrl.GetValue()
+
+	@property
+	def spacialmask_fname(self):
+		return self.pan_ginputs.spacialmask_fname.path
+
+	@property
+	def spacialmask_var(self):
+		return self.pan_ginputs.spacialmask_var.GetValue()
+
+	@property
+	def spacialmask_val(self):
+		return self.pan_ginputs.spacialmask_val.GetValue()
+
+	@property
+	def timezone_fname(self):
+		return self.pan_ginputs.timezone_fname.path
 
 	""" Logging Methods """
 	def log(self, msg, level):
@@ -539,7 +554,7 @@ class GeneralInputsPanel(wx.Panel):
 
 		sizerMain = wx.BoxSizer(wx.VERTICAL)
 		sizerCombos = wx.FlexGridSizer(rows=2, cols=2, vgap=10, hgap=10)
-		sizerTexts = wx.FlexGridSizer(rows=3, cols=2, vgap=10, hgap=5)
+		sizerTexts = wx.FlexGridSizer(rows=1, cols=2, vgap=10, hgap=5)
 		sizerFormat = wx.FlexGridSizer(rows=1, cols=3, hgap=10)
 		
 		dline=18
@@ -583,21 +598,38 @@ class GeneralInputsPanel(wx.Panel):
 		sizerMain.Add(sizerCombos)
 
 		# Shape file masks
-		lblmask=wx.StaticText(self, label="Special Mask (shapefile)\n(not implemented):")
-		self.mask = wx.TextCtrl(self, value="Mask file", size=(input_width,-1))
-		self.mask.Enable(False)
+		spacialSizer = wx.FlexGridSizer(rows=2, cols=3, vgap=1, hgap=5)
 
-		sizerTexts.Add(lblmask)
-		sizerTexts.Add(self.mask)
+		spacialSizer.Add(wx.StaticText(self, label="Spacial Mask:"))
+		spacialSizer.Add(wx.StaticText(self, label="Variable"))
+		spacialSizer.Add(wx.StaticText(self, label="Value"))
+
+		self.spacialmask_fname = SingleFileChooser(self, label="Spacial Mask File", name="specialmask_fname", fname="Spacial Mask", fmessage="Choose gridded spacial mask NetCDF file")
+		spacialSizer.Add(self.spacialmask_fname)
+
+		self.spacialmask_var = wx.TextCtrl(self, value='USA', size=(50,-1))
+		spacialSizer.Add(self.spacialmask_var)
+
+		self.spacialmask_val = wx.TextCtrl(self, value='2', size=(30,-1))
+		spacialSizer.Add(self.spacialmask_val)
+
+		sizerMain.AddSpacer(10)
+		sizerMain.Add(spacialSizer)
+
+		# Timezone
+		sizerTexts.Add(wx.StaticText(self, label="Timezones:"))
+		self.timezone_fname = SingleFileChooser(self, label="Timezone File", name="timezone_fname", fname="Timezone", fmessage="Choose gridded timezone NetCDF file")
+		sizerTexts.Add(self.timezone_fname)
+
+
 
 		# Forcing Options
-		lblforce=wx.StaticText(self, label="Forcing Function:")
+		sizerTexts.Add(wx.StaticText(self, label="Forcing Function:"))
 
 		options = self.parent.fpm.getNames()
 		self.forcing = wx.ComboBox(self, value="Choose", choices=options, size=(input_width, -1), style=wx.CB_READONLY)
 		self.Bind(wx.EVT_COMBOBOX, self.chooseForce, self.forcing)
 
-		sizerTexts.Add(lblforce)
 		sizerTexts.Add(self.forcing)
 
 		## A button

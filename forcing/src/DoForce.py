@@ -41,7 +41,7 @@ class Forcing(object):
 		   f.setAveraging("Max 8 hr")
 
 		   # Set up output parameters
-		   fc.outputFormat = 'Forcing.TYPE.YYYYMMDD'
+		   fc.outputFormat = 'Force.TYPE.YYYYMMDD'
 		   f.outputPath=os.getcwd() + 'output/'
 
 		   # Set up time zones
@@ -68,7 +68,7 @@ class Forcing(object):
 	dayLen=24
 
 	# Output file name format
-	outputFormat = 'Forcing.TYPE.YYYYMMDD'
+	outputFormat = 'Force.TYPE.YYYYMMDD'
 
 	# Output path
 	_outputPath = None
@@ -378,15 +378,17 @@ class Forcing(object):
 		   The masking value of the mask
 		"""
 
-		try:
-			f=NetCDFFile(maskf, 'r')
-			var = f.variables[variable]
-			mask=var.getValue()[0][0]
-			self.space = mask==value
-			f.close()
-		except Exception as ex:
-			print "Something went wrong masking space\n", ex
-			raise
+		if maskf is not None:
+			try:
+				f=NetCDFFile(maskf, 'r')
+				print "Opened spacial mask file %s"%maskf
+				var = f.variables[variable]
+				mask=var.getValue()[0][0]
+				self.space = mask==value
+				f.close()
+			except Exception as ex:
+				print "Something went wrong masking space\n", ex
+				raise
 
 
 
@@ -408,8 +410,10 @@ class Forcing(object):
 
 		if debug:
 			c = bc()
-			debug_i=72
-			debug_j=19
+			#debug_i=72
+			#debug_j=19
+			debug_i=1
+			debug_j=1
 
 			def printVec(vec, c, cstr):
 				red=c.red
@@ -614,13 +618,6 @@ class Forcing(object):
 
 					# In species loop
 					idx_s = idx_s + 1
-
-	#			# Sync netcdf files
-	#			if force_yest is not None:
-	#				force_yest.sync()
-	#			force_today.sync()
-	#			if force_tom is not None:
-	#				force_tom.sync()
 
 			# endif dryrun
 
@@ -1114,7 +1111,7 @@ class Forcing(object):
 		# Reverse the timezone shift
 		max_idx = max_idx - timezone
 
-		if forcingValue == None:
+		if forcingValue is None:
 			#forcingValue=float(1)/winLen
 			forcingValue=1
 

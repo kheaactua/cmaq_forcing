@@ -301,6 +301,8 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		# General inputs
 		fc.maskLayers(top.layers)
 		fc.species = top.species
+		fc.maskSpace(top.spacialmask_fname, top.spacialmask_var, top.spacialmask_val)
+		fc.griddedTimeZone = top.timezone_fname
 
 		# Custom inputs
 		fc.setAveraging(self.avgoption)
@@ -323,11 +325,13 @@ class ForcingPanelAverageConcentration(ForcingPanelWithAveraging):
 		fc.loadConcentrationFiles(concs)
 
 		# Debug..
-		top.debug("Starting %s with files %s"%(type(fc), " ".join(map(str, concs))))
+		top.debug("Starting %s with files %s.\nTimezones=%s\nSpacial Mask File=%s"%(type(fc), " ".join(map(str, concs)), fc.griddedTimeZone, top.spacialmask_fname))
 
 		#
 		# Produce the forcing fields
+		top.info("Processing ....")
 		fc.produceForcingField(top.SimpleProgress)
+		top.info("Done!")
 
 class ForcingPanelMortality(ForcingPanelWithAveraging):
 	# The name of the forcing function

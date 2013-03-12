@@ -173,6 +173,9 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 							if self.timeInvariantScalarMultiplcativeFld is not None:
 								scalar = self.timeInvariantScalarMultiplcativeFld[j][i]
 							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar)
+							#print "Yest: ", yesterday
+							#print "Toda: ", today
+							#print "Tomo: ", tomorrow
 
 							fld_yest[:self.nt-1,k,j,i]  = yesterday[:self.nt-1]
 							fld_today[:self.nt-1,k,j,i] = today[:self.nt-1]
