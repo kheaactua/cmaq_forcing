@@ -139,7 +139,9 @@ class Forcing(object):
 
 		# Set a default mask of everything
 		# Note it's transposed, as that's how netcdf saves it
-		self.space=np.ones((self.nj,self.ni))
+		# Probably be more efficient to initialize this to boolean values rather
+		# than converting it.. but can't seem to find out how to do that. 
+		self.space=np.ones((self.nj,self.ni)) == 1
 
 		# Set up default timezones incase they aren't given.  Set everything
 		# to 0
