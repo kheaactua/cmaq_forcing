@@ -1,6 +1,6 @@
 import wx
 import ForcingFunctions as ff
-from DoForce import Forcing
+from DoForce import Forcing, BadSampleConcException
 from extendedClasses import HelpLink, SingleFileChooser
 
 # Just for debugging
@@ -146,6 +146,8 @@ class ForcingPanel(wx.Panel):
 		except IOError as e:
 			top.error("Encountered an I/O Error.\n%s"%str(e))
 			print e
+		except BadSampleConcException as e:
+			self.top.error(e)
 
 	@staticmethod
 	def ProcessCLI():
