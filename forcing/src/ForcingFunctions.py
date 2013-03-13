@@ -146,9 +146,9 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 						# cell.  Unfortunately, the data is organized in the 
 						# opposite way as we want (time is the top index..)
 						if do_averaging:
-							vec_yest  = data_yest[:self.nt-1,k,j,i]
-							vec_today = data_today[:self.nt-1,k,j,i]
-							vec_tom   = data_tom[:self.nt-1,k,j,i]
+							vec_yest  = data_yest[:Forcing.dayLen,k,j,i]
+							vec_today = data_today[:Forcing.dayLen,k,j,i]
+							vec_tom   = data_tom[:Forcing.dayLen,k,j,i]
 
 							# Prepares a vector of values with respect to the
 							# direction we're going to calculate the average
@@ -172,9 +172,9 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar)
 
 
-							fld_yest[:self.nt-1,k,j,i]  = yesterday[:self.nt-1]
-							fld_today[:self.nt-1,k,j,i] = today[:self.nt-1]
-							fld_tom[:self.nt-1,k,j,i]   = tomorrow[:self.nt-1]
+							fld_yest[:Forcing.dayLen,k,j,i]  = yesterday[:Forcing.dayLen]
+							fld_today[:Forcing.dayLen,k,j,i] = today[:Forcing.dayLen]
+							fld_tom[:Forcing.dayLen,k,j,i]   = tomorrow[:Forcing.dayLen]
 
 						elif self.averaging == 'AVG_MASK' or self.averaging == 'AVG_NONE':
 # NOT YET TESTED
