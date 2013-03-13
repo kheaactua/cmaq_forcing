@@ -344,9 +344,3 @@ class ForceOnMortality(ForceOnAverageConcentration):
 		if self.vsl is not None:
 			self.timeInvariantScalarMultiplcativeFld = self.timeInvariantScalarMultiplcativeFld * self.vsl
 
-
-class ForcingException(Exception):
-	pass
-
-class NoSpeciesException(ForcingException):
-	pass

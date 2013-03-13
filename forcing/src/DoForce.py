@@ -332,7 +332,7 @@ class Forcing(object):
 			if avg==t[1]:
 				self.averaging=t[0]
 
-		print "Set averaging to %s"%self.averaging
+		#print "Set averaging to %s"%self.averaging
 		# Should probably raise an exception if it's not found		
 
 
@@ -383,16 +383,20 @@ class Forcing(object):
 		   The masking value of the mask
 		"""
 
+		c = bc()
 		if maskf is not None:
 			try:
 				f=NetCDFFile(maskf, 'r')
-				#print "Opened spacial mask file %s"%maskf
+				#print "\n%sOpened spacial mask file %s, variable=%s, val=%s%s\n"%(c.yellow, maskf, variable, value, c.clear)
 				var = f.variables[variable]
 				mask=var.getValue()[0][0]
+				#print "type(mask)=%s, mask.shape=%s"%(type(mask), mask.shape)
 				self.space = mask==value
+				if type(self.space) != type(mask):
+					print "%sError! self.space's type changed to %s%s"%(c.red, type(self.space), c.clear)
 				f.close()
 			except Exception as ex:
-				print "Something went wrong masking space\n", ex
+				print "%sSomething went wrong masking space: %s%s"%(c.red, ex, c.clear)
 				raise
 
 
@@ -456,7 +460,7 @@ class Forcing(object):
 
 			# Open the concentration file
 			try:
-				print "conc_datafile.path=%s"%conc_datafile.path
+				#print "conc_datafile.path=%s"%conc_datafile.path
 				conc = NetCDFFile(conc_datafile.path, 'r')
 			except IOError as ex:
 				print "Error!  Cannot open concentration file %s"%(conc_datafile.name)
@@ -686,8 +690,9 @@ class Forcing(object):
 			# Pointless try loop for now, but I'll add to it later if needed.
 			raise
 
-		if var.shape != (self.nt, self.nk, self.nj, self.ni):
-			raise BadSampleConcException("Input file's dimensions not not match those of the sample concentration file!  Cannot continue.")
+		if var.shape[0] != self.nt:
+			#print "conc.shape = %s, sample.shape = %s"%(str(var.shape), str((self.nt, self.nk, self.nj, self.ni)))
+			raise BadSampleConcException("Input file's dimensions (time steps) not not match those of the sample concentration file!  Cannot continue.")
 
 		# Create the variables we'll be writing to
 		print "Initializing %s"%fpath
@@ -820,7 +825,6 @@ class Forcing(object):
 
 		if date_min!=None and not isinstance(date_min, date):
 			raise TypeError("Minimum date may either be None or a DateTime")
-			#raise TypeError("Minimum date may either be None or a date, currently %s, type(date_min)=%s, isinstance(date_min, date)=%s"%(datetime, type(date_min), isinstance(date_min, date)))
 		if date_max!=None and not isinstance(date_max, date):
 			raise TypeError("Maximum date may either be None or a DateTime")
 
@@ -838,6 +842,7 @@ class Forcing(object):
 		cfiles=[]
 
 		for f in files:
+			#print "Does %s match?"%f
 			if re.search(reg, f):
 				#print "%s matches"%f
 				df=DataFile(f, path=path+f, file_format=file_format)

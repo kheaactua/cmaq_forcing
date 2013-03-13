@@ -44,8 +44,6 @@ class ForcingFrame(wx.Frame):
 	# File formats
 	inputFormatDefault = "CCTM_fwdACONC*YYYYMMDD"
 	outputFormatDefault = "Force.TYPE.YYYYMMDD"
-	_inputFormat = "CCTM*YYYYMMDD"
-	_outputFormat = "Force.TYPE.YYYYMMDD"
 
 	# Paths
 	inputPath = None
@@ -204,6 +202,8 @@ class ForcingFrame(wx.Frame):
 		self.pan_ginputs.spacialmask_var.SetValue('USA')
 		self.pan_ginputs.spacialmask_val.SetValue(str(2))
 
+		self.pan_input.Enable(True)
+		self.pan_output.Enable(True)
 		self.pan_dates.Enable(True)
 		self.pan_ginputs.Enable(True)
 		self.pan_ginputs.species.SetChecked([0])
@@ -246,8 +246,7 @@ class ForcingFrame(wx.Frame):
 
 	@property
 	def inputFormat(self):
-		_inputFormat=self.pan_input.inputFormatCtrl.GetValue()
-		return self._inputFormat
+		return self.pan_input.inputFormatCtrl.GetValue()
 
 	@property
 	def outputPath(self):
@@ -580,10 +579,10 @@ class DatePanel(wx.Panel):
 		if d != None:
 			sdate.Set(d.day, d.month-1, d.year)
 		if mm:
-			print "Received %s, Setting date_max to %s"%(d, sdate)
+			#print "Received %s, Setting date_max to %s"%(d, sdate)
 			self.date_max.SetValue(sdate)
 		else:
-			print "Received %s, Setting date_min to %s"%(d, sdate)
+			#print "Received %s, Setting date_min to %s"%(d, sdate)
 			self.date_min.SetValue(sdate)
 
 

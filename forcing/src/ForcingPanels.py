@@ -107,7 +107,12 @@ class ForcingPanel(wx.Panel):
 			   wx.OK | wx.ICON_INFORMATION)
 			return
 		fc.species = top.species
-		fc.maskSpace(top.spacialmask_fname, top.spacialmask_var, top.spacialmask_val)
+		try:
+			spacialmask_val = int(top.spacialmask_val)
+		except ValueError:
+			top.error("Was not able to interpret special mask variable value as an integer.")
+			return
+		fc.maskSpace(top.spacialmask_fname, top.spacialmask_var, spacialmask_val)
 		fc.griddedTimeZone = top.timezone_fname
 
 		# Inputs
@@ -124,7 +129,7 @@ class ForcingPanel(wx.Panel):
 		   date_min=top.date_min, date_max=top.date_max)
 
 		# Debug..
-		top.debug("Starting %s with files %s.\nTimezones=%s\nSpacial Mask File=%s\nAveraging: %s\nDate Range: %s %s\nInput Path: %s\nInput format: %s\nNo. of files found: %d"%(type(fc), " ".join(map(str, concs)), fc.griddedTimeZone, top.spacialmask_fname, fc.averaging, top.date_min, top.date_max, inputPath, inputFormat, len(concs)))
+		top.debug("Starting %s with files %s.\nFormat: %s\nTimezones=%s\nSpacial Mask File=%s\nAveraging: %s\nDate Range: %s %s\nInput Path: %s\nInput format: %s\nNo. of files found: %d"%(type(fc), " ".join(map(str, concs)), inputFormat, fc.griddedTimeZone, top.spacialmask_fname, fc.averaging, top.date_min, top.date_max, inputPath, inputFormat, len(concs)))
 
 
 		if len(concs) == 0:
