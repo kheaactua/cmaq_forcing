@@ -413,8 +413,8 @@ class Forcing(object):
 
 		"""
 
+		c = bc()
 		if debug:
-			c = bc()
 			#debug_i=72
 			#debug_j=19
 			debug_i=1
@@ -456,6 +456,7 @@ class Forcing(object):
 
 			# Open the concentration file
 			try:
+				print "conc_datafile.path=%s"%conc_datafile.path
 				conc = NetCDFFile(conc_datafile.path, 'r')
 			except IOError as ex:
 				print "Error!  Cannot open concentration file %s"%(conc_datafile.name)
@@ -468,6 +469,9 @@ class Forcing(object):
 				print "Error! %s already exists.  Please remove the forcing file and try again."%force_path
 				# HACK TEMP, remove
 				os.remove(force_path)
+			except BadSampleConcException as ex:
+				print "%sError!%s %s"%(c.red, c.clear, ex)
+				raise
 
 			# Clean up and close the files
 			conc.close()
@@ -675,6 +679,16 @@ class Forcing(object):
 		if species is None:
 			species = self.species
 
+		# First, check the sample concentration file vs the concentration file
+		try:
+			var = conc.variables['TFLAG'].getValue()
+		except IOError as e:
+			# Pointless try loop for now, but I'll add to it later if needed.
+			raise
+
+		if var.shape != (self.nt, self.nk, self.nj, self.ni):
+			raise BadSampleConcException("Input file's dimensions not not match those of the sample concentration file!  Cannot continue.")
+
 		# Create the variables we'll be writing to
 		print "Initializing %s"%fpath
 		for s in species:
@@ -687,14 +701,16 @@ class Forcing(object):
 				print "Current variable names: %s\n"%(" ".join(map(str, force.variables.keys())))
 
 		# Copy over TFLAG
-		vsrc = conc.variables['TFLAG']
+		vsrc = conc.variables['TFLAG'].getValue()
+
 		force.createVariable('TFLAG', 'i', ('TSTEP', 'VAR', 'DATE-TIME'))
 		vdest = force.variables['TFLAG']
 		try:
-			vdest.assignValue(vsrc.getValue())
+			vdest.assignValue(vsrc)
 		except (IOError, ValueError) as ex:
 			print "%sWriting error %s%s when trying to write TFLAG variable"%(c.red, type(ex), c.clear)
 			print "%sshape(vsrc)=%s, shape(vdest)=%s%s"%(c.cyan, str(vsrc.shape), str(vdest.shape), c.clear)
+			raise
 
 
 		## Fix geocode data
@@ -1147,3 +1163,14 @@ class Forcing(object):
 		tomorrow  = forcing[Forcing.dayLen*2:Forcing.dayLen*3]
 
 		return yesterday, today, tomorrow
+
+
+
+class ForcingException(Exception):
+	pass
+
+class NoSpeciesException(ForcingException):
+	pass
+
+class BadSampleConcException(ForcingException):
+	pass
