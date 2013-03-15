@@ -1,5 +1,5 @@
 #from Scientific.IO.NetCDF import NetCDFFile
-import netCDF4 as NetCDFFile
+from netCDF4 import Dataset
 import dateutil.parser as dparser
 from datetime import date
 import wx, os

@@ -1,5 +1,5 @@
 #from Scientific.IO.NetCDF import NetCDFFile
-import netCDF4 as NetCDFFile
+from netCDF4 import Dataset
 from DoForce import Forcing
 import numpy as np
 
@@ -44,7 +44,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 		  Index of concentration file in self.conc_files.  Done this way
 		  so that it's easy to access yesterday's and tomorrow's files.
 
-		conc_ and force_:*NetCDFFile*
+		conc_ and force_:*NetCDFFile* - *Dataset* (NetCDF4)
 		   NetCDF files
 
 		Returns:
@@ -294,7 +294,7 @@ class ForceOnMortality(ForceOnAverageConcentration):
 
 		# Open the mortality file
 		try:
-			mortality = NetCDFFile(self._mortality_fname, 'r')
+			mortality = Dataset(self._mortality_fname, 'r')
 		except IOError as ex:
 			print "Error!  Cannot open mortality file %s"%(self._mortality_fname)
 			raise
@@ -315,7 +315,7 @@ class ForceOnMortality(ForceOnAverageConcentration):
 
 			# Open the population file
 			try:
-				pop = NetCDFFile(self._pop_fname, 'r')
+				pop = Dataset(self._pop_fname, 'r')
 			except IOError as ex:
 				print "Error!  Cannot open population file %s"%(self._pop_fname)
 				raise

@@ -1,7 +1,8 @@
-#!/usr/bin/env python
+#! /usr/local/bin/python2.6
 import os
 import numpy as np
-from Scientific.IO.NetCDF import NetCDFFile
+#from Scientific.IO.NetCDF import NetCDFFile
+from netCDF4 import Dataset 
 from datetime import date
 
 # Read in dimensions from a sample concentration
@@ -25,7 +26,7 @@ for d in range(sdate, edate):
 		os.remove(fpath)
 
 	#print "Opening %s for writing"%fpath
-	conc = NetCDFFile(fpath, 'a')
+	conc = Dataset(fpath, 'w', format='NETCDF4')
 
 	conc.createDimension('TSTEP', nt)
 	conc.createDimension('LAY',   nk)
@@ -50,7 +51,7 @@ for d in range(sdate, edate):
 	for h in range(0,25):
 		dts[h]=[d, h*10000]
 	#print "dts.shape=", dts.shape
-	var.assignValue(dts)
+	var[:] = dts #var.assignValue(dts)
 
 	for s in species:
 		fld = np.zeros((nt,nk,nj,ni), dtype=np.float32)
@@ -59,7 +60,7 @@ for d in range(sdate, edate):
 			fld[7:16,0,1:3,1:4] = 8
 
 		var = conc.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
-		var.assignValue(fld)
+		var[:] = fld #var.assignValue(fld)
 
 	conc.close()
 
@@ -67,7 +68,7 @@ for d in range(sdate, edate):
 fpath = 'timezones.nc'
 if os.path.exists(fpath):
 	os.remove(fpath)
-tz = NetCDFFile(fpath, 'a')
+tz = Dataset(fpath, 'w',format='NETCDF4')
 tz.createDimension('TSTEP', 1)
 tz.createDimension('LAY',   1)
 tz.createDimension('ROW',   nj)
@@ -82,6 +83,6 @@ for i in range(ni-1, -1, -1):
 #tzfield[0,0,:,:]=-1
 
 print tzfield
-var.assignValue(tzfield)
+var[:] = tzfield #var.assignValue(tzfield)
 tz.sync()
 tz.close()

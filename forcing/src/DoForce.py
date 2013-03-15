@@ -1,5 +1,5 @@
 #from Scientific.IO.NetCDF import NetCDFFile
-import netCDF4 as NetCDFFile
+from netCDF4 import Dataset
 from numpy import shape
 import os
 import numpy as np
@@ -165,7 +165,7 @@ class Forcing(object):
 		"""
 
 
-		conc=NetCDFFile(filename, 'r')
+		conc=Dataset(filename, 'r')
 		dims={'ni': conc.dimensions['COL'], \
 		'nj': conc.dimensions['ROW'], \
 		'nk': conc.dimensions['LAY']}
@@ -301,7 +301,7 @@ class Forcing(object):
 
 			# Open the file and load in the field
 			try:
-				tz = NetCDFFile(path, 'r')
+				tz = Dataset(path, 'r')
 			except IOError as ex:
 				print "Error!  Cannot open gridded timezone file %s"%(path)
 				raise
@@ -384,7 +384,7 @@ class Forcing(object):
 
 		if maskf is not None:
 			try:
-				f=NetCDFFile(maskf, 'r')
+				f=Dataset(maskf, 'r')
 				print "Opened spacial mask file %s"%maskf
 				var = f.variables[variable]
 				mask=var.getValue()[0][0]
@@ -455,7 +455,7 @@ class Forcing(object):
 
 			# Open the concentration file
 			try:
-				conc = NetCDFFile(conc_datafile.path, 'r')
+				conc = Dataset(conc_datafile.path, 'r')
 			except IOError as ex:
 				print "Error!  Cannot open concentration file %s"%(conc_datafile.name)
 				raise
@@ -514,8 +514,8 @@ class Forcing(object):
 
 				if conc_tom == None and conc_yest_path == None:
 					# First time around
-					conc_today  = NetCDFFile(conc_today_path, 'r')
-					force_today = NetCDFFile(force_today_path, 'a')
+					conc_today  = Dataset(conc_today_path, 'r')
+					force_today = Dataset(force_today_path, 'a')
 				elif conc_tom != None:
 					# Not the first or last
 					# Shift tomorrow to today
@@ -523,8 +523,8 @@ class Forcing(object):
 					force_today = force_tom
 
 				if conc_tom_path != None:
-					conc_tom  = NetCDFFile(conc_tom_path, 'r')
-					force_tom = NetCDFFile(force_tom_path, 'a')
+					conc_tom  = Dataset(conc_tom_path, 'r')
+					force_tom = Dataset(force_tom_path, 'a')
 				else:
 					conc_tom = None
 					force_tom = None
@@ -641,7 +641,7 @@ class Forcing(object):
 
 		Keyword Arguments:
 
-		conc:*NetCDFFile*
+		conc:*NetCDFFile* - *Dataset* for NetCDF4
 		   Concentration file to use as a template
 
 		fpath:*string*
@@ -664,7 +664,7 @@ class Forcing(object):
 			#raise IOError("%s already exists."%fpath)
 
 		#print "Opening %s for writing"%fpath
-		force = NetCDFFile(fpath, 'a')
+		force = Dataset(fpath, 'a')
 
 		Forcing.copyDims(conc, force)
 		Forcing.copyIoapiProps(conc, force)
@@ -717,9 +717,9 @@ class Forcing(object):
 
 		Keyword Arguments:
 
-		src:*NetCDFFile*
+		src:*NetCDFFile*  - Dataset (NetCDF4)
 		   Open netcdf source file
-		dest:*NetCDFFile*
+		dest:*NetCDFFile* - Dataset (NetCDF4)
 		   Open netcdf destination file
 		"""
 

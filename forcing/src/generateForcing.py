@@ -1,4 +1,4 @@
-#!python
+#! /usr/local/bin/python2.6
 
 # Gui
 import wx  #glade
@@ -38,21 +38,21 @@ args = parser.parse_args()
 
 print args
 
-"""
+#"""
 #
 # Can probably delete all this...
 #
-def outputConfFile(name):
+#def outputConfFile(name):
 	# Generates a conf file that records the state of the UI
 
-def loadConfFile(name):
+#def loadConfFile(name):
 	# Reads in the conf file and sets the UI state
-"""
+#"""
 
-def ProgressBarCLI(prog, filename):
-	d=datetime.now()
-	print "Time: %0.2d:%0.2d.%0.2d: Progress %f, filename: %s"%(d.hour,d.minute,d.second, prog, filename)
-	print "\n------------------------------------------------------------\n"
+#def ProgressBarCLI(prog, filename):
+#	d=datetime.now()
+#	print "Time: %0.2d:%0.2d.%0.2d: Progress %f, filename: %s"%(d.hour,d.minute,d.second, prog, filename)
+#	print "\n------------------------------------------------------------\n"
 
 #if args.cli:
 #
@@ -141,12 +141,14 @@ def ProgressBarCLI(prog, filename):
 #
 #else:
 	# Use GUI
-	app = wx.App(False)
-	frame = ForcingFrame(None, name="TopFrame")
-	frame.Show()
+app = wx.App(False)
+print app
+frame = ForcingFrame(None, name="TopFrame")
+print frame
+frame.Show()
 
-	#wx.lib.inspection.InspectionTool().Show()
-	app.MainLoop()
+	#wx.lib.inspection.InspectionTool().Show()	
+app.MainLoop()
 
 
 

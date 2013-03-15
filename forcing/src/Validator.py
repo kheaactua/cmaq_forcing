@@ -1,6 +1,6 @@
 from numpy import shape
 #from Scientific.IO.NetCDF import NetCDFFile
-import netCDF4 as NetCDFFile
+from netCDF4 import Dataset
 import numpy as np
 import datetime
 
@@ -18,7 +18,7 @@ class ForcingValidator:
 	conc = None
 
 	def __init__(self,filename):
-		self.conc=NetCDFFile(filename, 'r')
+		self.conc=Dataset(filename, 'r')
 
 		self.ni = self.conc.dimensions['COL']
 		self.nj = self.conc.dimensions['ROW']
@@ -46,7 +46,7 @@ class ForcingValidator:
 
 	def changeFile(self, newfile):
 		self.conc.close();
-		self.conc=NetCDFFile(newfile, 'r')
+		self.conc=Dataset(newfile, 'r')
 
 	def getDate(self):
 		""" Again, not a validator just a getter.  Useful to know the date
@@ -211,7 +211,7 @@ class ForcingValidator:
 		""" Validates a NetCDF file by checking if it's 2D surface domani
 			(ni,nj) matches the sample file """
 
-		datafile=NetCDFFile(filename, 'r')
+		datafile=Dataset(filename, 'r')
 
 		#print "COL %d, self.ni: %d   -  ROW: %d, self.nj: %d"%(datafile.dimensions['COL'], self.ni, datafile.dimensions['ROW'], self.nj)
 		return datafile.dimensions['COL'] == self.ni and datafile.dimensions['ROW'] == self.nj

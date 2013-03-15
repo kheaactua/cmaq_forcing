@@ -2,7 +2,8 @@
 
 """ http://visitusers.org/index.php?title=Writing_NETCDF_Using_Python """
 from numpy import shape
-from Scientific.IO.NetCDF import NetCDFFile
+#from Scientific.IO.NetCDF import NetCDFFile
+from netCDF4 import Dataset
 import numpy as np
  
 # Write a variable with rectilinear coordinates to NETCDF.
@@ -46,14 +47,14 @@ for i in range(nx):
         nodal = nodal + [j*nx + i]
  
 # Write the file.
-file = NetCDFFile('rectilinear.nc', 'w')
+file = Dataset('rectilinear.nc', 'w',format='NETCDF4')
 write_rectilinear(file, nodal, 'data', x_coord, y_coord)
 file.close()
 
 
 # Now, read the info
 
-file = NetCDFFile('rectilinear.nc', 'r')
+file = Dataset('rectilinear.nc', 'r')
 data = file.variables['data'][:]
 print "Data:"
 print data

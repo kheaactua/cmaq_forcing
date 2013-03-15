@@ -3,7 +3,8 @@
 from DoForce import *
 import numpy as np
 import sys, os
-from Scientific.IO.NetCDF import NetCDFFile
+#from Scientific.IO.NetCDF import NetCDFFile
+from netCDF4 import Dataset
 
 # This is mostly for debugging..  Just ansi colours
 from bcolours import bcolours as bc
@@ -35,7 +36,7 @@ debug_j=19
 
 # Timezone?
 tzf=os.environ['HOME'] + "/cmaq_forcing/forcing/src/GriddedTimeZoneMask.nc"
-src=NetCDFFile(tzf, 'r')
+src=Dataset(tzf, 'r')
 # Get the variable
 var = src.variables['LTIME']
 timezone=var.getValue()[0][0][debug_j][debug_i]
@@ -82,7 +83,7 @@ tomorrow[:]=[0.0356, 0.0343, 0.0328, 0.0329, 0.0335, 0.0346, 0.0359, 0.0364, 0.0
 #!#counter=0
 #!#for f in cfiles:
 #!#	fp=cbase+f
-#!#	src=NetCDFFile(fp, 'r')
+#!#	src=Dataset(fp, 'r')
 #!#
 #!#	# Get the variable
 #!#	var = src.variables['O3']
