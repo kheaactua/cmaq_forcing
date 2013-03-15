@@ -1,4 +1,4 @@
-# Maybe I should use the netcdf4 package?
+# Maybe I should use the netcdf4 package?  I'll do this in another branch.
 from Scientific.IO.NetCDF import NetCDFFile
 
 from numpy import shape
