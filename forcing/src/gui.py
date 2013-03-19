@@ -315,6 +315,7 @@ class ForcingFrame(wx.Frame):
 		coloured_msg = "[%s] %s%s%s"%(prefix, mc, msg, c.clear)
 		plain_msg = "[%s] %s\n"%(prefix, msg)
 		self.logger.BeginTextColour(rc)
+		# Implement this stuff ( http://stackoverflow.com/questions/153989/how-do-i-get-the-scroll-position-range-from-a-wx-textctrl-control-in-wxpython/155781#155781 ) to make scroll bar always go to the bottom
 		self.logger.WriteText(plain_msg)
 		self.logger.BeginTextColour((0,0,0))
 		print coloured_msg
