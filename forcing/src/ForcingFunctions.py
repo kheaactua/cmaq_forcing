@@ -1,5 +1,5 @@
 from Scientific.IO.NetCDF import NetCDFFile
-from DoForce import Forcing
+from DoForce import Forcing, ForcingException, ForcingFileDimensionException
 import numpy as np
 
 class ForceWithThreshold(Forcing):
@@ -86,7 +86,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 			# If it's the mask, then the timemask should already be set
 
 		# Create zero fields to allocate our arrays
-		fld_empty=np.zeros((len(self.species), self.nt, self.nk, self.nj, self.ni), dtype=np.float32)
+		fld_empty=np.zeros((len(self.species), self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
 
 		flds={'yesterday': fld_empty, 'today': fld_empty.copy(), 'tomorrow': fld_empty.copy()}
 
@@ -98,13 +98,15 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 			if conc_yest == None:
 				# If we're on day 1..
 				# This is inefficient, will upgrade later
-				data_yest = np.zeros((self.nt, self.nk, self.nj, self.ni))
+				data_yest = np.zeros((self.nt, self.nk_f, self.nj, self.ni))
+				# Using nk_f here instead of nk, because we'll never be looking outside
+				# of nk_f
 			else:
 				var_yest  = conc_yest.variables[species]
 				data_yest = var_yest.getValue()
 
 			if conc_tom == None:
-				data_tom   = np.zeros((self.nt, self.nk, self.nj, self.ni))
+				data_tom   = np.zeros((self.nt, self.nk_f, self.nj, self.ni))
 			else:
 				#print "Looking for variable %s"%species
 				var_tom   = conc_tom.variables[species]
@@ -113,7 +115,8 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 			var_today  = conc_today.variables[species]
 			data_today = var_today.getValue()
 
-			fld_yest  = np.zeros(data_yest.shape, dtype=np.float32)
+			# This used to copy data_yest's shape, but now we override some dims (like layers)
+			fld_yest  = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
 			fld_today = fld_yest.copy()
 			fld_tom   = fld_yest.copy()
 
@@ -167,7 +170,9 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 							# today and tomorrow with the forcing terms in them
 
 							if self.timeInvariantScalarMultiplcativeFld is not None:
-								scalar = self.timeInvariantScalarMultiplcativeFld[j][i]
+								scalar = self.timeInvariantScalarMultiplcativeFld[j][i]/averaging_window
+								if (j==46 and i==21) or (i==21 and j==21):
+									print "[i=%d,j=%d]: Scalar: %f"%(i,j,scalar)
 
 							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar)
 
@@ -245,13 +250,18 @@ class ForceOnMortality(ForceOnAverageConcentration):
 		- Concentration response factor (beta) = percent increase in deaths per ppb
 		- Value of statistical life (in millions of dollars)
 		- Gridded baseline mortality file
-			- BMR units of deaths per 10^6 or 10^5 population per year.  Devide
-			  BMR by 10^6 or 10^5 and divide by 365 to get deaths per day
+			- BMR units of deaths per 10^6 or 10^5 population per year.  Divide
+			  BMR by 10^6 or 10^5 and divide by 365 to get deaths per day.
+	          WARNING:  Leap years are not yet accounted for
 		- Gridded populated mortality file
 
 	This class is extremely similar to ForceOnAverageConcentration.  There are ways
 	to re-use the code above, but for now we'll just duplicate it.
 	"""
+
+	# Conversion for BMR units to be X per year (million per year, etc)
+	# BMR is MULTIPLIED by this
+	mort_scale=pow(10, -4) # Amanda divids by 10^7 (BMR per million) then multiplies by 10^3 (per ppm)
 
 	# Value of statistical life (millions)
 	vsl = None
@@ -281,6 +291,9 @@ class ForceOnMortality(ForceOnAverageConcentration):
 		self._pop_fname = fname
 		self._pop_var = var
 
+	# Does this reference work?
+	SetPopulation=SetPop
+
 	def loadScalarField(self):
 		""" Open up the mortality and population files and read
 		their values.  Generate a field to multiply forcing by.
@@ -297,8 +310,9 @@ class ForceOnMortality(ForceOnAverageConcentration):
 		if self._pop_fname is None or self._pop_var is None:
 			raise ForcingException("Must supply population file")
 
-		if self.vsl is None:
-			raise ForcingException("Must specify statistical value of life (in millions)")
+		# This is optional
+		#if self.vsl is None:
+		#	raise ForcingException("Must specify statistical value of life (in millions)")
 
 		# Open the mortality file
 		try:
@@ -313,9 +327,13 @@ class ForceOnMortality(ForceOnAverageConcentration):
 
 		# Read the field
 		try:
-			mfld = mortality.variables[self._mortality_var].getValue()[0]
+			# dims are TSTEP, LAY, ROW, COL.. so skip TSTEP and LAY
+			# this should be made more general, or the file should be made better.
+			mfld = mortality.variables[self._mortality_var].getValue()[0][0]
 		except IOError as e:
 			raise e
+		except IndexError as e:
+			raise ForcingFileDimensionException("Mortality NetCDF file seems to have incompatible dimensions.  Currently require shape (TSTEP, LAY, ROW, COL).  This is marked to be improved, as the data does not vary with time or layer.")
 
 		# Close the file
 		if self._pop_fname != self._pop_fname:
@@ -334,13 +352,23 @@ class ForceOnMortality(ForceOnAverageConcentration):
 
 		# Read the field
 		try:
-			pfld = mortality.variables[self._mortality_var].getValue()[0]
+			# dims are TSTEP, LAY, ROW, COL.. so skip TSTEP and LAY
+			pfld = mortality.variables[self._pop_var].getValue()[0][0]
 		except IOError as e:
 			raise e
+		except IndexError as e:
+			raise ForcingFileDimensionException("Mortality NetCDF file seems to have incompatible dimensions.  Currently require shape (TSTEP, LAY, ROW, COL).  This is marked to be improved, as the data does not vary with time or layer.")
+
+		# Debug, remember, when debugging this against plotted data or fortran
+		# code: values like (70,70) started at index 1 whereas we started at
+		# index 0, so (70,70)=(69,69)
+		debug_j=69
+		debug_i=69
+		print "[j=%d,i=%d] = mfld * mfld_scale * pfld * self.beta / 365 = %e %e %e %e %e = %e"%(debug_j, debug_i, mfld[debug_j,debug_i], (10.**-4), pfld[debug_j,debug_i], self.beta, 365.0, mfld[debug_j,debug_i]*(10.**-4)*pfld[debug_j,debug_i]*self.beta/365.0)
 
 		# (mfld * pfld) is element wise multiplication, not matrix multiplication
 		# Take leap years into account?
-		self.timeInvariantScalarMultiplcativeFld = (mfld/10^6)/365 * pfld * beta
+		self.timeInvariantScalarMultiplcativeFld = mfld * self.mort_scale / 365.0 * pfld * self.beta
 		if self.vsl is not None:
 			self.timeInvariantScalarMultiplcativeFld = self.timeInvariantScalarMultiplcativeFld * self.vsl
 
