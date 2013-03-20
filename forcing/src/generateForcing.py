@@ -47,7 +47,7 @@ def ProgressBarCLI(prog, filename):
 
 if args.cli:
 
-	setup=3
+	setup=4
 
 	if setup==0:
 		fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
