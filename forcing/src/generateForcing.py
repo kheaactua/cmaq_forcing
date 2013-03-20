@@ -64,7 +64,7 @@ if args.cli:
 		date_min = dateE(2007,05,01)
 		date_max = dateE(2007,05,03)
 		fc.inputPath = '/mnt/mediasonic/opt/output/base/'
-	elif setup==3:
+	elif setup==3 or setup==4:
 		fc = f.ForceOnMortality(sample_conc='mortality/CCTM_fwdACONC.20070701')
 		date_min = dateE(2007,07,01)
 		date_max = dateE(2007,07,03)
@@ -73,11 +73,20 @@ if args.cli:
 		fc.vsl=None
 		fc.SetMortality(fname = os.getcwd() + '/mortality/DOMAIN_POP_BMR', var='BMR')
 		fc.SetPopulation(fname = os.getcwd() + '/mortality/DOMAIN_POP_BMR', var='POP')
-		fc.beta=0.000427
 
-		fc.loadScalarField()
 
 	fc.setAveraging('Max 8 hr')
+
+	if setup == 3:
+		fc.beta=0.000427
+		fc.setAveraging('Max 8 hr')
+	elif setup == 4:
+		fc.beta=0.000335
+		fc.setAveraging('Max 1 hr')
+
+	if setup==3 or setup==4:
+		fc.loadScalarField()
+
 
 	fc.maskLayers([1])
 	fc.species=['O3']
@@ -92,7 +101,7 @@ if args.cli:
 	elif setup==1:
 		fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
 		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.inputPath, date_min=date_min, date_max=date_max)
-	elif setup==2 or setup==3:
+	elif setup>=2:
 		fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
 		# Mask space
 		fc.maskSpace('SpacialMask.nc', 'USA', 2)

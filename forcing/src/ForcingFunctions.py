@@ -1,6 +1,7 @@
 from Scientific.IO.NetCDF import NetCDFFile
 from DoForce import Forcing, ForcingException, ForcingFileDimensionException
 import numpy as np
+import re
 
 class ForceWithThreshold(Forcing):
 	# Concentration threshold
@@ -28,6 +29,16 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 
 	# Time Mask
 	timeMask=range(0,Forcing.dayLen+1)
+
+	# Override default outputFormat
+	outputFormat = 'Force.TYPE.AVG.YYYYMMDD'
+
+	def generateForceFileName(self, conc, fmt = None):
+		""" Get averaging in the output file name """
+		fname = super(ForceOnAverageConcentration, self).generateForceFileName(conc, fmt)
+		fname = re.sub(r"AVG", self.averaging, fname)
+		return fname		
+
 
 	def generateForcingFields(self, conc_idx,
  	   conc_yest,  conc_today,  conc_tom,
