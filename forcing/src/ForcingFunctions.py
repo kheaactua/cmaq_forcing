@@ -171,8 +171,6 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 
 							if self.timeInvariantScalarMultiplcativeFld is not None:
 								scalar = self.timeInvariantScalarMultiplcativeFld[j][i]/averaging_window
-								if (j==46 and i==21) or (i==21 and j==21):
-									print "[i=%d,j=%d]: Scalar: %f"%(i,j,scalar)
 
 							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar)
 
@@ -261,7 +259,7 @@ class ForceOnMortality(ForceOnAverageConcentration):
 
 	# Conversion for BMR units to be X per year (million per year, etc)
 	# BMR is MULTIPLIED by this
-	mort_scale=pow(10, -4) # Amanda divids by 10^7 (BMR per million) then multiplies by 10^3 (per ppm)
+	mort_scale=pow(10, -3) # Amanda divids by 10^6 (BMR per million) then multiplies by 10^3 (per ppm)
 
 	# Value of statistical life (millions)
 	vsl = None
@@ -362,9 +360,9 @@ class ForceOnMortality(ForceOnAverageConcentration):
 		# Debug, remember, when debugging this against plotted data or fortran
 		# code: values like (70,70) started at index 1 whereas we started at
 		# index 0, so (70,70)=(69,69)
-		debug_j=69
-		debug_i=69
-		print "[j=%d,i=%d] = mfld * mfld_scale * pfld * self.beta / 365 = %e %e %e %e %e = %e"%(debug_j, debug_i, mfld[debug_j,debug_i], (10.**-4), pfld[debug_j,debug_i], self.beta, 365.0, mfld[debug_j,debug_i]*(10.**-4)*pfld[debug_j,debug_i]*self.beta/365.0)
+		#debug_j=69
+		#debug_i=69
+		#print "[j=%d,i=%d] = mfld * mfld_scale * pfld * self.beta / 365 = %e %e %e %e %e = %e"%(debug_j, debug_i, mfld[debug_j,debug_i], (10.**-4), pfld[debug_j,debug_i], self.beta, 365.0, mfld[debug_j,debug_i]*(10.**-4)*pfld[debug_j,debug_i]*self.beta/365.0)
 
 		# (mfld * pfld) is element wise multiplication, not matrix multiplication
 		# Take leap years into account?

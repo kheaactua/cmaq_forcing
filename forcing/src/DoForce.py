@@ -60,7 +60,7 @@ class Forcing(object):
 	conc_files = []
 
 	# Concentration file path
-	_inputPath = None
+	inputPath = None
 
 	# True for forward, false for backward.  I'm told
 	# the standard is forward
@@ -149,7 +149,6 @@ class Forcing(object):
 
 		# Empty set of concentration files
 		self.conc_files = []
-		self.inputPath  = None
 
 		self._outputPath = os.getcwd() + '/output'
 
@@ -247,16 +246,6 @@ class Forcing(object):
 		name = re.sub(r'TYPE', types, name)
 
 		return self.outputPath + '/' + name
-
-	# Not a good use of a property, but it's my first one
-	@property
-	def inputPath(self):
-		""" Getter for the concentration path """
-		return self._inputPath
-	@inputPath.setter
-	def inputPath(self, path):
-		""" Path that'll be used to look for concentration files """
-		self._inputPath = path
 
 	@property
 	def species(self):
@@ -370,6 +359,14 @@ class Forcing(object):
 		for i in range(0, len(mask)-1):
 			self._layers[i] = mask[i]-1
 
+		# The nk we'll be using for the forcing output
+		# Typically the user will only force on layer 0 (so the +1 means we'll have one layer)
+		# but if they choose layers 1 and 5, we'll need to carry fields of layer dimension 5
+		if len(self._layers) > 0:
+			self.nk_f = int(max(self._layers)+1)
+		else:
+			self.nk_f = int(1)
+
 	def maskSpace(self, maskf, variable, value=1):
 		""" Set a grid mask
 
@@ -423,8 +420,10 @@ class Forcing(object):
 		if debug:
 			#debug_i=72
 			#debug_j=19
-			debug_i=1
-			debug_j=1
+			#debug_i=1
+			#debug_j=1
+			debug_i=21
+			debug_j=46
 
 			def printVec(vec, c, cstr):
 				red=c.red
@@ -679,7 +678,9 @@ class Forcing(object):
 		#print "Opening %s for writing"%fpath
 		force = NetCDFFile(fpath, 'a')
 
-		Forcing.copyDims(conc, force)
+		# Exceptions, so we don't needlessly create huge forcing files
+		exceptions={'LAY': self.nk_f}
+		Forcing.copyDims(conc, force, exceptions=exceptions)
 		Forcing.copyIoapiProps(conc, force)
 
 		if species is None:
@@ -697,14 +698,14 @@ class Forcing(object):
 			raise BadSampleConcException("Input file's dimensions (time steps) not not match those of the sample concentration file!  Cannot continue.")
 
 		# Create the variables we'll be writing to
-		print "Initializing %s"%fpath
+		#print "Initializing %s"%fpath
 		for s in species:
 			try:
 				var = force.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
-				z=np.zeros((self.nt,self.nk,self.nj,self.ni), dtype=np.float32)
+				z=np.zeros((self.nt,self.nk_f,self.nj,self.ni), dtype=np.float32)
 				var.assignValue(z)
 			except (IOError, ValueError) as ex:
-				print "%sWriting error %s%s when trying to create variable %s (%sTSTEP=%d, LAY=%d, ROW=%d, COL=%d%s)=%s%s%s in today's file.\n"%(c.red, type(ex), c.clear, s, c.blue, self.nt, self.nk, self.nj, self.ni, c.clear, c.orange, str(z.shape), c.clear), ex
+				print "%sWriting error %s%s when trying to create variable %s (%sTSTEP=%d, LAY=%d, ROW=%d, COL=%d%s)=%s%s%s in today's file.\n"%(c.red, type(ex), c.clear, s, c.blue, self.nt, self.nk_f, self.nj, self.ni, c.clear, c.orange, str(z.shape), c.clear), ex
 				print "Current variable names: %s\n"%(" ".join(map(str, force.variables.keys())))
 
 		# Copy over TFLAG
@@ -769,7 +770,7 @@ class Forcing(object):
 		dest.sync()
 
 	@staticmethod
-	def copyDims(src, dest):
+	def copyDims(src, dest, exceptions=dict()):
 		""" Copy dimensions from src netcdf file to dest.
 
 		Keyword Arguments:
@@ -779,11 +780,23 @@ class Forcing(object):
 
 		dest:*NetCDF*
 			NetCDF destinatin file
+
+		exceptions:*dict*
+		   Keys are dimension names, values are the hard value to set it to.  This is used to avoid
+		   copying dimensions that are unused.  For example, if we're forcing on the surface layer, no
+		   need to create a forcing file with 34 layers where 33 of them will just be huge zero fields.
 		"""
 		dims = src.dimensions.keys()
 		for d in dims:
-			v = src.dimensions[d]
+			if d in exceptions:
+				# Override this value with our exception
+				v = exceptions[d]
+			else:
+				# Copy the dimension straight for the source
+				v = src.dimensions[d]
 			try:
+				# Don't try to print v as a %d if d=TSTEP
+				#print "Creating dim %s = "%d, v
 				dest.createDimension(d, v)
 			except IOError as ex:
 				print "Cannot create dimension %s"%d, ex
@@ -1174,6 +1187,9 @@ class Forcing(object):
 
 
 class ForcingException(Exception):
+	pass
+
+class ForcingFileDimensionException(ForcingException):
 	pass
 
 class NoSpeciesException(ForcingException):
