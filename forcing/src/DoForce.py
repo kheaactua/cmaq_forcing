@@ -415,8 +415,8 @@ class Forcing(object):
 			c = bc()
 			#debug_i=72
 			#debug_j=19
-			debug_i=1
-			debug_j=1
+			debug_i=2
+			debug_j=2
 
 			def printVec(vec, c, cstr):
 				red=c.red
