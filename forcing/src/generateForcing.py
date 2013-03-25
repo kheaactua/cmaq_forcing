@@ -47,7 +47,7 @@ def ProgressBarCLI(prog, filename):
 
 if args.cli:
 
-	setup=4
+	setup=5
 
 	if setup==0:
 		fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
@@ -64,7 +64,7 @@ if args.cli:
 		date_min = dateE(2007,05,01)
 		date_max = dateE(2007,05,03)
 		fc.inputPath = '/mnt/mediasonic/opt/output/base/'
-	elif setup==3 or setup==4:
+	elif setup in (3,4,5):
 		fc = f.ForceOnMortality(sample_conc='mortality/CCTM_fwdACONC.20070701')
 		date_min = dateE(2007,07,01)
 		date_max = dateE(2007,07,03)
@@ -75,16 +75,21 @@ if args.cli:
 		fc.SetPopulation(fname = os.getcwd() + '/mortality/DOMAIN_POP_BMR', var='POP')
 
 
-	fc.setAveraging('Max 8 hr')
+	fc.averaging = 'Max 8 hr'
 
 	if setup == 3:
 		fc.beta=0.000427
-		fc.setAveraging('Max 8 hr')
+		fc.averaging = 'Max 8 hr'
 	elif setup == 4:
 		fc.beta=0.000335
-		fc.setAveraging('Max 1 hr')
+		fc.averaging = 'Max 1 hr'
+	elif setup == 5:
+		fc.beta=0.00052
+		fc.averaging = 'Max 24 hr'
 
-	if setup==3 or setup==4:
+	print "Averaging: %s"%fc.averaging
+
+	if setup in (3,4,5):
 		fc.loadScalarField()
 
 

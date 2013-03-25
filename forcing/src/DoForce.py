@@ -54,7 +54,7 @@ class Forcing(object):
 
 	"""
 
-	avgoptions = [('AVG_MAX8', 'Max 8 hr'),  ('AVG_MAX', 'Max 1 hr'), ('AVG_MAX24', 'Max 24 h'), ('AVG_MASK', 'Local Hours'), ('AVG_NONE', 'None')]
+	avgoptions = [('AVG_MAX8', 'Max 8 hr'),  ('AVG_MAX', 'Max 1 hr'), ('AVG_MAX24', 'Max 24 hr'), ('AVG_MASK', 'Local Hours'), ('AVG_NONE', 'None')]
 
 	# Concentration files
 	conc_files = []
@@ -84,8 +84,9 @@ class Forcing(object):
 	# The actual gridded field
 	griddedTimeZoneFld = None
 
-	# Averaging option
-	averaging = None
+	# Averaging option.  This should probably be on a subclass, but for now it's so widely
+	# used that it was put right here.
+	_averaging = None
 
 	def __init__(self,ni=0,nj=0,nk=0,nt=0,sample_conc=''):
 		""" Initialize Forcing object.  Dimentions will be used if given,
@@ -310,7 +311,11 @@ class Forcing(object):
 
 
 	# Should replace this setter with a property
-	def setAveraging(self, avg):
+	@property
+	def averaging(self):
+		return self._averaging
+	@averaging.setter
+	def averaging(self, avg):
 		""" Set averaging option, e.g. max 8-hr, etc
 
 		Keyword Arguments:
@@ -319,20 +324,23 @@ class Forcing(object):
 		   Any of the self.avgoptions values
 		"""
 
+		found = False
 		for t in self.avgoptions:
 			if avg==t[1]:
-				self.averaging=t[0]
+				found = True
+				self._averaging=t[0]
+
+		if found == False:
+			raise ValueError("Averaging %s does not exist."%avg);
 
 		#print "Set averaging to %s"%self.averaging
-		# Should probably raise an exception if it's not found		
-
 
 	def maskTimes(self, mask):
 		""" Set time mask
 
 		Keyword arguments:
 
-		mask
+		mask:*int[]*
 		   vector of times that WILL be used
 		"""
 		self.times=mask;
