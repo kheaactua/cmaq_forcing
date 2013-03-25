@@ -65,12 +65,12 @@ if args.cli:
 		date_max = dateE(2007,05,03)
 		fc.conc_path = '/mnt/mediasonic/opt/output/base/'
 	elif setup==3:
-		fc = f.ForceOnMortality(sample_conc='/mnt/mediasonic/opt/output/base/CCTM_fwdACONC.20070501')
-		date_min = dateE(2007,05,01)
-		date_max = dateE(2007,05,03)
-		fc.conc_path = '/mnt/mediasonic/opt/output/base/'
+		fc = f.ForceOnMortality(sample_conc='mortality/CCTM_fwdACONC.20070701')
+		date_min = dateE(2007,07,01)
+		date_max = dateE(2007,07,03)
+		fc.conc_path = os.getcwd() + '/mortality/'
 
-		fc.vsl=10
+		fc.vsl=None
 		fc.SetMortality(fname = os.getcwd() + '/mortality/DOMAIN_POP_BMR', var='BMR')
 		fc.SetPopulation(fname = os.getcwd() + '/mortality/DOMAIN_POP_BMR', var='POP')
 
@@ -91,11 +91,11 @@ if args.cli:
 	elif setup==1:
 		fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
 		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
-	elif setup==2:
+	elif setup>=2:
 		fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
-		conc_files=fc.FindFiles(file_format="CCTM_fwdACONC.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
 		# Mask space
-		fc.maskSpace('/opt/home/morteza/Codes/Force8hr/usa.nc', 'USA', 2)
+		fc.maskSpace('SpacialMask.nc', 'USA', 2)
+		conc_files=fc.FindFiles(file_format="CCTM_fwdACONC.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
 
 
 	fc.loadConcentrationFiles(conc_files)
