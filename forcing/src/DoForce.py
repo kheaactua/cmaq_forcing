@@ -89,6 +89,10 @@ class Forcing(object):
 	# used that it was put right here.
 	_averaging = None
 
+	# Used for debugging
+	debug_i = 2
+	debug_j = 2
+
 	def __init__(self,ni=0,nj=0,nk=0,nt=0,sample_conc=''):
 		""" Initialize Forcing object.  Dimentions will be used if given,
 		    but if a sample concentration file is given, it will be read
@@ -425,13 +429,6 @@ class Forcing(object):
 
 		c = bc()
 		if debug:
-			#debug_i=72
-			#debug_j=19
-			#debug_i=1
-			#debug_j=1
-			debug_i=3
-			debug_j=3
-
 			def printVec(vec, c, cstr):
 				red=c.red
 				outs=""
@@ -573,7 +570,7 @@ class Forcing(object):
 					# write them back to the file
 
 					if debug:
-						print "\n%si=%d, j=%d, k=0, t=:24%s"%(c.HEADER, debug_i, debug_j, c.clear)
+						print "\n%si=%d, j=%d, k=0, t=:24%s"%(c.HEADER, self.debug_i, self.debug_j, c.clear)
 						print "GMT:   %s\n"%('  '.join('%4.0d' % v for v in range(1,25)))
 
 					# Yesterday
@@ -583,7 +580,7 @@ class Forcing(object):
 						# yesterday.  So, if this is false, don't do it
 						if force_yest is not None:
 							var = force_yest.variables[species]
-							sum_fld = np.add(flds['yesterday'][idx_s], var.getValue())
+							sum_fld = np.add(flds['yesterday'][idx_s], var[:])
 
 							#print "Shapes:"
 							#print "shape(var.getValue()): %s"%str(var.getValue().shape)
@@ -591,13 +588,13 @@ class Forcing(object):
 							#print "shape(sum_fld):        %s"%str(sum_fld.shape)
 							#print ""
 
-							#print "t=12, base: %4.3f, fld: %4.3f, sum: %s%4.3f%s, manual sum: %4.3f"%(var.getValue()[12,0,debug_j,debug_i], flds['yesterday'][idx_s][12,0,debug_j,debug_i], c.red, sum_fld[12,0,debug_j,debug_i], c.clear, var.getValue()[12,0,debug_j,debug_i] + flds['yesterday'][idx_s][12,0,debug_j,debug_i])
+							#print "t=12, base: %4.3f, fld: %4.3f, sum: %s%4.3f%s, manual sum: %4.3f"%(var.getValue()[12,0,self.debug_j,self.debug_i], flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i], c.red, sum_fld[12,0,self.debug_j,self.debug_i], c.clear, var.getValue()[12,0,self.debug_j,self.debug_i] + flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i])
 
 
 							if debug:
-								print "Yestb: %s%s%s"%(c.light('yesterday'), printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.light('yesterday')), c.clear)
-								print "Yest:  %s%s%s"%(c.yesterday, printVec(flds['yesterday'][idx_s][:24,0,debug_j,debug_i], c, c.yesterday), c.clear)
-								print "Yests: %s%s%s"%(c.dark('yesterday'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('yesterday')), c.clear)
+								print "Yestb: %s%s%s"%(c.light('yesterday'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('yesterday')), c.clear)
+								print "Yest:  %s%s%s"%(c.yesterday, printVec(flds['yesterday'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.yesterday), c.clear)
+								print "Yests: %s%s%s"%(c.dark('yesterday'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('yesterday')), c.clear)
 								print "\n"
 
 
@@ -616,9 +613,9 @@ class Forcing(object):
 					if debug:
 						#print "base_fld.shape: ", base_fld.shape
 						#print "sum_fld.shape:  ", sum_fld.shape
-						print "Todab: %s%s%s"%(c.light('today'), printVec(var[:24,0,debug_j,debug_i], c, c.light('today')), c.clear)
-						print "Toda:  %s%s%s"%(c.today, printVec(flds['today'][idx_s][:24,0,debug_j,debug_i], c, c.today), c.clear)
-						print "Todas: %s%s%s"%(c.dark('today'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('today')), c.clear)
+						print "Todab: %s%s%s"%(c.light('today'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('today')), c.clear)
+						print "Toda:  %s%s%s"%(c.today, printVec(flds['today'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.today), c.clear)
+						print "Todas: %s%s%s"%(c.dark('today'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('today')), c.clear)
 						print "\n"
 
 
@@ -632,9 +629,9 @@ class Forcing(object):
 						# Tomorrow shouldn't have any values already, so that's why we're not fetching them here
 
 						if debug:
-							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.light('tomorrow')), c.clear)
-							print "Tomo:  %s%s%s"%(c.tomorrow, printVec(flds['tomorrow'][idx_s][:24,0,debug_j,debug_i], c, c.tomorrow), c.clear)
-							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('tomorrow')), c.clear)
+							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,self.debug_j,self.debug_i], c, c.light('tomorrow')), c.clear)
+							print "Tomo:  %s%s%s"%(c.tomorrow, printVec(flds['tomorrow'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.tomorrow), c.clear)
+							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('tomorrow')), c.clear)
 							print "\n"
 
 						var[:]=flds['tomorrow'][idx_s] + var[:]

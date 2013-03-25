@@ -163,6 +163,10 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 							vec_today = data_today[:Forcing.dayLen,k,j,i]
 							vec_tom   = data_tom[:Forcing.dayLen,k,j,i]
 
+							# REMOVE!
+							#if i==self.debug_i and j==self.debug_j:
+							#	print "vec_today[%d,%d]: "%(self.debug_j, self.debug_i), vec_today
+
 							# Prepares a vector of values with respect to the
 							# direction we're going to calculate the average
 							# (forward/backward), the window size, and time
@@ -187,6 +191,9 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 
 							fld_yest[:Forcing.dayLen,k,j,i]  = yesterday[:Forcing.dayLen]
 							fld_today[:Forcing.dayLen,k,j,i] = today[:Forcing.dayLen]
+							# REMOVF!
+							#if i==self.debug_i and j==self.debug_j:
+							#	print "Today: ", today
 							fld_tom[:Forcing.dayLen,k,j,i]   = tomorrow[:Forcing.dayLen]
 
 						elif self.averaging == 'AVG_MASK' or self.averaging == 'AVG_NONE':
@@ -370,9 +377,7 @@ class ForceOnMortality(ForceOnAverageConcentration):
 		# Debug, remember, when debugging this against plotted data or fortran
 		# code: values like (70,70) started at index 1 whereas we started at
 		# index 0, so (70,70)=(69,69)
-		#debug_j=69
-		#debug_i=69
-		#print "[j=%d,i=%d] = mfld * mfld_scale * pfld * self.beta / 365 = %e %e %e %e %e = %e"%(debug_j, debug_i, mfld[debug_j,debug_i], (10.**-4), pfld[debug_j,debug_i], self.beta, 365.0, mfld[debug_j,debug_i]*(10.**-4)*pfld[debug_j,debug_i]*self.beta/365.0)
+		#print "[j=%d,i=%d] = mfld * mfld_scale * pfld * self.beta / 365 = %e %e %e %e %e = %e"%(self.debug_j, self.debug_i, mfld[self.debug_j,self.debug_i], (10.**-4), pfld[self.debug_j,self.debug_i], self.beta, 365.0, mfld[self.debug_j,self.debug_i]*(10.**-4)*pfld[self.debug_j,self.debug_i]*self.beta/365.0)
 
 		# (mfld * pfld) is element wise multiplication, not matrix multiplication
 		# Take leap years into account?
