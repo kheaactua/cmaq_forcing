@@ -1,4 +1,4 @@
-from Scientific.IO.NetCDF import NetCDFFile
+from DataFile import DataFile
 from DoForce import Forcing, ForcingException, ForcingFileDimensionException
 import numpy as np
 import re
@@ -106,7 +106,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 		# more efficient by implementing some sort of cache though..
 		for idx_s, species in enumerate(self.species):
 			#print "Iteratiing through species %d=%s"%(idx_s, species)
-			if conc_yest == None:
+			if conc_yest is None:
 				# If we're on day 1..
 				# This is inefficient, will upgrade later
 				data_yest = np.zeros((self.nt, self.nk_f, self.nj, self.ni))
@@ -114,17 +114,16 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 				# of nk_f
 			else:
 				var_yest  = conc_yest.variables[species]
-				data_yest = var_yest.getValue()
+				data_yest = var_yest[:]
 
-			if conc_tom == None:
+			if conc_tom is None:
 				data_tom   = np.zeros((self.nt, self.nk_f, self.nj, self.ni))
 			else:
 				#print "Looking for variable %s"%species
 				var_tom   = conc_tom.variables[species]
-				data_tom  = var_tom.getValue()
+				data_tom  = var_tom[:]
 
-			var_today  = conc_today.variables[species]
-			data_today = var_today.getValue()
+			data_today  = conc_today.variables[species][:]
 
 			# This used to copy data_yest's shape, but now we override some dims (like layers)
 			fld_yest  = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
@@ -169,7 +168,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 							# (forward/backward), the window size, and time
 							# zone 
 
-							vec = Forcing.prepareTimeVectorForAvg(vec_yest, vec_today, vec_tom, timezone=tz[j][i], winLen=averaging_window)
+							vec = Forcing.prepareTimeVectorForAvg(vec_yest, vec_today, vec_tom, timezone=tz[j][i], winLen=averaging_window, debug=False)
 							#print "i=%d,j=%d, preped vec[%d] = %s"%(i,j,len(vec)," ".join(map(str, vec)))
 
 							# Calculate the moving window average

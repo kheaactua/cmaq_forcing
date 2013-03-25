@@ -47,7 +47,7 @@ def ProgressBarCLI(prog, filename):
 
 if args.cli:
 
-	setup=5
+	setup=1
 
 	if setup==0:
 		fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
@@ -76,6 +76,7 @@ if args.cli:
 
 
 	fc.averaging = 'Max 8 hr'
+	#fc.averaging = 'Max 24 hr'
 
 	if setup == 3:
 		fc.beta=0.000427

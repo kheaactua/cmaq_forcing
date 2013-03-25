@@ -25,6 +25,8 @@ def printVec(vec, c, cstr):
 #
 # Cell of choice
 
+winLen=20
+
 # Match!
 #i=60
 #j=30
@@ -111,10 +113,10 @@ print "Toda: %s%s%s"%(c.today, ' '.join('%6.5f' % v for v in today), c.clear)
 print "Tomo: %s%s%s"%(c.tomorrow, ' '.join('%6.5f' % v for v in tomorrow), c.clear)
 print "\n"
 
-vec = Forcing.prepareTimeVectorForAvg(yesterday, today, tomorrow, timezone=timezone, debug=True)
+vec = Forcing.prepareTimeVectorForAvg(yesterday, today, tomorrow, winLen=winLen, timezone=timezone, debug=True)
 
 
-avgs = Forcing.calcMovingAverage(vec, debug=True)
+avgs = Forcing.calcMovingAverage(vec, winLen=winLen, debug=True)
 
 
 print ""
@@ -124,9 +126,9 @@ max_idx=avgs.index(max_val)
 
 print "Max: avgs[%d]=%f"%(max_idx, max_val)
 
-fs=Forcing.applyForceToAvgTime(avgs, timezone=timezone)
+yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=winLen, timezone=timezone)
 print "GMT:  %s"%('  '.join('%3.0d' % v for v in range(1,25)))
-print "Yest: %s%s%s"%(c.yesterday, printVec(fs['yesterday'], c, c.yesterday), c.clear)
-print "Toda: %s%s%s"%(c.today, printVec(fs['today'], c, c.today), c.clear)
-print "Tomo: %s%s%s"%(c.tomorrow, printVec(fs['tomorrow'], c, c.tomorrow), c.clear)
+print "Yest: %s%s%s"%(c.yesterday, printVec(yesterday, c, c.yesterday), c.clear)
+print "Toda: %s%s%s"%(c.today, printVec(today, c, c.today), c.clear)
+print "Tomo: %s%s%s"%(c.tomorrow, printVec(tomorrow, c, c.tomorrow), c.clear)
 

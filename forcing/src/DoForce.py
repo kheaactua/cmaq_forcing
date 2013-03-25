@@ -1,5 +1,6 @@
 # Maybe I should use the netcdf4 package?  I'll do this in another branch.
-from Scientific.IO.NetCDF import NetCDFFile
+#from Scientific.IO.NetCDF import NetCDFFile
+from DataFile import DataFile
 
 from numpy import shape
 import os
@@ -8,7 +9,7 @@ import re
 import math
 from datetime import date
 
-from extendedClasses import DataFile, dateE
+from extendedClasses import dateE
 
 # This is mostly for debugging..  Just ansi colours
 from bcolours import bcolours as bc, colouredNum as ci
@@ -115,7 +116,9 @@ class Forcing(object):
 
 		if len(sample_conc):
 			dims=Forcing.loadDims(sample_conc)
+			#print dims
 			self.ni = dims['ni']
+			#print "type(self.ni) = %s"%type(self.ni)
 			self.nj = dims['nj']
 			self.nk = dims['nk']
 			self.nt = dims['nt']
@@ -167,8 +170,7 @@ class Forcing(object):
 		   dict of ni,nj,nk,nt
 		"""
 
-
-		conc=NetCDFFile(filename, 'r')
+		conc = DataFile(filename, mode='r', open=True)
 		dims={'ni': conc.dimensions['COL'], \
 		'nj': conc.dimensions['ROW'], \
 		'nk': conc.dimensions['LAY']}
@@ -294,14 +296,13 @@ class Forcing(object):
 
 			# Open the file and load in the field
 			try:
-				tz = NetCDFFile(path, 'r')
+				tz = DataFile(path, mode='r', open=True)
 			except IOError as ex:
 				print "Error!  Cannot open gridded timezone file %s"%(path)
 				raise
 
-			var = tz.variables['LTIME']
 			# The field should be at t=0,k=0
-			fld = var.getValue()[0,0]
+			fld = tz.variables['LTIME'][0,0]
 			#print "shape(timezones) = ", fld.shape
 
 			if fld.shape != (self.nj, self.ni):
@@ -393,10 +394,9 @@ class Forcing(object):
 		c = bc()
 		if maskf is not None:
 			try:
-				f=NetCDFFile(maskf, 'r')
+				f=DataFile(maskf, mode='r', open=True)
 				#print "\n%sOpened spacial mask file %s, variable=%s, val=%s%s\n"%(c.yellow, maskf, variable, value, c.clear)
-				var = f.variables[variable]
-				mask=var.getValue()[0][0]
+				mask = f.variables[variable][0][0]
 				#print "type(mask)=%s, mask.shape=%s"%(type(mask), mask.shape)
 				self.space = mask==value
 				if type(self.space) != type(mask):
@@ -408,9 +408,8 @@ class Forcing(object):
 
 
 
-#	def produceForcingField(self, progressWindow = None, progress_callback = None):
 	def produceForcingField(self, progress_callback = None, dryrun = False, debug=False):
-		""" Iterate through concentration files, create forcing output netcdf files, prepare them, and call the writing function
+		""" Iterate through concentration files, create forcing output netcdf files, prepare them, and call the writing function.  Using the NetCDF 4 library, we could open all the files at opnce, but I don't trust that I/O Api's odd proprietary format would allow the library to properly sort it.  This is something to investigate in the future.
 
 		Keyword Arguments:
 
@@ -430,8 +429,8 @@ class Forcing(object):
 			#debug_j=19
 			#debug_i=1
 			#debug_j=1
-			debug_i=21
-			debug_j=46
+			debug_i=3
+			debug_j=3
 
 			def printVec(vec, c, cstr):
 				red=c.red
@@ -470,7 +469,7 @@ class Forcing(object):
 			# Open the concentration file
 			try:
 				#print "conc_datafile.path=%s"%conc_datafile.path
-				conc = NetCDFFile(conc_datafile.path, 'r')
+				conc = DataFile(conc_datafile.path, mode='r', open=True)
 			except IOError as ex:
 				print "Error!  Cannot open concentration file %s"%(conc_datafile.name)
 				raise
@@ -519,30 +518,32 @@ class Forcing(object):
 				if conc_yest is not None:
 					# This is now the day before yesterday, close it.
 					conc_yest.close()
-					#print "Closed %s"%conc_yest
 					conc_yest = None
+
 					force_yest.close()
 					force_yest = None
 
 				# Open the files
-				if conc_yest_path != None:
+				if conc_yest_path is not None:
 					# Shift this to yesterday
 					conc_yest = conc_today
 					force_yest = force_today
 
-				if conc_tom == None and conc_yest_path == None:
+				if conc_tom is None and conc_yest_path is None:
 					# First time around
-					conc_today  = NetCDFFile(conc_today_path, 'r')
-					force_today = NetCDFFile(force_today_path, 'a')
-				elif conc_tom != None:
+					conc_today  = DataFile(conc_today_path, mode='r', open=True)
+					#print "%sSet conc_today (%s) = DataFile%s"%(c.blue, conc_today.basename, c.clear)
+					force_today = DataFile(force_today_path, mode='a', open=True)
+				elif conc_tom is not None:
 					# Not the first or last
 					# Shift tomorrow to today
 					conc_today = conc_tom
+					#print "%sSet conc_today (%s) = conc_tom%s"%(c.red, conc_today.basename, c.clear)
 					force_today = force_tom
 
 				if conc_tom_path != None:
-					conc_tom  = NetCDFFile(conc_tom_path, 'r')
-					force_tom = NetCDFFile(force_tom_path, 'a')
+					conc_tom  = DataFile(conc_tom_path, mode='r', open=True)
+					force_tom = DataFile(force_tom_path, mode='a', open=True)
 				else:
 					conc_tom = None
 					force_tom = None
@@ -608,19 +609,20 @@ class Forcing(object):
 					#print "Today's force idx_s=%d:\n"%idx_s, flds['today'][idx_s][8]
 					var = force_today.variables[species]
 					#base_fld = var.getValue()
-					sum_fld = var.getValue() + flds['today'][idx_s]
+					#sum_fld = var.getValue() + flds['today'][idx_s]
+					sum_fld = force_today.variables[species][:] + flds['today'][idx_s]
 					fld_matt = flds['today'][idx_s]
 
 					if debug:
 						#print "base_fld.shape: ", base_fld.shape
 						#print "sum_fld.shape:  ", sum_fld.shape
-						print "Todab: %s%s%s"%(c.light('today'), printVec(var.getValue()[:24,0,debug_j,debug_i], c, c.light('today')), c.clear)
+						print "Todab: %s%s%s"%(c.light('today'), printVec(var[:24,0,debug_j,debug_i], c, c.light('today')), c.clear)
 						print "Toda:  %s%s%s"%(c.today, printVec(flds['today'][idx_s][:24,0,debug_j,debug_i], c, c.today), c.clear)
 						print "Todas: %s%s%s"%(c.dark('today'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('today')), c.clear)
 						print "\n"
 
 
-					var.assignValue(sum_fld)
+					var[:] = sum_fld
 					force_today.sync()
 
 
@@ -635,7 +637,7 @@ class Forcing(object):
 							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,debug_j,debug_i], c, c.dark('tomorrow')), c.clear)
 							print "\n"
 
-						var.assignValue(flds['tomorrow'][idx_s] + var.getValue())
+						var[:]=flds['tomorrow'][idx_s] + var[:]
 						force_tom.sync()
 
 					# In species loop
@@ -648,8 +650,9 @@ class Forcing(object):
 
 		# endfor days loop (day1, day2, day3, ...)
 
-		# Probably have to close conc_today
-
+		# Make sure things are closed
+		del conc_yest
+		del conc_today
 
 	def initForceFile(self, conc, fpath, species = None):
 		""" Initialize a forcing file.
@@ -684,7 +687,7 @@ class Forcing(object):
 			#raise IOError("%s already exists."%fpath)
 
 		#print "Opening %s for writing"%fpath
-		force = NetCDFFile(fpath, 'a')
+		force = DataFile(fpath, mode='w', open=True)
 
 		# Exceptions, so we don't needlessly create huge forcing files
 		exceptions={'LAY': self.nk_f}
@@ -696,7 +699,8 @@ class Forcing(object):
 
 		# First, check the sample concentration file vs the concentration file
 		try:
-			var = conc.variables['TFLAG'].getValue()
+			#var = conc.variables['TFLAG'].getValue()
+			var = conc.variables['TFLAG']
 		except IOError as e:
 			# Pointless try loop for now, but I'll add to it later if needed.
 			raise
@@ -711,18 +715,18 @@ class Forcing(object):
 			try:
 				var = force.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
 				z=np.zeros((self.nt,self.nk_f,self.nj,self.ni), dtype=np.float32)
-				var.assignValue(z)
+				var[:,:,:,:] = z
 			except (IOError, ValueError) as ex:
 				print "%sWriting error %s%s when trying to create variable %s (%sTSTEP=%d, LAY=%d, ROW=%d, COL=%d%s)=%s%s%s in today's file.\n"%(c.red, type(ex), c.clear, s, c.blue, self.nt, self.nk_f, self.nj, self.ni, c.clear, c.orange, str(z.shape), c.clear), ex
 				print "Current variable names: %s\n"%(" ".join(map(str, force.variables.keys())))
 
 		# Copy over TFLAG
-		vsrc = conc.variables['TFLAG'].getValue()
+		vsrc = conc.variables['TFLAG'][:]
 
 		force.createVariable('TFLAG', 'i', ('TSTEP', 'VAR', 'DATE-TIME'))
 		vdest = force.variables['TFLAG']
 		try:
-			vdest.assignValue(vsrc)
+			vdest[:]=vsrc[:]
 		except (IOError, ValueError) as ex:
 			print "%sWriting error %s%s when trying to write TFLAG variable"%(c.red, type(ex), c.clear)
 			print "%sshape(vsrc)=%s, shape(vdest)=%s%s"%(c.cyan, str(vsrc.shape), str(vdest.shape), c.clear)
@@ -868,7 +872,8 @@ class Forcing(object):
 			#print "Does %s match?"%f
 			if re.search(reg, f):
 				#print "%s matches"%f
-				df=DataFile(f, path=path+f, file_format=file_format)
+				df=DataFile(f, path=path, file_format=file_format)
+				df.loadDate()
 				#is_between_date = df.date>=date_min and df.date<=date_max
 				#print "df.date=%s, between [%s %s]?=%r type(df.date)=%s, type(date_min)=%s"%(df.date, date_min, date_max, is_between_date, type(df.date), type(date_min))
 				if (date_min == None and date_max == None) or ( (date_min != None and df.date >= date_min) and (date_max != None and df.date <= date_max) ):
@@ -961,12 +966,19 @@ class Forcing(object):
 			idx_start = Forcing.dayLen-winLen+1
 			idx_end = 2*Forcing.dayLen
 
+		#print "idx_start=%d, idx_end=%d, diff=%d"%(idx_start, idx_end, idx_end-idx_start)
+
 		# Apply time zone  i.e. Montreal is -5
 		if math.floor(timezone) != timezone:
 			raise NotImplementedError("Timezone must be an integer.  Fractional timezones (e.g. Newfoundland) is not yet supported.")
 		# Change this to - timezone!!
 		idx_start = int(idx_start - timezone)
 		idx_end   = int(idx_end   - timezone)
+
+		if idx_end > len(data):
+			raise ValueError("Averaging window is outside of the three day data that was predicted!  Cannot continue.")
+
+		#print "idx_start=%d , idx_end=%d, diff=%d, timezone=%d"%(idx_start, idx_end, idx_end-idx_start, timezone)
 
 		vec = data[idx_start:idx_end]
 
