@@ -653,247 +653,248 @@ class Forcing(object):
 
 		# endfor days loop (day1, day2, day3, ...)
 
-	def produceForcingFieldOld(self, progress_callback = None, dryrun = False, debug=False):
-		""" Iterate through concentration files, create forcing output netcdf files, prepare them, and call the writing function.  Using the NetCDF 4 library, we could open all the files at opnce, but I don't trust that I/O Api's odd proprietary format would allow the library to properly sort it.  This is something to investigate in the future.
-
-		Keyword Arguments:
-
-		progressWindow:*ProgressFrame*
-
-		progress_callback:*function*
-		   Used to send back progress information.
-		   It'll call::
-
-		     progressWindow.progress_callback(percent_progress:float, current_file:Datafile)
-
-		"""
-
-# Todo:
-# Replace all the logic below by a three-day-iterator object that knows the timezone range and the averaging direction.  It can then provide the files.  Make sure that the averaging functions also know when they're dealing with a "yesterday" or a "today" (because their mightn't be a yesterday)
-
-		c = bc()
-		if debug:
-			def printVec(vec, c, cstr):
-				red=c.red
-				outs=""
-				for i in range(0, len(vec)):
-					v=vec[i]
-					if v > 0:
-						outs=outs+"%s%4.3f%s"%(red, v, cstr)
-					else:
-						outs=outs+"%4.3f"%(v)
-					if i<len(vec)-1:
-						outs=outs+" "
-				return outs
-
-		print "Processing... Domain=(ns=%d, nt=%d, nk=%d, ni=%d, nj=%d)"%(len(self.species), self.nt, self.nk, self.ni, self.nj)
-
-		#
-		# Iterate through concentration files
-		conc_yest  = None
-		conc_today = None
-		conc_tom   = None
-
-		force_yest  = None
-		force_today = None
-		force_tom   = None
-
-		# In order to keep the code below clean, all the files are
-		# initiate in this first loop
-		conc_files = []
-		force_files = []
-		for conc_datafile in self.conc_files:
-			force_path=self.generateForceFileName(conc_datafile)
-			conc_files.append(conc_datafile.path)
-			force_files.append(force_path)
-
-			# Open the concentration file
-			try:
-				#print "conc_datafile.path=%s"%conc_datafile.path
-				conc = DataFile(conc_datafile.path, mode='r', open=True)
-			except IOError as ex:
-				print "Error!  Cannot open concentration file %s"%(conc_datafile.name)
-				raise
-
-			# Initialize the file
-			try:
-				force = self.initForceFile(conc, force_path)
-			except IOError as ex:
-				print "Error! %s already exists.  Please remove the forcing file and try again."%force_path
-				# HACK TEMP, remove
-				os.remove(force_path)
-			except BadSampleConcException as ex:
-				print "%sError!%s %s"%(c.red, c.clear, ex)
-				raise
-
-			# Clean up and close the files
-			conc.close()
-			force.close()
-		# End of initiation loop
-
-		# List of full file paths
-		conc_files  = [None] + conc_files  + [None]
-		force_files = [None] + force_files + [None]
-
-		#print "Conc_datafiles: %s"%(" ".join(map(str, self.conc_files)))
-		#print "Conc_files: ", conc_files
-
-		# Index of concentration file
-		for conc_idx in range(1, len(conc_files)-1):
-
-			#print "conc_idx = %d"%conc_idx
-
-			if not dryrun:
-
-				# Grab the files
-				conc_yest_path = conc_files[conc_idx-1]
-				force_yest_path = force_files[conc_idx-1]
-
-				conc_today_path = conc_files[conc_idx]
-				force_today_path = force_files[conc_idx]
-
-				conc_tom_path = conc_files[conc_idx+1]
-				force_tom_path = force_files[conc_idx+1]
-
-				# Close files that we're done with
-				if conc_yest is not None:
-					# This is now the day before yesterday, close it.
-					conc_yest.close()
-					conc_yest = None
-
-					force_yest.close()
-					force_yest = None
-
-				# Open the files
-				if conc_yest_path is not None:
-					# Shift this to yesterday
-					conc_yest = conc_today
-					force_yest = force_today
-
-				if conc_tom is None and conc_yest_path is None:
-					# First time around
-					conc_today  = DataFile(conc_today_path, mode='r', open=True)
-					#print "%sSet conc_today (%s) = DataFile%s"%(c.blue, conc_today.basename, c.clear)
-					force_today = DataFile(force_today_path, mode='a', open=True)
-				elif conc_tom is not None:
-					# Not the first or last
-					# Shift tomorrow to today
-					conc_today = conc_tom
-					#print "%sSet conc_today (%s) = conc_tom%s"%(c.red, conc_today.basename, c.clear)
-					force_today = force_tom
-
-				if conc_tom_path != None:
-					conc_tom  = DataFile(conc_tom_path, mode='r', open=True)
-					force_tom = DataFile(force_tom_path, mode='a', open=True)
-				else:
-					conc_tom = None
-					force_tom = None
-
-				## What days are we working with?
-				#print "\n"
-				#print "Yesterday: ", force_yest
-				#print "Today:     ", force_today
-				#print "Tomorrow:  ", force_tom
-				#print "\n"
-
-				# Generate a list[yesterday, today, tomorrow]
-				# where every "day" is a list with species indices (from self.species) for
-				# keys, and values of the domain (ni*nj*nk) for that species
-				flds = self.generateForcingFields(conc_idx=conc_idx,
-				   conc_yest=conc_yest,   conc_today=conc_today,   conc_tom=conc_tom,
-				   force_yest=force_yest, force_today=force_today, force_tom=force_tom)
-
-				# Flds[day] is now a ndarray[species][nt][nk][nj][ni]
-				idx_s = 0
-				for species in self.species:
-					#print "Using species index idx_s: %d = species %s"%(idx_s, species)
-					species = self.species[idx_s]
-					# Get the netcdf variables
-					# Get the values
-					# add the values
-					# write them back to the file
-
-					if debug:
-						print "\n%si=%d, j=%d, k=0, t=:24%s"%(c.HEADER, self.debug_i, self.debug_j, c.clear)
-						print "GMT:   %s\n"%('  '.join('%4.0d' % v for v in range(1,25)))
-
-					# Yesterday
-					if Forcing.default_averaging_direction == False:
-						# In the NA domain (negative timezones), with a forward
-						# forcing average, we'll never see it reach back into
-						# yesterday.  So, if this is false, don't do it
-						if force_yest is not None:
-							var = force_yest.variables[species]
-							sum_fld = np.add(flds['yesterday'][idx_s], var[:])
-
-							#print "Shapes:"
-							#print "shape(var.getValue()): %s"%str(var.getValue().shape)
-							#print "shape(fld[..]):        %s"%str(flds['yesterday'][idx_s].shape)
-							#print "shape(sum_fld):        %s"%str(sum_fld.shape)
-							#print ""
-
-							#print "t=12, base: %4.3f, fld: %4.3f, sum: %s%4.3f%s, manual sum: %4.3f"%(var.getValue()[12,0,self.debug_j,self.debug_i], flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i], c.red, sum_fld[12,0,self.debug_j,self.debug_i], c.clear, var.getValue()[12,0,self.debug_j,self.debug_i] + flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i])
-
-
-							if debug:
-								print "Yestb: %s%s%s"%(c.light('yesterday'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('yesterday')), c.clear)
-								print "Yest:  %s%s%s"%(c.yesterday, printVec(flds['yesterday'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.yesterday), c.clear)
-								print "Yests: %s%s%s"%(c.dark('yesterday'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('yesterday')), c.clear)
-								print "\n"
-
-
-							var.assignValue(sum_fld)
-							force_yest.sync()
-
-					# Today's...
-					#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
-					#print "Today's force idx_s=%d:\n"%idx_s, flds['today'][idx_s][8]
-					var = force_today.variables[species]
-					#base_fld = var.getValue()
-					#sum_fld = var.getValue() + flds['today'][idx_s]
-					sum_fld = force_today.variables[species][:] + flds['today'][idx_s]
-					fld_matt = flds['today'][idx_s]
-
-					if debug:
-						#print "base_fld.shape: ", base_fld.shape
-						#print "sum_fld.shape:  ", sum_fld.shape
-						print "Todab: %s%s%s"%(c.light('today'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('today')), c.clear)
-						print "Toda:  %s%s%s"%(c.today, printVec(flds['today'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.today), c.clear)
-						print "Todas: %s%s%s"%(c.dark('today'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('today')), c.clear)
-						print "\n"
-
-
-					var[:] = sum_fld
-					force_today.sync()
-
-
-					# Tomorrow
-					if force_tom is not None:
-						var = force_tom.variables[species]
-						# Tomorrow shouldn't have any values already, so that's why we're not fetching them here
-
-						if debug:
-							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,self.debug_j,self.debug_i], c, c.light('tomorrow')), c.clear)
-							print "Tomo:  %s%s%s"%(c.tomorrow, printVec(flds['tomorrow'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.tomorrow), c.clear)
-							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('tomorrow')), c.clear)
-							print "\n"
-
-						var[:]=flds['tomorrow'][idx_s] + var[:]
-						force_tom.sync()
-
-					# In species loop
-					idx_s = idx_s + 1
-
-			# endif dryrun
-
-			# Perform a call back to update the progress
-			progress_callback(float(conc_idx)/(len(conc_files)-2), self.conc_files[conc_idx-1])
-
-		# endfor days loop (day1, day2, day3, ...)
-
-		# Make sure things are closed
-		del conc_yest
-		del conc_today
+### DELETE ME
+##	def produceForcingFieldOld(self, progress_callback = None, dryrun = False, debug=False):
+##		""" Iterate through concentration files, create forcing output netcdf files, prepare them, and call the writing function.  Using the NetCDF 4 library, we could open all the files at opnce, but I don't trust that I/O Api's odd proprietary format would allow the library to properly sort it.  This is something to investigate in the future.
+##
+##		Keyword Arguments:
+##
+##		progressWindow:*ProgressFrame*
+##
+##		progress_callback:*function*
+##		   Used to send back progress information.
+##		   It'll call::
+##
+##		     progressWindow.progress_callback(percent_progress:float, current_file:Datafile)
+##
+##		"""
+##
+### Todo:
+### Replace all the logic below by a three-day-iterator object that knows the timezone range and the averaging direction.  It can then provide the files.  Make sure that the averaging functions also know when they're dealing with a "yesterday" or a "today" (because their mightn't be a yesterday)
+##
+##		c = bc()
+##		if debug:
+##			def printVec(vec, c, cstr):
+##				red=c.red
+##				outs=""
+##				for i in range(0, len(vec)):
+##					v=vec[i]
+##					if v > 0:
+##						outs=outs+"%s%4.3f%s"%(red, v, cstr)
+##					else:
+##						outs=outs+"%4.3f"%(v)
+##					if i<len(vec)-1:
+##						outs=outs+" "
+##				return outs
+##
+##		print "Processing... Domain=(ns=%d, nt=%d, nk=%d, ni=%d, nj=%d)"%(len(self.species), self.nt, self.nk, self.ni, self.nj)
+##
+##		#
+##		# Iterate through concentration files
+##		conc_yest  = None
+##		conc_today = None
+##		conc_tom   = None
+##
+##		force_yest  = None
+##		force_today = None
+##		force_tom   = None
+##
+##		# In order to keep the code below clean, all the files are
+##		# initiate in this first loop
+##		conc_files = []
+##		force_files = []
+##		for conc_datafile in self.conc_files:
+##			force_path=self.generateForceFileName(conc_datafile)
+##			conc_files.append(conc_datafile.path)
+##			force_files.append(force_path)
+##
+##			# Open the concentration file
+##			try:
+##				#print "conc_datafile.path=%s"%conc_datafile.path
+##				conc = DataFile(conc_datafile.path, mode='r', open=True)
+##			except IOError as ex:
+##				print "Error!  Cannot open concentration file %s"%(conc_datafile.name)
+##				raise
+##
+##			# Initialize the file
+##			try:
+##				force = self.initForceFile(conc, force_path)
+##			except IOError as ex:
+##				print "Error! %s already exists.  Please remove the forcing file and try again."%force_path
+##				# HACK TEMP, remove
+##				os.remove(force_path)
+##			except BadSampleConcException as ex:
+##				print "%sError!%s %s"%(c.red, c.clear, ex)
+##				raise
+##
+##			# Clean up and close the files
+##			conc.close()
+##			force.close()
+##		# End of initiation loop
+##
+##		# List of full file paths
+##		conc_files  = [None] + conc_files  + [None]
+##		force_files = [None] + force_files + [None]
+##
+##		#print "Conc_datafiles: %s"%(" ".join(map(str, self.conc_files)))
+##		#print "Conc_files: ", conc_files
+##
+##		# Index of concentration file
+##		for conc_idx in range(1, len(conc_files)-1):
+##
+##			#print "conc_idx = %d"%conc_idx
+##
+##			if not dryrun:
+##
+##				# Grab the files
+##				conc_yest_path = conc_files[conc_idx-1]
+##				force_yest_path = force_files[conc_idx-1]
+##
+##				conc_today_path = conc_files[conc_idx]
+##				force_today_path = force_files[conc_idx]
+##
+##				conc_tom_path = conc_files[conc_idx+1]
+##				force_tom_path = force_files[conc_idx+1]
+##
+##				# Close files that we're done with
+##				if conc_yest is not None:
+##					# This is now the day before yesterday, close it.
+##					conc_yest.close()
+##					conc_yest = None
+##
+##					force_yest.close()
+##					force_yest = None
+##
+##				# Open the files
+##				if conc_yest_path is not None:
+##					# Shift this to yesterday
+##					conc_yest = conc_today
+##					force_yest = force_today
+##
+##				if conc_tom is None and conc_yest_path is None:
+##					# First time around
+##					conc_today  = DataFile(conc_today_path, mode='r', open=True)
+##					#print "%sSet conc_today (%s) = DataFile%s"%(c.blue, conc_today.basename, c.clear)
+##					force_today = DataFile(force_today_path, mode='a', open=True)
+##				elif conc_tom is not None:
+##					# Not the first or last
+##					# Shift tomorrow to today
+##					conc_today = conc_tom
+##					#print "%sSet conc_today (%s) = conc_tom%s"%(c.red, conc_today.basename, c.clear)
+##					force_today = force_tom
+##
+##				if conc_tom_path != None:
+##					conc_tom  = DataFile(conc_tom_path, mode='r', open=True)
+##					force_tom = DataFile(force_tom_path, mode='a', open=True)
+##				else:
+##					conc_tom = None
+##					force_tom = None
+##
+##				## What days are we working with?
+##				#print "\n"
+##				#print "Yesterday: ", force_yest
+##				#print "Today:     ", force_today
+##				#print "Tomorrow:  ", force_tom
+##				#print "\n"
+##
+##				# Generate a list[yesterday, today, tomorrow]
+##				# where every "day" is a list with species indices (from self.species) for
+##				# keys, and values of the domain (ni*nj*nk) for that species
+##				flds = self.generateForcingFields(conc_idx=conc_idx,
+##				   conc_yest=conc_yest,   conc_today=conc_today,   conc_tom=conc_tom,
+##				   force_yest=force_yest, force_today=force_today, force_tom=force_tom)
+##
+##				# Flds[day] is now a ndarray[species][nt][nk][nj][ni]
+##				idx_s = 0
+##				for species in self.species:
+##					#print "Using species index idx_s: %d = species %s"%(idx_s, species)
+##					species = self.species[idx_s]
+##					# Get the netcdf variables
+##					# Get the values
+##					# add the values
+##					# write them back to the file
+##
+##					if debug:
+##						print "\n%si=%d, j=%d, k=0, t=:24%s"%(c.HEADER, self.debug_i, self.debug_j, c.clear)
+##						print "GMT:   %s\n"%('  '.join('%4.0d' % v for v in range(1,25)))
+##
+##					# Yesterday
+##					if Forcing.default_averaging_direction == False:
+##						# In the NA domain (negative timezones), with a forward
+##						# forcing average, we'll never see it reach back into
+##						# yesterday.  So, if this is false, don't do it
+##						if force_yest is not None:
+##							var = force_yest.variables[species]
+##							sum_fld = np.add(flds['yesterday'][idx_s], var[:])
+##
+##							#print "Shapes:"
+##							#print "shape(var.getValue()): %s"%str(var.getValue().shape)
+##							#print "shape(fld[..]):        %s"%str(flds['yesterday'][idx_s].shape)
+##							#print "shape(sum_fld):        %s"%str(sum_fld.shape)
+##							#print ""
+##
+##							#print "t=12, base: %4.3f, fld: %4.3f, sum: %s%4.3f%s, manual sum: %4.3f"%(var.getValue()[12,0,self.debug_j,self.debug_i], flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i], c.red, sum_fld[12,0,self.debug_j,self.debug_i], c.clear, var.getValue()[12,0,self.debug_j,self.debug_i] + flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i])
+##
+##
+##							if debug:
+##								print "Yestb: %s%s%s"%(c.light('yesterday'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('yesterday')), c.clear)
+##								print "Yest:  %s%s%s"%(c.yesterday, printVec(flds['yesterday'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.yesterday), c.clear)
+##								print "Yests: %s%s%s"%(c.dark('yesterday'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('yesterday')), c.clear)
+##								print "\n"
+##
+##
+##							var.assignValue(sum_fld)
+##							force_yest.sync()
+##
+##					# Today's...
+##					#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
+##					#print "Today's force idx_s=%d:\n"%idx_s, flds['today'][idx_s][8]
+##					var = force_today.variables[species]
+##					#base_fld = var.getValue()
+##					#sum_fld = var.getValue() + flds['today'][idx_s]
+##					sum_fld = force_today.variables[species][:] + flds['today'][idx_s]
+##					fld_matt = flds['today'][idx_s]
+##
+##					if debug:
+##						#print "base_fld.shape: ", base_fld.shape
+##						#print "sum_fld.shape:  ", sum_fld.shape
+##						print "Todab: %s%s%s"%(c.light('today'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('today')), c.clear)
+##						print "Toda:  %s%s%s"%(c.today, printVec(flds['today'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.today), c.clear)
+##						print "Todas: %s%s%s"%(c.dark('today'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('today')), c.clear)
+##						print "\n"
+##
+##
+##					var[:] = sum_fld
+##					force_today.sync()
+##
+##
+##					# Tomorrow
+##					if force_tom is not None:
+##						var = force_tom.variables[species]
+##						# Tomorrow shouldn't have any values already, so that's why we're not fetching them here
+##
+##						if debug:
+##							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,self.debug_j,self.debug_i], c, c.light('tomorrow')), c.clear)
+##							print "Tomo:  %s%s%s"%(c.tomorrow, printVec(flds['tomorrow'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.tomorrow), c.clear)
+##							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('tomorrow')), c.clear)
+##							print "\n"
+##
+##						var[:]=flds['tomorrow'][idx_s] + var[:]
+##						force_tom.sync()
+##
+##					# In species loop
+##					idx_s = idx_s + 1
+##
+##			# endif dryrun
+##
+##			# Perform a call back to update the progress
+##			progress_callback(float(conc_idx)/(len(conc_files)-2), self.conc_files[conc_idx-1])
+##
+##		# endfor days loop (day1, day2, day3, ...)
+##
+##		# Make sure things are closed
+##		del conc_yest
+##		del conc_today
 
 	def initForceFile(self, conc, fpath, species = None):
 		""" Initialize a forcing file.
