@@ -81,6 +81,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 			return
 
 		# We doing time averaging?
+# Use the array's winLen dict
 		if self.averaging in ['AVG_MAX', 'AVG_MAX8', 'AVG_MAX24']:
 			do_averaging=True
 			averaging_window = 8 # Default
@@ -109,7 +110,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 			if conc_yest is None:
 				# If we're on day 1..
 				# This is inefficient, will upgrade later
-				data_yest = np.zeros((self.nt, self.nk_f, self.nj, self.ni))
+				data_yest = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
 				# Using nk_f here instead of nk, because we'll never be looking outside
 				# of nk_f
 			else:
@@ -117,7 +118,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 				data_yest = var_yest[:]
 
 			if conc_tom is None:
-				data_tom   = np.zeros((self.nt, self.nk_f, self.nj, self.ni))
+				data_tom   = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
 			else:
 				#print "Looking for variable %s"%species
 				var_tom   = conc_tom.variables[species]

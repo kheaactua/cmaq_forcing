@@ -55,7 +55,11 @@ class Forcing(object):
 
 	"""
 
-	avgoptions = [('AVG_MAX8', 'Max 8 hr'),  ('AVG_MAX', 'Max 1 hr'), ('AVG_MAX24', 'Max 24 hr'), ('AVG_MASK', 'Local Hours'), ('AVG_NONE', 'None')]
+	avgoptions = [{'key': 'AVG_MAX8', 'label': 'Max 8 hr', 'winLen': 8},
+	              {'key': 'AVG_MAX', 'label': 'Max 1 hr', 'winLen': 1},
+	              {'key': 'AVG_MAX24', 'label': 'Max 24 hr', 'winLen': 24},
+	              {'key': 'AVG_MASK', 'label': 'Local Hours', 'winLen': None},
+	              {'key': 'AVG_NONE', 'label': 'None', 'winLen': None}]
 
 	# Concentration files
 	conc_files = []
@@ -92,6 +96,44 @@ class Forcing(object):
 	# Used for debugging
 	debug_i = 2
 	debug_j = 2
+
+	# Debugging messages
+	@staticmethod
+	def debug(*arg):
+		""" Debug method, to help me remove all the python 2 style prints, and also
+			to put it somewhere better (maybe a log?) """
+		Forcing.output(bc.colours['blue'], "".join(map(str, arg)))
+	@staticmethod
+	def log(*arg):
+			Forcing.output(0, "".join(map(str, arg)))
+	@staticmethod
+	def warn(*arg):
+			Forcing.output(bc.colours['yellow'], "".join(map(str, arg)))
+	@staticmethod
+	def error(*arg):
+			Forcing.output(bc.colours['red'], "".join(map(str, arg)))
+	@staticmethod
+	def output(colour, msg):
+		c=bc()
+		if colour == 0:
+			colour = c.colours['clear']
+		print "%s%s%s"%(c.ansiColour(colour), msg.strip(), c.clear)
+
+	@staticmethod
+	def printVec(vec, c, cstr):
+		""" Debugging function, will dissapear at some point """
+		red=c.red
+		outs=""
+		for i in range(0, len(vec)):
+			v=vec[i]
+			if v > 0:
+				outs=outs+"%s%4.3f%s"%(red, v, cstr)
+			else:
+				outs=outs+"%4.3f"%(v)
+			if i<len(vec)-1:
+				outs=outs+" "
+		return outs
+
 
 	def __init__(self,ni=0,nj=0,nk=0,nt=0,sample_conc=''):
 		""" Initialize Forcing object.  Dimentions will be used if given,
@@ -331,9 +373,10 @@ class Forcing(object):
 
 		found = False
 		for t in self.avgoptions:
-			if avg==t[1]:
+			if avg==t['label']:
 				found = True
-				self._averaging=t[0]
+				self._averaging=t['key']
+				self.averaging_window=t['winLen']
 
 		if found == False:
 			raise ValueError("Averaging %s does not exist."%avg);
@@ -410,8 +453,6 @@ class Forcing(object):
 				print "%sSomething went wrong masking space: %s%s"%(c.red, ex, c.clear)
 				raise
 
-
-
 	def produceForcingField(self, progress_callback = None, dryrun = False, debug=False):
 		""" Iterate through concentration files, create forcing output netcdf files, prepare them, and call the writing function.  Using the NetCDF 4 library, we could open all the files at opnce, but I don't trust that I/O Api's odd proprietary format would allow the library to properly sort it.  This is something to investigate in the future.
 
@@ -426,6 +467,216 @@ class Forcing(object):
 		     progressWindow.progress_callback(percent_progress:float, current_file:Datafile)
 
 		"""
+
+# Todo:
+# Replace all the logic below by a three-day-iterator object that knows the timezone range and the averaging direction.  It can then provide the files.  Make sure that the averaging functions also know when they're dealing with a "yesterday" or a "today" (because their mightn't be a yesterday)
+
+		c = bc()
+
+		Forcing.warn("Processing... Domain=(ns=%d, nt=%d, nk=%d, ni=%d, nj=%d)"%(len(self.species), self.nt, self.nk, self.ni, self.nj))
+
+		#
+		# Iterate through concentration files
+
+
+		# In order to keep the code below clean, all the files are
+		# initiate in this first loop
+		inputs = []
+		outputs = []
+		for conc in self.conc_files:
+			inputs.append(conc)
+
+			force_path=self.generateForceFileName(conc)
+
+			# Initialize the forcing file
+			try:
+				force = self.initForceFile(conc, force_path)
+			except IOError as ex:
+				Forcing.warn("Error! %s already exists.  Please remove the forcing file and try again."%force_path)
+				# HACK TEMP, remove
+				os.remove(force_path)
+			except BadSampleConcException as ex:
+				Forcing.error("Error!")
+				raise
+
+			outputs.append(force)
+
+			# Clean up and close the files
+		# End of initiation loop
+
+		# Create file iterator
+		iterator = DayIterator(inputs, outputs)
+		rdays = iterator.recommendDaysToCarry(timeZoneFld=self.griddedTimeZoneFld, averaging_window=self.averaging_window)
+		Forcing.log("For current setup, using days: %s"%(", ".join("'%s'"%iterator.labels[l].strip() for l in rdays)))
+
+		# Index of concentration file
+		for conc_idx in range(0, len(iterator)):
+
+			#print "conc_idx = %d"%conc_idx
+
+			if not dryrun:
+
+				# Grab the files
+				inputs, outputs = iterator[rdays]
+
+				# What days are we working with?
+				if debug:
+					Forcing.log("\n")
+					for key,f in outputs.iteritems():
+						Forcing.debug("%s: %s"%(iterator.labels[key], f.basename))
+					Forcing.log("\n")
+
+				# REWRITE THESE COMMENTS
+				# Generate a list[yesterday, today, tomorrow]
+				# where every "day" is a list with species indices (from self.species) for
+				# keys, and values of the domain (ni*nj*nk) for that species
+				#flds = self.generateForcingFields(conc_idx=conc_idx, inputs, outputs)
+				# TEMP HACK
+				flds = {}
+				for d in rdays:
+					flds[d] = {}
+					for s in self.species:
+						flds[d][s] = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
+
+				# Flds[day] is now a ndarray[species][nt][nk][nj][ni]
+				idx_s = 0
+				for idx_s, species in enumerate(self.species):
+					#Forcing.debug("Using species index idx_s: %d = species %s"%(idx_s, species))
+					# Get the netcdf variables
+					# Get the values
+					# add the values
+					# write them back to the file
+
+					if debug:
+						Forcing.log("\n%si=%d, j=%d, k=0, t=:24"%(c.HEADER, self.debug_i, self.debug_j))
+						Forcing.log("GMT:   %s\n"%('  '.join('%4.0d' % v for v in range(1,25))))
+
+					
+					for d,f in outputs.iteritems():
+						# Our forcing variable (read from the file)
+						print "f.variables (%s): "%f.basename, f.variables._vars
+						fvar = f.variables[species]
+
+						# Our base field (what's already in the file)
+						base_fld = var[:]
+
+						# Overlay the new field to it (additive)
+						sum_fld = f.variables[species][:] + flds[d][idx_s]
+
+						# Assign the field to the DataFile
+						fvar[:] = sum_fld
+						f.sync()
+
+						if debug:
+							l = iterator.labels[d]
+							cl = c.light(iterator.clabels[d])
+							cn = c.getattr(iterator.clabels[d])
+							cd = c.dark(iterator.clabels[d])
+							if d == -1:
+								col=c.light('yesterday')
+							Forcing.debug("%s%sb: %s%s"%(cl, l, printVec(var[:24,0,self.debug_j,self.debug_i], c, cl)))
+							Forcing.debug("%s%s:  %s%s"%(cn, l, printVec(flds['yesterday'][idx_s][:24,0,self.debug_j,self.debug_i], c, cn)))
+							Forcing.debug("%s%ss: %s%s"%(cd, l, printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, cd)))
+							Forcing.debug("\n")
+
+					# Yesterday
+					if Forcing.default_averaging_direction == False:
+						raise NotImplementedError( "Not yet implemented" )
+						# In the NA domain (negative timezones), with a forward
+						# forcing average, we'll never see it reach back into
+						# yesterday.  So, if this is false, don't do it
+						if force_yest is not None:
+							var = force_yest.variables[species]
+							sum_fld = np.add(flds['yesterday'][idx_s], var[:])
+
+							#print "Shapes:"
+							#print "shape(var.getValue()): %s"%str(var.getValue().shape)
+							#print "shape(fld[..]):        %s"%str(flds['yesterday'][idx_s].shape)
+							#print "shape(sum_fld):        %s"%str(sum_fld.shape)
+							#print ""
+
+							#print "t=12, base: %4.3f, fld: %4.3f, sum: %s%4.3f%s, manual sum: %4.3f"%(var.getValue()[12,0,self.debug_j,self.debug_i], flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i], c.red, sum_fld[12,0,self.debug_j,self.debug_i], c.clear, var.getValue()[12,0,self.debug_j,self.debug_i] + flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i])
+
+
+							if debug:
+								print "Yestb: %s%s%s"%(c.light('yesterday'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('yesterday')), c.clear)
+								print "Yest:  %s%s%s"%(c.yesterday, printVec(flds['yesterday'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.yesterday), c.clear)
+								print "Yests: %s%s%s"%(c.dark('yesterday'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('yesterday')), c.clear)
+								print "\n"
+
+
+							var.assignValue(sum_fld)
+							force_yest.sync()
+
+					# Today's...
+					#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
+					#print "Today's force idx_s=%d:\n"%idx_s, flds['today'][idx_s][8]
+					var = force_today.variables[species]
+					#base_fld = var.getValue()
+					#sum_fld = var.getValue() + flds['today'][idx_s]
+					sum_fld = force_today.variables[species][:] + flds['today'][idx_s]
+					fld_matt = flds['today'][idx_s]
+
+					if debug:
+						#print "base_fld.shape: ", base_fld.shape
+						#print "sum_fld.shape:  ", sum_fld.shape
+						print "Todab: %s%s%s"%(c.light('today'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('today')), c.clear)
+						print "Toda:  %s%s%s"%(c.today, printVec(flds['today'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.today), c.clear)
+						print "Todas: %s%s%s"%(c.dark('today'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('today')), c.clear)
+						print "\n"
+
+
+					var[:] = sum_fld
+					force_today.sync()
+
+
+					# Tomorrow
+					if force_tom is not None:
+						var = force_tom.variables[species]
+						# Tomorrow shouldn't have any values already, so that's why we're not fetching them here
+
+						if debug:
+							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,self.debug_j,self.debug_i], c, c.light('tomorrow')), c.clear)
+							print "Tomo:  %s%s%s"%(c.tomorrow, printVec(flds['tomorrow'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.tomorrow), c.clear)
+							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('tomorrow')), c.clear)
+							print "\n"
+
+						var[:]=flds['tomorrow'][idx_s] + var[:]
+						force_tom.sync()
+
+					# In species loop
+					idx_s = idx_s + 1
+
+			# endif dryrun
+
+			# Perform a call back to update the progress
+			progress_callback(float(conc_idx)/(len(conc_files)-2), self.conc_files[conc_idx-1])
+
+		# endfor days loop (day1, day2, day3, ...)
+
+		# Make sure things are closed
+		del conc_yest
+		del conc_today
+
+
+
+	def produceForcingFieldOld(self, progress_callback = None, dryrun = False, debug=False):
+		""" Iterate through concentration files, create forcing output netcdf files, prepare them, and call the writing function.  Using the NetCDF 4 library, we could open all the files at opnce, but I don't trust that I/O Api's odd proprietary format would allow the library to properly sort it.  This is something to investigate in the future.
+
+		Keyword Arguments:
+
+		progressWindow:*ProgressFrame*
+
+		progress_callback:*function*
+		   Used to send back progress information.
+		   It'll call::
+
+		     progressWindow.progress_callback(percent_progress:float, current_file:Datafile)
+
+		"""
+
+# Todo:
+# Replace all the logic below by a three-day-iterator object that knows the timezone range and the averaging direction.  It can then provide the files.  Make sure that the averaging functions also know when they're dealing with a "yesterday" or a "today" (because their mightn't be a yesterday)
 
 		c = bc()
 		if debug:
@@ -659,7 +910,7 @@ class Forcing(object):
 
 		Keyword Arguments:
 
-		conc:*NetCDFFile*
+		conc:*DataFile*
 		   Concentration file to use as a template
 
 		fpath:*string*
@@ -674,13 +925,20 @@ class Forcing(object):
 		   Writable NetCDF File
 		"""
 
+		if not isinstance(conc, DataFile) or conc is None:
+			raise ValueError("Concentration file must be a DataFile")
+
+		# Make sure the concentration file is open
+		conc.open()
+
+		# Debug
 		c=bc()
 
 		# fpath should not exist
 		if os.path.exists(fpath):
 			# TEMP, remove
 			os.remove(fpath)
-			print "%sDeleted %s%s!"%(c.green, fpath, c.clear)
+			Forcing.debug("Deleted %s!"%(fpath))
 			#raise IOError("%s already exists."%fpath)
 
 		#print "Opening %s for writing"%fpath
@@ -713,6 +971,7 @@ class Forcing(object):
 				var = force.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
 				z=np.zeros((self.nt,self.nk_f,self.nj,self.ni), dtype=np.float32)
 				var[:,:,:,:] = z
+				Forcing.debug("Created zero variable %s in %s"%(s, force.basename))
 			except (IOError, ValueError) as ex:
 				print "%sWriting error %s%s when trying to create variable %s (%sTSTEP=%d, LAY=%d, ROW=%d, COL=%d%s)=%s%s%s in today's file.\n"%(c.red, type(ex), c.clear, s, c.blue, self.nt, self.nk_f, self.nj, self.ni, c.clear, c.orange, str(z.shape), c.clear), ex
 				print "Current variable names: %s\n"%(" ".join(map(str, force.variables.keys())))
@@ -736,6 +995,10 @@ class Forcing(object):
 
 		# Sync the file before sending it off
 		force.sync()
+
+		# Close the files
+		conc.close()
+		force.close()
 
 		return force
 
@@ -784,10 +1047,10 @@ class Forcing(object):
 
 		Keyword Arguments:
 
-		src:*NetCDF*
+		src:*DataFile*
 		   NetCDF source file
 
-		dest:*NetCDF*
+		dest:*DataFile*
 			NetCDF destinatin file
 
 		exceptions:*dict*
@@ -1201,8 +1464,141 @@ class Forcing(object):
 
 		return yesterday, today, tomorrow
 
+class DayIterator(object):
+	""" Purpose of this class is to be used by
+	produceForcingField to iterate through each day.  All the logic that was in
+	that function has been moved here.  This way, it's easier to consider averaging
+	direction and timezones.  Before when we were only considering "yesterday",
+	"today" and "tomorrow", we were often carrying around an unused day and
+	couldn't do 24 hour averaging when timezones were considered. """
 
+	# Averaging directopm
+	default_averaging_direction = Forcing.default_averaging_direction
 
+	""" Sets labels for the days.  This is mostly used for debugging.
+		labels:*dict*
+		   For example, {-1: 'Yesterday', 0: 'Today', 1: 'Tomorrow'}
+	"""
+	labels={-2: 'Bef Yest', -1: 'Yesterday', 0: 'Today   ', 1: 'Tomorrow', 2: 'Next Day'}
+	# Colours.  Defined here so 'yesterday's are always the same colour, for example.
+	clabels={-2: 'byesterday', -1: 'yesterday', 0: 'today', 1: 'tomorrow', 2: 'ntomorrow'}
+
+	_idx=None
+
+	def __init__(self, days, forcedays):
+		"""
+
+		Keyword Arguments:
+
+		days:*Datafile[]* closed
+		   Ordered list of days not yet opened.  (Doesn't matter if they're open, but this method will open and close them
+
+		forcedays:*Datafile[]* closed
+		   Ordered list of not yet opened forcing files.  (Doesn't matter if they're open, but this method will open and close them
+		"""
+
+		self.inputs=days
+		self.outputs=forcedays
+		self._idx=0 # Pointing at the first element
+
+	def recommendDaysToCarry(self, timeZoneFld, averaging_window=None, averaging_direction=Forcing.default_averaging_direction):
+		""" Determines the range of the timezone, this helps us choose how many files we need, and which files """
+		tz_min = timeZoneFld.min()
+		tz_max = timeZoneFld.max()
+
+		if tz_min > 0 or tz_max > 0:
+			raise NotImplementedError( "Positive timezones not yet implemented (min=%d, max=%d)"%(tz_min, tz_max) )
+
+		if math.fabs(tz_min) > math.fabs(tz_max):
+			# This is the condition we're used to
+			if averaging_window > math.fabs(tz_min) and averaging_direction is True:
+				# Averaging window is bigger than our max time zone and we're
+				# moving forward, this means that we'll need to keep an extra
+				# day (day after tomorrow)
+
+				return [0, 1, 2]
+			elif averaging_window > math.fabs(tz_min) and averaging_direction is False:
+				raise NotImplementedError( "not yet implemented" )
+			elif averaging_window < math.fabs(tz_min) and averaging_direction is True:
+				# This is the case this was actually built on.  In this case, yesterday is
+				# never used
+				return [0, 1]
+			elif averaging_window < math.fabs(tz_min) and averaging_direction is False:
+				# This is the case this was actually built on.  In this case, yesterday is
+				# never used
+				return [-1, 0, 1]
+			else:
+				raise NotImplementedError( "Not sure how you got here, this use case is undefined.")
+		else:
+			raise NotImplementedError( "Positive timezones not yet implemented" )
+				
+#	def setWindowRange(self, r):
+#		""" Sets the window range we'll use.  This will likely be the output from the recommendDaysToCarry function.  All this is for is to tell the iterator what days we'll be using, so if we pass any, we know we can safely close them.  This is designed with the iterator only moving forward """
+#		self.earliest_window=math.min(r)
+
+	def __getitem__(self, idx):
+		""" Returns items at an index relative to our current pointer.  So -1 would be yesterday, or pointer-1
+
+			Idx should also be a range
+
+			Returns: dict(inputs), dict(outputs)
+			   Returns two dicts, where the keys are the relative order of the days (or, keys -1 for yesterday, ..)
+		"""
+
+		sidx=[]
+		for i in idx:
+			sidx.append(i+self._idx)
+
+		# Convert to a list
+		if type(sidx) is int:
+			sidx=[sidx]
+		elif type(sidx) is list:
+			# good
+			pass
+		else:
+			raise NotImplementedError( "What did you provide?  Makes no sense." )
+
+		inputs={}
+		outputs={}
+
+		for i in sidx:
+			r = i-self._idx
+			if i < 0 or i > len(sidx) + 1:
+				# Outside of range
+				inputs[r]  = None
+				outputs[r] = None
+			else:
+				try:
+					self.inputs[i].open()
+				except IOError as ex:
+					raise IOError( "Error!  Cannot open concentration file %s"%(self.inputs[i].basename) )
+
+				try:
+					self.outputs[i].open()
+				except IOError as ex:
+					raise IOError( "Error!  Cannot open forcing file %s"%(self.outputs[i].basename) )
+
+				inputs[r]  = self.inputs[i]
+				outputs[r] = self.outputs[i]
+
+		return inputs, outputs
+
+	@property
+	def isFirst(self):
+		return self._idx == 0
+
+	@property
+	def isLast(self):
+		return self._idx == len(self.inputs)-1
+
+	def __len__(self):
+		return len(self.inputs)
+
+	def next(self):
+		self._idx = self._idx + 1
+		if self._idx > self.len():
+			raise ValueError("Iterated out of input files")
+		
 class ForcingException(Exception):
 	pass
 

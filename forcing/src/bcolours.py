@@ -25,9 +25,11 @@ class bcolours:
 	OKGREEN = '\033[92m'
 	FAIL = "\033[1;91m"
 
+	_byesterday = colours['red']
 	_yesterday = colours['green']
 	_today = colours['blue']
 	_tomorrow = colours['purple']
+	_ntomorrow = colours['cyan']
 
 
 	@staticmethod

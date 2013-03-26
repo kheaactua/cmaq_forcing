@@ -99,10 +99,13 @@ class DataFile(object):
 
 	def open(self):
 		#print("Opening %s"%(self.path))
+		if self._isOpen:
+			return
+
 		try:
 			if netcdf4 == False:
 				self.openFile=NetCDFFile(self.path, self.mode)
-
+				#print("Open file %s"%self.basename, self.openFile)
 			else:
 				#raise NotImplementedError( "NetCDF4 not yet implemented" )
 				# This will return a rootgroup
@@ -115,6 +118,9 @@ class DataFile(object):
 
 	def close(self):
 		#print("Closing %s"%self.path)
+		if not self._isOpen:
+			return
+
 		self.openFile.close()
 		self._isOpen=False
 		self._dimw=None
@@ -154,6 +160,9 @@ class DataFile(object):
 
 	@property
 	def dimensions(self):
+		if not self._isOpen:
+			raise IOError("File not open!")
+
 		if netcdf4 == False:
 			return self.openFile.dimensions
 		else:
@@ -274,7 +283,7 @@ class Netcdf4DimWrapper:
 class Netcdf4VariableWrapper:
 	netcdf4=False
 	def __init__(self, variables, netcdf4):
-		""" Imput should be a dict of netCDF4.Dimension objects """
+		""" Input should be a dict of netCDF4.Variables objects """
 		self._vars=variables
 
 	def __getitem__(self, key):
