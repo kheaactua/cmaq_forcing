@@ -554,7 +554,7 @@ class Forcing(object):
 					
 					for d,f in outputs.iteritems():
 						# Our forcing variable (read from the file)
-						print "f.variables (%s): "%f.basename, f.variables._vars
+						print "f.variables [%r] (%s): "%(f._isOpen, f.basename), f.variables._vars
 						fvar = f.variables[species]
 
 						# Our base field (what's already in the file)
@@ -566,6 +566,8 @@ class Forcing(object):
 						# Assign the field to the DataFile
 						fvar[:] = sum_fld
 						f.sync()
+						f.close()
+						inputs[d].close()
 
 						if debug:
 							l = iterator.labels[d]
@@ -579,73 +581,70 @@ class Forcing(object):
 							Forcing.debug("%s%ss: %s%s"%(cd, l, printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, cd)))
 							Forcing.debug("\n")
 
-					# Yesterday
-					if Forcing.default_averaging_direction == False:
-						raise NotImplementedError( "Not yet implemented" )
-						# In the NA domain (negative timezones), with a forward
-						# forcing average, we'll never see it reach back into
-						# yesterday.  So, if this is false, don't do it
-						if force_yest is not None:
-							var = force_yest.variables[species]
-							sum_fld = np.add(flds['yesterday'][idx_s], var[:])
-
-							#print "Shapes:"
-							#print "shape(var.getValue()): %s"%str(var.getValue().shape)
-							#print "shape(fld[..]):        %s"%str(flds['yesterday'][idx_s].shape)
-							#print "shape(sum_fld):        %s"%str(sum_fld.shape)
-							#print ""
-
-							#print "t=12, base: %4.3f, fld: %4.3f, sum: %s%4.3f%s, manual sum: %4.3f"%(var.getValue()[12,0,self.debug_j,self.debug_i], flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i], c.red, sum_fld[12,0,self.debug_j,self.debug_i], c.clear, var.getValue()[12,0,self.debug_j,self.debug_i] + flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i])
-
-
-							if debug:
-								print "Yestb: %s%s%s"%(c.light('yesterday'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('yesterday')), c.clear)
-								print "Yest:  %s%s%s"%(c.yesterday, printVec(flds['yesterday'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.yesterday), c.clear)
-								print "Yests: %s%s%s"%(c.dark('yesterday'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('yesterday')), c.clear)
-								print "\n"
-
-
-							var.assignValue(sum_fld)
-							force_yest.sync()
-
-					# Today's...
-					#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
-					#print "Today's force idx_s=%d:\n"%idx_s, flds['today'][idx_s][8]
-					var = force_today.variables[species]
-					#base_fld = var.getValue()
-					#sum_fld = var.getValue() + flds['today'][idx_s]
-					sum_fld = force_today.variables[species][:] + flds['today'][idx_s]
-					fld_matt = flds['today'][idx_s]
-
-					if debug:
-						#print "base_fld.shape: ", base_fld.shape
-						#print "sum_fld.shape:  ", sum_fld.shape
-						print "Todab: %s%s%s"%(c.light('today'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('today')), c.clear)
-						print "Toda:  %s%s%s"%(c.today, printVec(flds['today'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.today), c.clear)
-						print "Todas: %s%s%s"%(c.dark('today'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('today')), c.clear)
-						print "\n"
-
-
-					var[:] = sum_fld
-					force_today.sync()
-
-
-					# Tomorrow
-					if force_tom is not None:
-						var = force_tom.variables[species]
-						# Tomorrow shouldn't have any values already, so that's why we're not fetching them here
-
-						if debug:
-							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,self.debug_j,self.debug_i], c, c.light('tomorrow')), c.clear)
-							print "Tomo:  %s%s%s"%(c.tomorrow, printVec(flds['tomorrow'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.tomorrow), c.clear)
-							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('tomorrow')), c.clear)
-							print "\n"
-
-						var[:]=flds['tomorrow'][idx_s] + var[:]
-						force_tom.sync()
-
-					# In species loop
-					idx_s = idx_s + 1
+##					# Yesterday
+##					if Forcing.default_averaging_direction == False:
+##						raise NotImplementedError( "Not yet implemented" )
+##						# In the NA domain (negative timezones), with a forward
+##						# forcing average, we'll never see it reach back into
+##						# yesterday.  So, if this is false, don't do it
+##						if force_yest is not None:
+##							var = force_yest.variables[species]
+##							sum_fld = np.add(flds['yesterday'][idx_s], var[:])
+##
+##							#print "Shapes:"
+##							#print "shape(var.getValue()): %s"%str(var.getValue().shape)
+##							#print "shape(fld[..]):        %s"%str(flds['yesterday'][idx_s].shape)
+##							#print "shape(sum_fld):        %s"%str(sum_fld.shape)
+##							#print ""
+##
+##							#print "t=12, base: %4.3f, fld: %4.3f, sum: %s%4.3f%s, manual sum: %4.3f"%(var.getValue()[12,0,self.debug_j,self.debug_i], flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i], c.red, sum_fld[12,0,self.debug_j,self.debug_i], c.clear, var.getValue()[12,0,self.debug_j,self.debug_i] + flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i])
+##
+##
+##							if debug:
+##								print "Yestb: %s%s%s"%(c.light('yesterday'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('yesterday')), c.clear)
+##								print "Yest:  %s%s%s"%(c.yesterday, printVec(flds['yesterday'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.yesterday), c.clear)
+##								print "Yests: %s%s%s"%(c.dark('yesterday'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('yesterday')), c.clear)
+##								print "\n"
+##
+##
+##							var.assignValue(sum_fld)
+##							force_yest.sync()
+##
+##					# Today's...
+##					#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
+##					#print "Today's force idx_s=%d:\n"%idx_s, flds['today'][idx_s][8]
+##					var = force_today.variables[species]
+##					#base_fld = var.getValue()
+##					#sum_fld = var.getValue() + flds['today'][idx_s]
+##					sum_fld = force_today.variables[species][:] + flds['today'][idx_s]
+##					fld_matt = flds['today'][idx_s]
+##
+##					if debug:
+##						#print "base_fld.shape: ", base_fld.shape
+##						#print "sum_fld.shape:  ", sum_fld.shape
+##						print "Todab: %s%s%s"%(c.light('today'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('today')), c.clear)
+##						print "Toda:  %s%s%s"%(c.today, printVec(flds['today'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.today), c.clear)
+##						print "Todas: %s%s%s"%(c.dark('today'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('today')), c.clear)
+##						print "\n"
+##
+##
+##					var[:] = sum_fld
+##					force_today.sync()
+##
+##
+##					# Tomorrow
+##					if force_tom is not None:
+##						var = force_tom.variables[species]
+##						# Tomorrow shouldn't have any values already, so that's why we're not fetching them here
+##
+##						if debug:
+##							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,self.debug_j,self.debug_i], c, c.light('tomorrow')), c.clear)
+##							print "Tomo:  %s%s%s"%(c.tomorrow, printVec(flds['tomorrow'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.tomorrow), c.clear)
+##							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('tomorrow')), c.clear)
+##							print "\n"
+##
+##						var[:]=flds['tomorrow'][idx_s] + var[:]
+##						force_tom.sync()
 
 			# endif dryrun
 
