@@ -535,8 +535,8 @@ class Forcing(object):
 				flds = {}
 				for d in rdays:
 					flds[d] = {}
-					for s in self.species:
-						flds[d][s] = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
+					for idx_s, species in enumerate(self.species):
+						flds[d][idx_s] = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
 
 				# Flds[day] is now a ndarray[species][nt][nk][nj][ni]
 				idx_s = 0
@@ -554,14 +554,14 @@ class Forcing(object):
 					
 					for d,f in outputs.iteritems():
 						# Our forcing variable (read from the file)
-						print "f.variables [%r] (%s): "%(f._isOpen, f.basename), f.variables._vars
+						#print "f.variables [%r] (%s): "%(f._isOpen, f.basename), f.variables._vars
 						fvar = f.variables[species]
 
 						# Our base field (what's already in the file)
-						base_fld = var[:]
+						base_fld = fvar[:]
 
 						# Overlay the new field to it (additive)
-						sum_fld = f.variables[species][:] + flds[d][idx_s]
+						sum_fld = fvar[:] + flds[d][idx_s]
 
 						# Assign the field to the DataFile
 						fvar[:] = sum_fld
@@ -572,13 +572,13 @@ class Forcing(object):
 						if debug:
 							l = iterator.labels[d]
 							cl = c.light(iterator.clabels[d])
-							cn = c.getattr(iterator.clabels[d])
+							cn = getattr(c, iterator.clabels[d])
 							cd = c.dark(iterator.clabels[d])
 							if d == -1:
 								col=c.light('yesterday')
-							Forcing.debug("%s%sb: %s%s"%(cl, l, printVec(var[:24,0,self.debug_j,self.debug_i], c, cl)))
-							Forcing.debug("%s%s:  %s%s"%(cn, l, printVec(flds['yesterday'][idx_s][:24,0,self.debug_j,self.debug_i], c, cn)))
-							Forcing.debug("%s%ss: %s%s"%(cd, l, printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, cd)))
+							Forcing.debug("%s%sb: %s"%(cl, l, Forcing.printVec(base_fld[:24,0,self.debug_j,self.debug_i], c, cl)))
+							Forcing.debug("%s%s:  %s"%(cn, l, Forcing.printVec(flds[d][idx_s][:24,0,self.debug_j,self.debug_i], c, cn)))
+							Forcing.debug("%s%ss: %s"%(cd, l, Forcing.printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, cd)))
 							Forcing.debug("\n")
 
 ##					# Yesterday
@@ -649,15 +649,9 @@ class Forcing(object):
 			# endif dryrun
 
 			# Perform a call back to update the progress
-			progress_callback(float(conc_idx)/(len(conc_files)-2), self.conc_files[conc_idx-1])
+			progress_callback(float(conc_idx+1)/len(inputs), self.conc_files[conc_idx])
 
 		# endfor days loop (day1, day2, day3, ...)
-
-		# Make sure things are closed
-		del conc_yest
-		del conc_today
-
-
 
 	def produceForcingFieldOld(self, progress_callback = None, dryrun = False, debug=False):
 		""" Iterate through concentration files, create forcing output netcdf files, prepare them, and call the writing function.  Using the NetCDF 4 library, we could open all the files at opnce, but I don't trust that I/O Api's odd proprietary format would allow the library to properly sort it.  This is something to investigate in the future.
@@ -998,6 +992,9 @@ class Forcing(object):
 		# Close the files
 		conc.close()
 		force.close()
+
+		# From now on, force will be read and written to, so change the mode
+		force.mode='a'
 
 		return force
 

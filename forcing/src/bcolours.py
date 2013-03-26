@@ -37,6 +37,10 @@ class bcolours:
 		return '\033[%dm'%c
 
 	@property
+	def byesterday(self):
+		return bcolours.ansiColour(bcolours._byesterday)
+
+	@property
 	def yesterday(self):
 		return bcolours.ansiColour(bcolours._yesterday)
 
@@ -47,6 +51,10 @@ class bcolours:
 	@property
 	def tomorrow(self):
 		return bcolours.ansiColour(bcolours._tomorrow)
+
+	@property
+	def ntomorrow(self):
+		return bcolours.ansiColour(bcolours._ntomorrow)
 
 	@property
 	def red(self):
@@ -96,7 +104,7 @@ class bcolours:
 		elif day == "tomorrow":
 			c=bcolours._tomorrow
 		else:
-			c=bcolours._colours['clear']
+			c=bcolours.colours['clear']
 
 		return '\033[1;%d;43m'%c
 
@@ -108,7 +116,7 @@ class bcolours:
 		elif day == "tomorrow":
 			c=bcolours._tomorrow
 		else:
-			c=bcolours._colours['clear']
+			c=bcolours.colours['clear']
 
 		return '\033[1;%d;40m'%c
 
