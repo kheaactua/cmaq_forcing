@@ -252,7 +252,7 @@ class DataFile(object):
 				self.close()
 
 	def __str__(self):
-		return self.name
+		return self.basename
 
 	# Used for sorting
 	def __cmp__(self, other):
@@ -312,6 +312,9 @@ class Netcdf4VariableWrapper:
 
 	def __getitem__(self, key):
 		return self._vars[key]
+
+	def keys(self):
+		return self._vars.keys()
 
 	def assignValue():
 		raise RuntimeError("Avoid using assignValue");

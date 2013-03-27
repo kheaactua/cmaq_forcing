@@ -43,7 +43,7 @@ class ForcingFrame(wx.Frame):
 
 	# File formats
 	inputFormatDefault = "CCTM_fwdACONC*YYYYMMDD"
-	outputFormatDefault = "Force.TYPE.YYYYMMDD"
+	outputFormatDefault = "Force.TYPE.AVG.YYYYMMDD"
 
 	# Paths
 	inputPath = None
@@ -191,10 +191,11 @@ class ForcingFrame(wx.Frame):
 		conc_dir = os.getcwd() + '/mortality/'
 		self.pan_input.inputPathCtrl.SetValue(conc_dir)
 		self.pan_output.outputPathCtrl.SetValue(os.getcwd() + '/output/')
-		sample_conc=conc_dir + 'CCTM_fwdACONC.20070701'
+		sample_conc=conc_dir + 'FWD.0701'
 		self.pan_sample_conc.conc_file.SetValue(sample_conc)
 		self.validator = ForcingValidator(sample_conc)
-		self.pan_input.inputFormatCtrl.SetValue('CCTM_fwdACONC.YYYYMMDD')
+		#self.pan_input.inputFormatCtrl.SetValue('CCTM_fwdACONC.YYYYMMDD')
+		self.pan_input.inputFormatCtrl.SetValue('FWD.MMDD')
 		self.pan_dates.updateDate(date(2007,7,1))
 		self.pan_dates.updateDate(date(2007,7,3), True)
 		self.pan_ginputs.timezone_fname.path = os.getcwd() + '/GriddedTimeZoneMask.nc'

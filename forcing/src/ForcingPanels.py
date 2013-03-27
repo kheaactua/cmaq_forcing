@@ -222,7 +222,7 @@ class ForcingPanelWithAveraging(ForcingPanel):
 		lblAvg = wx.StaticText(self, label="Averaging Time")
 		rsizer=wx.FlexGridSizer(rows=len(Forcing.avgoptions),cols=2,hgap=5)
 		for at in Forcing.avgoptions:
-			radioinput=wx.RadioButton(self, label=at[1], name="avgtimes")
+			radioinput=wx.RadioButton(self, label=at['label'], name="avgtimes")
 			radioinput.Bind(wx.EVT_RADIOBUTTON, self.chooseAveraging, radioinput)
 			rsizer.Add(radioinput)
 			avghelp = HelpLink(self, label="Help", onClick=self.ShowAvgHelp)
@@ -230,7 +230,7 @@ class ForcingPanelWithAveraging(ForcingPanel):
 
 		# Need to set the default.  Assuming that the first one is the default selected
 		# radiobutton (this isn't a great assumption, fix when I have more time.)
-		self.avgoption = Forcing.avgoptions[0][1]
+		self.avgoption = Forcing.avgoptions[0]['label']
 
 		lbltimes = wx.StaticText(self, label="Use Hours:")
 		# Take times from the top frame (it read them from the sample conc file)
@@ -286,7 +286,7 @@ class ForcingPanelWithAveraging(ForcingPanel):
 
 	def runForce(self, top):
 		# Set the averaging
-		self.forcingClass.setAveraging(self.avgoption)
+		self.forcingClass.averaging = self.avgoption
 
 		# Pass it up
 		super(ForcingPanelWithAveraging, self).runForce(top)

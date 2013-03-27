@@ -1,5 +1,6 @@
 from numpy import shape
-from Scientific.IO.NetCDF import NetCDFFile
+#from Scientific.IO.NetCDF import NetCDFFile
+from DataFile import DataFile
 import numpy as np
 import datetime
 
@@ -17,7 +18,7 @@ class ForcingValidator:
 	conc = None
 
 	def __init__(self,filename):
-		self.conc=NetCDFFile(filename, 'r')
+		self.conc=DataFile(filename, mode='r', open=True)
 
 		self.ni = self.conc.dimensions['COL']
 		self.nj = self.conc.dimensions['ROW']
@@ -45,7 +46,7 @@ class ForcingValidator:
 
 	def changeFile(self, newfile):
 		self.conc.close();
-		self.conc=NetCDFFile(newfile, 'r')
+		self.conc=DataFile(newfile, mode='r', open=True)
 
 	def getDate(self):
 		""" Again, not a validator just a getter.  Useful to know the date
@@ -139,7 +140,7 @@ class ForcingValidator:
 	# Check to ensure all the chosen species are available 
 	# Species is a string vector
 	def validateSpecies(self, species):
-		"""Validate species against a sample netcdf file variables
+		"""Validate species against a sample datafile variables
 
 		Keyword Arguments:
 		species -- Vector of species names to use
@@ -175,7 +176,7 @@ class ForcingValidator:
 
 
 	def validateLayers(self,layers):
-		"""Validate layers against a sample netcdf file
+		"""Validate layers against a sample datafile file
 
 		Keyword Arguments:
 		layers -- Vector of layers to use
@@ -195,7 +196,7 @@ class ForcingValidator:
 		return True
 
 	def validateTimes(self,times):
-		"""Validate times against a sample netcdf file
+		"""Validate times against a sample datafile file
 
 		Keyword Arguments:
 		times -- Vector of times to use
@@ -211,10 +212,10 @@ class ForcingValidator:
 		return True
 
 	def ValidateDataFileSurface(self, filename):
-		""" Validates a NetCDF file by checking if it's 2D surface domani
+		""" Validates a datafile by checking if it's 2D surface domani
 			(ni,nj) matches the sample file """
 
-		datafile=NetCDFFile(filename, 'r')
+		datafile=DataFile(filename, mode='r', open=True)
 
 		#print "COL %d, self.ni: %d   -  ROW: %d, self.nj: %d"%(datafile.dimensions['COL'], self.ni, datafile.dimensions['ROW'], self.nj)
 		return datafile.dimensions['COL'] == self.ni and datafile.dimensions['ROW'] == self.nj

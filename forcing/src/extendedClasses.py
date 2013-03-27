@@ -1,4 +1,4 @@
-from Scientific.IO.NetCDF import NetCDFFile
+#from DataFile import DataFile
 import datetime as dt
 import wx, os
 
