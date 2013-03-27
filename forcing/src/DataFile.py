@@ -188,44 +188,69 @@ class DataFile(object):
 		    property """
 
 		# Try to determine the date
-		try:
-			# Should check if day is first
-			day_is_first=None
+
+		# First, does the file format expect a date string in it?
+		match_y = re.match("YYYY", self.file_format)
+		match_m = re.match("MM", self.file_format)
+		match_d = re.match("DD", self.file_format)
+		match_j = re.match("JJJ", self.file_format)
+		if (match_y and match_j) or (match_y and match_m and match_d):
 			try:
-				day_is_first = self.file_format.index('MM') > self.file_format.index('DD')
-			except ValueError:
-				# Meh
+				# Should check if day is first
 				day_is_first=None
+				try:
+					day_is_first = self.file_format.index('MM') > self.file_format.index('DD')
+				except ValueError:
+					# Meh
+					day_is_first=None
 
-			#print "Day is first? ", day_is_first
-			self.date=dparser.parse(self.path, fuzzy=True, dayfirst=day_is_first)
-		except ValueError as e:
-			print("Manually interpreting %s"%self.path)
+				#print "Day is first? ", day_is_first
+				self.date=dparser.parse(self.path, fuzzy=True, dayfirst=day_is_first)
+			except ValueError as e:
+				print("Manually interpreting %s"%self.path)
 
-			# YYYYMMDD
-			match = re.match(r'.*[^\d](\d{4})(\d{2})(\d{2}).*', self.path)
-			if match:
-				self.date = dateE(int(match.group(1)), int(match.group(2)), int(match.group(3)))
-				return
+				# YYYYMMDD
+				match = re.match(r'.*[^\d](\d{4})(\d{2})(\d{2}).*', self.path)
+				if match:
+					self.date = dateE(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+					return
 
-			# Is it a julian date?
-			match = re.match('.*[^\d](\d{4})(\d{3}).*', self.path)
-			print(match)
-			if match:
-				# Copy juldate reader from Validator..
-				year = int(match.group(1))
-				jday = int(match.group(2))
+				# Is it a julian date?
+				match = re.match('.*[^\d](\d{4})(\d{3}).*', self.path)
+				#print(match)
+				if match:
+					# Copy juldate reader from Validator..
+					year = int(match.group(1))
+					jday = int(match.group(2))
 
-				date = datetime.date(year, 1, 1)
-				days = datetime.timedelta(days=jday-1) # -1 because we started at day 1
-				date=date+days
-	
-				self.date = dateE(match.group(1), date.month, date.day)
+					date = datetime.date(year, 1, 1)
+					days = datetime.timedelta(days=jday-1) # -1 because we started at day 1
+					date=date+days
+		
+					self.date = dateE(match.group(1), date.month, date.day)
 
-				raise NotImplementedError( "[TODO] Not yet tested" )
-				return
+					raise NotImplementedError( "[TODO] Not yet tested" )
+					return
+		else:
+			# Check sdate..
+			was_closed=False
+			if not self._isOpen:
+				was_closed=True
+				self.open()
 
-		# Check sdate..
+			sdate=str(getattr(self.openFile, 'SDATE'))
+
+			# Sometimes sdate has brackets around it
+			if sdate[0] == "[" and sdate[-1] == "]":
+				sdate=sdate[1:-1]
+			print("sdate = %s"%sdate)
+			year=int(sdate[:4])
+			jday=int(sdate[4:])
+
+			self.date = dateE.fromJulDate(year, jday)
+
+			if was_closed:
+				self.close()
 
 	def __str__(self):
 		return self.name

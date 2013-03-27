@@ -1,5 +1,5 @@
 from Scientific.IO.NetCDF import NetCDFFile
-from datetime import date
+import datetime as dt
 import wx, os
 
 
@@ -74,14 +74,15 @@ class SingleFileChooser(wx.Button):
 				self.parent.parent.warn("Could not open %s.  %s"%(self.path, str(e)))
 
 # This should also be moved into another file
-class dateE(date, object):
+class dateE(dt.date, object):
 	""" Extends datetime.datetime by adding juldate operators """
 
 	_julday = -1
 
 	def __init__(self, year, month, day):
-		date.__init__(year, month, day)
+		""" Date function wrapper used for juldate stuff """
 
+		super(dateE, self).__init__(year, month, day)
 		self._SetJulDay(year, month, day)
 
 	@property
@@ -97,7 +98,17 @@ class dateE(date, object):
 		raise NotImplementedError( "Not yet implemented" )
 
 	def _SetJulDay(self, year, month, day):
-		date_s = date(self.year, 1, 1)
-		date_e = date(self.year, self.month, self.day)
+		date_s = dt.date(self.year, 1, 1)
+		date_e = dt.date(self.year, self.month, self.day)
 		delta = date_s - date_e
 		self._julday = delta.days
+
+	def __str__(self):
+		return "%d-%0.2d-%0.2d"%(self.year,self.month,self.day)
+
+	@staticmethod
+	def fromJulDate(year, jday):
+		date = dt.date(year, 1, 1)
+		days = dt.timedelta(days=jday-1) # -1 because we started at day 1
+		date=date+days
+		return dateE(year, date.month, date.day)
