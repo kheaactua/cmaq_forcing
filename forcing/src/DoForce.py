@@ -1160,7 +1160,7 @@ class Forcing(object):
 
 
 	@staticmethod
-	def prepareTimeVectorForAvg(yesterday, today, tomorrow, timezone=0, winLen=8, forwards_or_backwards = default_averaging_direction, debug=False):
+	def prepareTimeVectorForAvg(vecs, timezone=0, winLen=8, forwards_or_backwards = default_averaging_direction, debug=False):
 		""" Prepare a vector for a sliding window.  Given a vector of values
 		for three days (yesterday, today and tomorrow), this considers the direction of
 		your averaging (8 hours forwards, backwards, or maybe central one day) and
@@ -1168,6 +1168,7 @@ class Forcing(object):
 
 		So, given::
 
+		   vecs={-1: yesterday, 0: today, 1: tomorrow} # where,
 		   yesterday=[0 ... 0] (24 elements)
 		   today    =[0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 0 ... 0] (24 elements)
 		   tomorrow =[0 ... 0] (24 elements)
@@ -1184,8 +1185,8 @@ class Forcing(object):
 
 		Keywords:
 
-		yesterday[], today[], tomorrow[]:*numpy.ndarray*
-		   24 element vectors starting at index 0
+		vec*dict[[]:*numpy.ndarray*
+		   keys are the offset of the day (so, -1 is yesterday), values are 24 element vectors starting at index 0
 		timezone:*int*
 		   Shift the vector to reflect your timezone
 		winLen:*int*
@@ -1203,32 +1204,44 @@ class Forcing(object):
 		   forwards or backwards.
 		"""
 
-		if len(yesterday)<Forcing.dayLen:
-			print yesterday
-			raise ValueError("\"yesterday\" ndarray vector must be 24 elements long.  Given len=%d"%len(yesterday))
-		if len(today)<Forcing.dayLen:
-			raise ValueError("\"today\" ndarray vector must be 24 elements long.  Given len=%d"%len(today))
-		if len(tomorrow)<Forcing.dayLen:
-			raise ValueError("\"tomorrow\" ndarray vector must be 24 elements long.  Given len=%d"%len(tomorrow))
+		for d,v in vecs.iteritems():
+			if len(v) != 24:
+				raise ValueError("Vector %d has an invalid length.  Vectors must have a length of %d, given len=%d"%(d, Forcing.dayLen, len(yesterday)))
 
-		data=np.concatenate([yesterday, today, tomorrow], axis=1)
-		#print "Combined Data:\n%s "%', '.join(map(str, data))
+		data=np.concatenate(vecs.values(), axis=1)
+		#Forcing.debug("Combined Data:\n%s "%', '.join(map(str, data)))
+
+		if timezone > 0:
+			raise NotImplementedError("Error!  Positive timezones are not yet implemented.")
+
+		# Calculate how many days were given before "today"
+		days_before_today = 0
+		for d in vecs.keys():
+			if d<0:
+				days_before_today=days_before_today + 1
+			else:
+				break
 
 		if forwards_or_backwards:
 			# Moving forward
-			idx_start = Forcing.dayLen
-			idx_end = 2*Forcing.dayLen+winLen-1
+
+			# Index should start at today.  So, 24*number of vectors before day 0
+			idx_start=days_before_today*Forcing.dayLen
+
+			# Ending index must span at least 1 day + winLen
+			idx_end = idx_start+Forcing.dayLen+winLen-1
 		else:
 			# Moving backward
-			idx_start = Forcing.dayLen-winLen+1
-			idx_end = 2*Forcing.dayLen
 
-		#print "idx_start=%d, idx_end=%d, diff=%d"%(idx_start, idx_end, idx_end-idx_start)
+			# We need all of today, plus a window length's into yesterday
+			idx_start=(days_before_today*Forcing.dayLen) - winLen+1
+			idx_end = (days_before_today+1)*Forcing.dayLen
+
+		Forcing.debug("idx_start=%d, idx_end=%d, diff=%d"%(idx_start, idx_end, idx_end-idx_start))
 
 		# Apply time zone  i.e. Montreal is -5
 		if math.floor(timezone) != timezone:
 			raise NotImplementedError("Timezone must be an integer.  Fractional timezones (e.g. Newfoundland) is not yet supported.")
-		# Change this to - timezone!!
 		idx_start = int(idx_start - timezone)
 		idx_end   = int(idx_end   - timezone)
 
@@ -1250,12 +1263,9 @@ class Forcing(object):
 
 			# Create coloured ints, and re-create the list
 			cdata=[]
-			for i in range(0,Forcing.dayLen):
-				cdata.append(ci(data[i], b._yesterday))
-			for i in range(Forcing.dayLen,Forcing.dayLen*2):
-				cdata.append(ci(data[i], b._today))
-			for i in range(Forcing.dayLen*2,Forcing.dayLen*3):
-				cdata.append(ci(data[i], b._tomorrow))
+			for d,ve in vecs.iteritems():
+				for val in ve:
+					cdata.append(ci(val, getattr(b, "_%s"%DayIterator.clabels[d])))
 
 			# Slice the list the same way
 			cvec = cdata[idx_start:idx_end]
@@ -1278,7 +1288,7 @@ class Forcing(object):
 		return vec
 
 	@staticmethod
-	def calcMovingAverage(data, winLen = 8, debug=False):
+	def calcMovingAverage(data, winLen=8, debug=False):
 		""" Calculate a sliding/moving window average over the data and return a 24 element vector of averages.
 
 		The keyword arguments below assume a winLen = 8
@@ -1315,7 +1325,7 @@ class Forcing(object):
 			y = []
 
 			i = 0
-			# Loop over 24 hours.  Recall, prepareTimeVectorForAvg already accounted for weather we are counting
+			# Loop over 24 hours.  Recall, prepareTimeVectorForAvg already accounted for whether we are counting
 			# forwards or backwards
 			while i < Forcing.dayLen:
 				#print "i=%0.2d"%(i)
@@ -1368,7 +1378,7 @@ class Forcing(object):
 		return y
 
 	@staticmethod
-	def applyForceToAvgTime(avgs_today, winLen=8, timezone = 0, min_threshold = None, forcingValue = None, forwards_or_backwards = default_averaging_direction, debug=False):
+	def applyForceToAvgTime(avgs_today, days, winLen=8, timezone = 0, min_threshold = None, forcingValue = None, forwards_or_backwards = default_averaging_direction, debug=False):
 		""" Apply the forcing terms to the max X-hour average.
 
 		This function finds the max value in the provided list and writes a 1/winLen to the return vector at the location of the max and for the next (if forward) or last (if backward) winLen-1 elements.
@@ -1383,6 +1393,9 @@ class Forcing(object):
 
 		avgs_today:*float32[]*
 		   24 element list of X-hour averages.
+
+		days:*int[]*
+		   List of relative days that we're working on, e.g. -1 = yesterday, 0 = today, ..
 
 		winLen=8:*int*
 		   Length of the window
@@ -1404,6 +1417,7 @@ class Forcing(object):
 
 		Returns:
 
+# UPDATE THIS
 		*dict[yesterday[], today[], tomorrow[]]*:
 		   Forcing terms to be applied to yesterday, today and today.  For instance, if the max
 		   occurred right in the middle of today, say at noon (and we're calculating forward), then
@@ -1412,18 +1426,30 @@ class Forcing(object):
 		   yesterday or today.. So the outputs (yesterday, tomorrow) can be added to whatever
 		   those values happen to be when this is called.
 		"""
-		   
+
+		# Number of days we have to work with
+		ndays=len(days)
+
+		# Calculate how many days were given before "today"
+		days_before_today = 0
+		for d in days:
+			if d<0:
+				days_before_today=days_before_today + 1
+			else:
+				break
 
 		#data=np.concatenate([yesterday, today, tomorrow])
-		forcing=np.zeros(Forcing.dayLen*3)
+		forcing=np.zeros(Forcing.dayLen*ndays)
 
-		# Set up 3 day vector of averages, probably a slow way, but
+		# Set up multi day vector of averages, probably a slow way, but
 		# for now will help keep track of indices
-		avgs=np.zeros(Forcing.dayLen*3)
+		avgs=np.zeros(Forcing.dayLen*ndays)
 		# I know it seems like it should be to Forcing.dayLen*2-1... but the
 		# way it is is mysteriously correct (seems like python interprets
 		# ranges as [start,end[ (non-inclusive on end index))..
-		avgs[Forcing.dayLen:Forcing.dayLen*2]=avgs_today
+		#
+		# Anyways, apply todays averages to today
+		avgs[Forcing.dayLen*days_before_today:Forcing.dayLen*(days_before_today+1)]=avgs_today
 
 		# Where's the max?
 		max_idx=avgs.argmax()
@@ -1431,11 +1457,11 @@ class Forcing(object):
 			if avgs[max_idx]<min_threshold:
 				# Leave the whole vector as zero
 				if debug:
-					print "Max value (%f) is below threshold (%f).  Returning zero vectors"%(avgs[max_idx], min_threshold)
-				yesterday = np.zeros((Forcing.dayLen), dtype=np.float32)
-				today     = yesterday.copy()
-				tomorrow  = yesterday.copy()
-				return yesterday, today, tomorrow
+					Forcing.debug("Max value (%f) is below threshold (%f).  Returning zero vectors"%(avgs[max_idx], min_threshold))
+				vecs = {}
+				for d in days:
+					vec[d] = np.zeros((Forcing.dayLen), dtype=np.float32)
+				return vecs
 
 		# If there is no threshold, or we haven't hit it, continue on..
 
@@ -1443,23 +1469,27 @@ class Forcing(object):
 		max_idx = max_idx - timezone
 
 		if forcingValue is None:
+# Remember to revert this!
 			#forcingValue=float(1)/winLen
 			forcingValue=1.0
 
-		#if debug:
-		#	print "max_idx=%d\nwinLen=%d\ttimezone=%d\nValue = %f"%(max_idx, winLen, timezone, forcingValue)
+		if debug:
+			print "max_idx=%d\nwinLen=%d\ttimezone=%d\nValue = %f"%(max_idx, winLen, timezone, forcingValue)
 
+		# Apply the forcing term to the appropriate place in the vector
 		if forwards_or_backwards == True:
 			# Moving forward
 			forcing[max_idx:max_idx+winLen] = forcingValue
 		else:
 			forcing[max_idx-winLen+1:max_idx+1] = forcingValue
 
-		yesterday = forcing[0:Forcing.dayLen]
-		today     = forcing[Forcing.dayLen:Forcing.dayLen*2]
-		tomorrow  = forcing[Forcing.dayLen*2:Forcing.dayLen*3]
+		vecs = {}
+		i = 0
+		for d in days:
+			vecs[d] = forcing[Forcing.dayLen*i:Forcing.dayLen*(i+1)]
+			i=i+1
 
-		return yesterday, today, tomorrow
+		return vecs
 
 class DayIterator(object):
 	""" Purpose of this class is to be used by

@@ -40,13 +40,9 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 		return fname		
 
 
-	def generateForcingFields(self, conc_idx,
- 	   conc_yest,  conc_today,  conc_tom,
-	   force_yest, force_today, force_tom):
+	def generateForcingFields(self, conc_idx, inputs, outputs):
 		""" UPDATE THIS DESCRIPTION!
-		    Generate a forcing field, for each species, write a
-			field of all 1's (this is a simply case), with respect
-			to all the masks of course.
+		    Generate a forcing field taking spacial masks, timezones, and time averaging into account.
 
 		Keyword Arguments:
 
@@ -54,8 +50,8 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 		  Index of concentration file in self.conc_files.  Done this way
 		  so that it's easy to access yesterday's and tomorrow's files.
 
-		conc_ and force_:*NetCDFFile*
-		   NetCDF files
+		inputs and outputs:*DataFile*
+		   dicts of DataFiles where the key is the relative day (so, -1 is yesterday)
 
 		Returns:
 
@@ -81,13 +77,9 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 			return
 
 		# We doing time averaging?
-# Use the array's winLen dict
 		if self.averaging in ['AVG_MAX', 'AVG_MAX8', 'AVG_MAX24']:
 			do_averaging=True
-			averaging_window = 8 # Default
-			averaging_window = 1  if self.averaging == 'AVG_MAX'   else averaging_window
-			averaging_window = 8  if self.averaging == 'AVG_MAX8'  else averaging_window
-			averaging_window = 24 if self.averaging == 'AVG_MAX24' else averaging_window
+			averaging_window = self.avering_window
 		else:
 			do_averaging=False
 			averaging_window = None
@@ -100,36 +92,31 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 		# Create zero fields to allocate our arrays
 		fld_empty=np.zeros((len(self.species), self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
 
-		flds={'yesterday': fld_empty, 'today': fld_empty.copy(), 'tomorrow': fld_empty.copy()}
-
+		# Get the relative days, so [-1 0 1] for [yesterday, today, tomorrow]
+		rdays = inputs.keys()
+		# Don't need to initialize really as we only write to it after everything.
+		flds={}
+		#for d in rdays:
+		#	flds[d] = fld_empty.copy()
 
 		# This is NOT efficient.  Could probably easily make it
 		# more efficient by implementing some sort of cache though..
 		for idx_s, species in enumerate(self.species):
 			#print "Iteratiing through species %d=%s"%(idx_s, species)
-			if conc_yest is None:
-				# If we're on day 1..
-				# This is inefficient, will upgrade later
-				data_yest = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
-				# Using nk_f here instead of nk, because we'll never be looking outside
-				# of nk_f
-			else:
-				var_yest  = conc_yest.variables[species]
-				data_yest = var_yest[:]
 
-			if conc_tom is None:
-				data_tom   = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
-			else:
-				#print "Looking for variable %s"%species
-				var_tom   = conc_tom.variables[species]
-				data_tom  = var_tom[:]
+			# Initialize the data flds.  Set to zero if there's a day that doesn't exist
+			datas={}
+			for d in rdays:
+				if inputs[d] is None:
+					datas[d] = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
+				else
+					datas[d] = inputs[d].variables[species][:]
 
-			data_today  = conc_today.variables[species][:]
 
-			# This used to copy data_yest's shape, but now we override some dims (like layers)
-			fld_yest  = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
-			fld_today = fld_yest.copy()
-			fld_tom   = fld_yest.copy()
+#			# This used to copy data_yest's shape, but now we override some dims (like layers)
+#			fld_yest  = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
+#			fld_today = fld_yest.copy()
+#			fld_tom   = fld_yest.copy()
 
 
 			# Recall, mask is already considered in these vectors
@@ -141,9 +128,8 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 						# Spatial mask
 						if not self.space[j,i]:
 							# This is masked out.  Set to zero and go to the next cell
-							fld_yest[0:self.nt,k,j,i]  = np.zeros((self.nt), dtype=np.float32)
-							fld_today[0:self.nt,k,j,i] = np.zeros((self.nt), dtype=np.float32)
-							fld_tom[0:self.nt,k,j,i]   = np.zeros((self.nt), dtype=np.float32)
+							for d in rdays:
+								flds[d][idx_s][0:self.nt,k,j,i] = np.zeros((self.nt), dtype=np.float32)
 							continue
 						#else:
 						#	# TEMP HACK!!
@@ -160,9 +146,9 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 						# cell.  Unfortunately, the data is organized in the 
 						# opposite way as we want (time is the top index..)
 						if do_averaging:
-							vec_yest  = data_yest[:Forcing.dayLen,k,j,i]
-							vec_today = data_today[:Forcing.dayLen,k,j,i]
-							vec_tom   = data_tom[:Forcing.dayLen,k,j,i]
+							vec={}
+							for d in rdays:
+								vecs[d]  = datas[d][:Forcing.dayLen,k,j,i]
 
 							# REMOVE!
 							#if i==self.debug_i and j==self.debug_j:
@@ -173,7 +159,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 							# (forward/backward), the window size, and time
 							# zone 
 
-							vec = Forcing.prepareTimeVectorForAvg(vec_yest, vec_today, vec_tom, timezone=tz[j][i], winLen=averaging_window, debug=False)
+							vec = Forcing.prepareTimeVectorForAvg(vecs, timezone=tz[j][i], winLen=averaging_window, debug=True)
 							#print "i=%d,j=%d, preped vec[%d] = %s"%(i,j,len(vec)," ".join(map(str, vec)))
 
 							# Calculate the moving window average
@@ -187,15 +173,11 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 							if self.timeInvariantScalarMultiplcativeFld is not None:
 								scalar = self.timeInvariantScalarMultiplcativeFld[j][i]/averaging_window
 
-							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar)
+							vecs = Forcing.applyForceToAvgTime(avgs, days=vecs.keys(), winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar)
 
-
-							fld_yest[:Forcing.dayLen,k,j,i]  = yesterday[:Forcing.dayLen]
-							fld_today[:Forcing.dayLen,k,j,i] = today[:Forcing.dayLen]
-							# REMOVF!
-							#if i==self.debug_i and j==self.debug_j:
-							#	print "Today: ", today
-							fld_tom[:Forcing.dayLen,k,j,i]   = tomorrow[:Forcing.dayLen]
+# This was done blindly
+							for d in rdays:
+								flds[d][idx_s] = vecs[d]
 
 						elif self.averaging == 'AVG_MASK' or self.averaging == 'AVG_NONE':
 # NOT YET TESTED
@@ -239,13 +221,6 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 					#endfor j
 				#endfor i
 			#endfor k
-
-			#print "fld_today[t=8] idx_s=%d:\n"%idx_s,fld_today[8,:,:,:]
-
-
-			flds['yesterday'][idx_s] = fld_yest
-			flds['today'][idx_s]     = fld_today
-			flds['tomorrow'][idx_s]  = fld_tom
 
 		#endfor species
 
