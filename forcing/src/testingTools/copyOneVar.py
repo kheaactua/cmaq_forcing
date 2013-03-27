@@ -27,7 +27,7 @@ for d,v in src.dimensions.iteritems():
 # Create variable
 dest_var = dest.createVariable(var_name, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
 dest_var[:] = src_var[:]
-dest_var = dest.createVariable('TFLAG', 'f', ('TSTEP', 'VAR', 'DATE-TIME'))
+dest_var = dest.createVariable('TFLAG', 'i', ('TSTEP', 'VAR', 'DATE-TIME'))
 dest_var[:] = src.variables['TFLAG']
 
 
