@@ -16,7 +16,7 @@ src_file="FWD.0703"
 var_name="O3"
 
 src=NetCDFFile(src_file, 'r')
-src_var = src[var_name]
+src_var = src.variables[var_name]
 
 # Create a new file
 dest = NetCDFFile("%s.%s"%(src_file, var_name), 'w')
