@@ -27,8 +27,10 @@ def printVec(vec, c, cstr):
 
 winLen=8
 
-debug_i=2
-debug_j=2
+#debug_i=2
+#debug_j=2
+debug_i=72
+debug_j=19
 
 
 # Timezone?
@@ -51,7 +53,7 @@ if len(sys.argv) == 2:
 yesterday=np.zeros((24), dtype=np.float32)
 today    =np.zeros((24), dtype=np.float32)
 tomorrow =np.zeros((24), dtype=np.float32)
-today[7:15]=1
+#today[7:15]=1
 
 ## From Morteza's files, cell i=60,j=30, 2007 may1-3
 #yesterday=[0.0486, 0.0481, 0.0456, 0.0424, 0.0401, 0.0389, 0.0387, 0.0388, 0.0385, 0.0378, 0.0369, 0.0361, 0.0355, 0.0359, 0.0393, 0.0441, 0.0485, 0.0529, 0.0580, 0.0615, 0.0637, 0.0652, 0.0662, 0.0671]

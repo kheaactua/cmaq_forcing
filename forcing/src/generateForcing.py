@@ -47,7 +47,7 @@ def ProgressBarCLI(prog, filename):
 
 if args.cli:
 
-	setup=1
+	setup=3
 
 	if setup==0:
 		fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
@@ -56,6 +56,8 @@ if args.cli:
 		fc.inputPath = os.getcwd() + '/concentrations/'
 	elif setup==1:
 		fc = f.ForceOnAverageConcentration(sample_conc='basic_concentrations/CCTM.20050505')
+		fc.debug_i=2
+		fc.debug_j=2
 		fc.inputPath = os.getcwd() + '/basic_concentrations/'
 		date_min = dateE(2005,05,05)
 		date_max = dateE(2005,05,07)
@@ -65,7 +67,10 @@ if args.cli:
 		date_max = dateE(2007,05,03)
 		fc.inputPath = '/mnt/mediasonic/opt/output/base/'
 	elif setup in (3,4,5):
-		fc = f.ForceOnMortality(sample_conc='mortality/CCTM_fwdACONC.20070701')
+		#fc = f.ForceOnMortality(sample_conc='mortality/CCTM_fwdACONC.20070701')
+		fc = f.ForceOnMortality(sample_conc='mortality/FWD.0701')
+		fc.debug_i=69
+		fc.debug_j=69
 		date_min = dateE(2007,07,01)
 		date_max = dateE(2007,07,03)
 		fc.inputPath = os.getcwd() + '/mortality/'

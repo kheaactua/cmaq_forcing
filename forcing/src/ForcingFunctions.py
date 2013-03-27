@@ -1,7 +1,7 @@
 from DataFile import DataFile
 from DoForce import Forcing, ForcingException, ForcingFileDimensionException
 import numpy as np
-import re
+import re, os
 
 class ForceWithThreshold(Forcing):
 	# Concentration threshold
@@ -79,7 +79,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 		# We doing time averaging?
 		if self.averaging in ['AVG_MAX', 'AVG_MAX8', 'AVG_MAX24']:
 			do_averaging=True
-			averaging_window = self.avering_window
+			averaging_window = self.averaging_window
 		else:
 			do_averaging=False
 			averaging_window = None
@@ -94,10 +94,10 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 
 		# Get the relative days, so [-1 0 1] for [yesterday, today, tomorrow]
 		rdays = inputs.keys()
-		# Don't need to initialize really as we only write to it after everything.
+		# Probably an easiesr way to initalize this since we're only writing later, but for now we'll do it.
 		flds={}
-		#for d in rdays:
-		#	flds[d] = fld_empty.copy()
+		for d in rdays:
+			flds[d] = fld_empty.copy()
 
 		# This is NOT efficient.  Could probably easily make it
 		# more efficient by implementing some sort of cache though..
@@ -109,9 +109,8 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 			for d in rdays:
 				if inputs[d] is None:
 					datas[d] = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
-				else
+				else:
 					datas[d] = inputs[d].variables[species][:]
-
 
 #			# This used to copy data_yest's shape, but now we override some dims (like layers)
 #			fld_yest  = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
@@ -146,7 +145,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 						# cell.  Unfortunately, the data is organized in the 
 						# opposite way as we want (time is the top index..)
 						if do_averaging:
-							vec={}
+							vecs={}
 							for d in rdays:
 								vecs[d]  = datas[d][:Forcing.dayLen,k,j,i]
 
@@ -159,7 +158,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 							# (forward/backward), the window size, and time
 							# zone 
 
-							vec = Forcing.prepareTimeVectorForAvg(vecs, timezone=tz[j][i], winLen=averaging_window, debug=True)
+							vec = Forcing.prepareTimeVectorForAvg(vecs, timezone=tz[j][i], winLen=averaging_window, debug=False)
 							#print "i=%d,j=%d, preped vec[%d] = %s"%(i,j,len(vec)," ".join(map(str, vec)))
 
 							# Calculate the moving window average
@@ -177,7 +176,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 
 # This was done blindly
 							for d in rdays:
-								flds[d][idx_s] = vecs[d]
+								flds[d][idx_s][:24,k,j,i] = vecs[d]
 
 						elif self.averaging == 'AVG_MASK' or self.averaging == 'AVG_NONE':
 # NOT YET TESTED
@@ -307,9 +306,9 @@ class ForceOnMortality(ForceOnAverageConcentration):
 
 		# Open the mortality file
 		try:
-			mortality = NetCDFFile(self._mortality_fname, 'r')
+			mortality = DataFile(self._mortality_fname, mode='r', open=True)
 		except IOError as ex:
-			print "Error!  Cannot open mortality file %s"%(self._mortality_fname)
+			print "Error!  Cannot open mortality file %s.  File exists? %r"%(self._mortality_fname, os.path.isfile(self._mortality_fname))
 			raise
 
 		# Check dimensions
@@ -320,7 +319,7 @@ class ForceOnMortality(ForceOnAverageConcentration):
 		try:
 			# dims are TSTEP, LAY, ROW, COL.. so skip TSTEP and LAY
 			# this should be made more general, or the file should be made better.
-			mfld = mortality.variables[self._mortality_var].getValue()[0][0]
+			mfld = mortality.variables[self._mortality_var][0][0]
 		except IOError as e:
 			raise e
 		except IndexError as e:
@@ -332,7 +331,7 @@ class ForceOnMortality(ForceOnAverageConcentration):
 
 			# Open the population file
 			try:
-				pop = NetCDFFile(self._pop_fname, 'r')
+				pop = DataFile(self._pop_fname, mode='r', open=True)
 			except IOError as ex:
 				print "Error!  Cannot open population file %s"%(self._pop_fname)
 				raise
@@ -340,15 +339,21 @@ class ForceOnMortality(ForceOnAverageConcentration):
 			# Check dimensions
 			if not (pop.dimensions['COL'] == self.ni and pop.dimensions['ROW'] == self.nj):
 				raise ValueError("Error, dimensions in population file %s do not match domain."%self._pop_fname)
+		else:
+			# Same file?
+			pop = mortality
 
 		# Read the field
 		try:
 			# dims are TSTEP, LAY, ROW, COL.. so skip TSTEP and LAY
-			pfld = mortality.variables[self._pop_var].getValue()[0][0]
+			pfld = pop.variables[self._pop_var][0][0]
 		except IOError as e:
 			raise e
 		except IndexError as e:
-			raise ForcingFileDimensionException("Mortality NetCDF file seems to have incompatible dimensions.  Currently require shape (TSTEP, LAY, ROW, COL).  This is marked to be improved, as the data does not vary with time or layer.")
+			raise ForcingFileDimensionException("Population NetCDF file seems to have incompatible dimensions.  Currently require shape (TSTEP, LAY, ROW, COL).  This is marked to be improved, as the data does not vary with time or layer.")
+
+
+		pop.close()
 
 		# Debug, remember, when debugging this against plotted data or fortran
 		# code: values like (70,70) started at index 1 whereas we started at

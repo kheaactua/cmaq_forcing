@@ -450,7 +450,7 @@ class Forcing(object):
 					print "%sError! self.space's type changed to %s%s"%(c.red, type(self.space), c.clear)
 				f.close()
 			except Exception as ex:
-				print "%sSomething went wrong masking space: %s%s"%(c.red, ex, c.clear)
+				print "%sSomething went wrong masking space with mask file %s (exists?: %r) %s%s"%(c.red, maskf, os.path.isfile(maskf), ex, c.clear)
 				raise
 
 	def produceForcingField(self, progress_callback = None, dryrun = False, debug=False):
@@ -526,17 +526,18 @@ class Forcing(object):
 						Forcing.debug("%s: %s"%(iterator.labels[key], f.basename))
 					Forcing.log("\n")
 
-				# REWRITE THESE COMMENTS
-				# Generate a list[yesterday, today, tomorrow]
+				# Generate a dict of day vectors, e.g. {-1: yesterday, 0: today, 1: tomorrow]
 				# where every "day" is a list with species indices (from self.species) for
 				# keys, and values of the domain (ni*nj*nk) for that species
-				#flds = self.generateForcingFields(conc_idx=conc_idx, inputs, outputs)
+				flds = self.generateForcingFields(conc_idx=conc_idx, inputs=inputs, outputs=outputs)
+
 				# TEMP HACK
 				flds = {}
 				for d in rdays:
 					flds[d] = {}
 					for idx_s, species in enumerate(self.species):
 						flds[d][idx_s] = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
+				# TEMP HACK
 
 				# Flds[day] is now a ndarray[species][nt][nk][nj][ni]
 				idx_s = 0
@@ -581,75 +582,12 @@ class Forcing(object):
 							Forcing.debug("%s%ss: %s"%(cd, l, Forcing.printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, cd)))
 							Forcing.debug("\n")
 
-##					# Yesterday
-##					if Forcing.default_averaging_direction == False:
-##						raise NotImplementedError( "Not yet implemented" )
-##						# In the NA domain (negative timezones), with a forward
-##						# forcing average, we'll never see it reach back into
-##						# yesterday.  So, if this is false, don't do it
-##						if force_yest is not None:
-##							var = force_yest.variables[species]
-##							sum_fld = np.add(flds['yesterday'][idx_s], var[:])
-##
-##							#print "Shapes:"
-##							#print "shape(var.getValue()): %s"%str(var.getValue().shape)
-##							#print "shape(fld[..]):        %s"%str(flds['yesterday'][idx_s].shape)
-##							#print "shape(sum_fld):        %s"%str(sum_fld.shape)
-##							#print ""
-##
-##							#print "t=12, base: %4.3f, fld: %4.3f, sum: %s%4.3f%s, manual sum: %4.3f"%(var.getValue()[12,0,self.debug_j,self.debug_i], flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i], c.red, sum_fld[12,0,self.debug_j,self.debug_i], c.clear, var.getValue()[12,0,self.debug_j,self.debug_i] + flds['yesterday'][idx_s][12,0,self.debug_j,self.debug_i])
-##
-##
-##							if debug:
-##								print "Yestb: %s%s%s"%(c.light('yesterday'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('yesterday')), c.clear)
-##								print "Yest:  %s%s%s"%(c.yesterday, printVec(flds['yesterday'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.yesterday), c.clear)
-##								print "Yests: %s%s%s"%(c.dark('yesterday'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('yesterday')), c.clear)
-##								print "\n"
-##
-##
-##							var.assignValue(sum_fld)
-##							force_yest.sync()
-##
-##					# Today's...
-##					#print "Today's conc:\n", conc_today.variables[species].getValue()[8]
-##					#print "Today's force idx_s=%d:\n"%idx_s, flds['today'][idx_s][8]
-##					var = force_today.variables[species]
-##					#base_fld = var.getValue()
-##					#sum_fld = var.getValue() + flds['today'][idx_s]
-##					sum_fld = force_today.variables[species][:] + flds['today'][idx_s]
-##					fld_matt = flds['today'][idx_s]
-##
-##					if debug:
-##						#print "base_fld.shape: ", base_fld.shape
-##						#print "sum_fld.shape:  ", sum_fld.shape
-##						print "Todab: %s%s%s"%(c.light('today'), printVec(var[:24,0,self.debug_j,self.debug_i], c, c.light('today')), c.clear)
-##						print "Toda:  %s%s%s"%(c.today, printVec(flds['today'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.today), c.clear)
-##						print "Todas: %s%s%s"%(c.dark('today'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('today')), c.clear)
-##						print "\n"
-##
-##
-##					var[:] = sum_fld
-##					force_today.sync()
-##
-##
-##					# Tomorrow
-##					if force_tom is not None:
-##						var = force_tom.variables[species]
-##						# Tomorrow shouldn't have any values already, so that's why we're not fetching them here
-##
-##						if debug:
-##							#print "Tomob: %s%s%s"%(c.light('tomorrow'), printVec(var.getValue()[:24,0,self.debug_j,self.debug_i], c, c.light('tomorrow')), c.clear)
-##							print "Tomo:  %s%s%s"%(c.tomorrow, printVec(flds['tomorrow'][idx_s][:24,0,self.debug_j,self.debug_i], c, c.tomorrow), c.clear)
-##							#print "Tomos: %s%s%s"%(c.dark('tomorrow'), printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, c.dark('tomorrow')), c.clear)
-##							print "\n"
-##
-##						var[:]=flds['tomorrow'][idx_s] + var[:]
-##						force_tom.sync()
-
+					# endfor outputs
+				#endfor species
 			# endif dryrun
 
 			# Perform a call back to update the progress
-			progress_callback(float(conc_idx+1)/len(inputs), self.conc_files[conc_idx])
+			progress_callback(float(conc_idx)/len(inputs), self.conc_files[conc_idx])
 
 		# endfor days loop (day1, day2, day3, ...)
 
@@ -999,7 +937,7 @@ class Forcing(object):
 
 		return force
 
-	def generateForcingFields(self, conc_idx):
+	def generateForcingFields(self, conc_idx, inputs, outputs):
 		""" Generate a forcing field.  *Abstract*
 
 		Keyword Arguments:
@@ -1237,7 +1175,7 @@ class Forcing(object):
 			idx_start=(days_before_today*Forcing.dayLen) - winLen+1
 			idx_end = (days_before_today+1)*Forcing.dayLen
 
-		Forcing.debug("idx_start=%d, idx_end=%d, diff=%d"%(idx_start, idx_end, idx_end-idx_start))
+		#Forcing.debug("idx_start=%d, idx_end=%d, diff=%d"%(idx_start, idx_end, idx_end-idx_start))
 
 		# Apply time zone  i.e. Montreal is -5
 		if math.floor(timezone) != timezone:
@@ -1538,24 +1476,25 @@ class DayIterator(object):
 
 		if math.fabs(tz_min) > math.fabs(tz_max):
 			# This is the condition we're used to
-			if averaging_window > math.fabs(tz_min) and averaging_direction is True:
-				# Averaging window is bigger than our max time zone and we're
-				# moving forward, this means that we'll need to keep an extra
-				# day (day after tomorrow)
 
-				return [0, 1, 2]
-			elif averaging_window > math.fabs(tz_min) and averaging_direction is False:
-				raise NotImplementedError( "not yet implemented" )
-			elif averaging_window < math.fabs(tz_min) and averaging_direction is True:
-				# This is the case this was actually built on.  In this case, yesterday is
-				# never used
-				return [0, 1]
-			elif averaging_window < math.fabs(tz_min) and averaging_direction is False:
-				# This is the case this was actually built on.  In this case, yesterday is
-				# never used
-				return [-1, 0, 1]
+			if averaging_direction is True:
+				# Spare hours is the number of hours between the extent of the averaging window, and where we loose data in "tomorrow"
+				# spare_hours = (48-tz)-(24+winLen)
+				# A positive spare_hours means we only need today and tomorrow, otherwise, we need the next day too
+				spare_hours = Forcing.dayLen-math.fabs(tz_min)-averaging_window
+
+				if spare_hours > 0:
+					# This is the case this was actually built on.  In this case, yesterday is
+					# never used
+					Forcing.log("Averaging window (%d) is smaller than max time zone shirt (%d).  Using days 0 and 1"%(averaging_window, tz_min))
+					return [0, 1]
+				else:
+					# Averaging window is too big when we consider our time shift.  So we'll need an extra day
+
+					Forcing.log("Averaging window (%d) is larger than max time zone shirt (%d).  Using days 0,1,2"%(averaging_window, tz_min))
+					return [0, 1, 2]
 			else:
-				raise NotImplementedError( "Not sure how you got here, this use case is undefined.")
+				raise NotImplementedError( "not yet implemented" )
 		else:
 			raise NotImplementedError( "Positive timezones not yet implemented" )
 				
