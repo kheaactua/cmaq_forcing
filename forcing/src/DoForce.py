@@ -512,8 +512,11 @@ class Forcing(object):
 		# Index of concentration file
 		for conc_idx in range(0, len(iterator)):
 
-			#print "conc_idx = %d"%conc_idx
+			print "conc_idx = %d"%conc_idx
+			if conc_idx>1:
+				os._exit(1)
 
+			# Should re-think where this dry-run goes and what it's for
 			if not dryrun:
 
 				# Grab the files
@@ -531,14 +534,6 @@ class Forcing(object):
 				# keys, and values of the domain (ni*nj*nk) for that species
 				flds = self.generateForcingFields(conc_idx=conc_idx, inputs=inputs, outputs=outputs)
 
-				# TEMP HACK
-				flds = {}
-				for d in rdays:
-					flds[d] = {}
-					for idx_s, species in enumerate(self.species):
-						flds[d][idx_s] = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
-				# TEMP HACK
-
 				# Flds[day] is now a ndarray[species][nt][nk][nj][ni]
 				idx_s = 0
 				for idx_s, species in enumerate(self.species):
@@ -550,7 +545,7 @@ class Forcing(object):
 
 					if debug:
 						Forcing.log("\n%si=%d, j=%d, k=0, t=:24"%(c.HEADER, self.debug_i, self.debug_j))
-						Forcing.log("GMT:   %s\n"%('  '.join('%4.0d' % v for v in range(1,25))))
+						Forcing.log("GMT:     %s\n"%('  '.join('%4.0d' % v for v in range(1,25))))
 
 					
 					for d,f in outputs.iteritems():
@@ -568,6 +563,21 @@ class Forcing(object):
 						fvar[:] = sum_fld
 						f.sync()
 						f.close()
+
+						# debug, did it write?
+						f.open()
+						fvar2=f.variables[species]
+						dfld=fvar2[:]
+						cl=c.light('today')
+						cd=c.dark('today')
+						#Forcing.log("Wrote to %s"%f.basename)
+						Forcing.debug("%ssum_fld: %s"%(cl, Forcing.printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, cl)))
+						Forcing.debug("%sfld:     %s"%(cd, Forcing.printVec(dfld[:24,0,self.debug_j,self.debug_i], c, cd)))
+						print "\n";
+						f.close()
+						#/debug
+						
+
 						inputs[d].close()
 
 						if debug:
@@ -584,6 +594,10 @@ class Forcing(object):
 
 					# endfor outputs
 				#endfor species
+
+				# Move the iterator ahead one
+				iterator.next()
+
 			# endif dryrun
 
 			# Perform a call back to update the progress
@@ -1069,8 +1083,10 @@ class Forcing(object):
 				#print "%s matches"%f
 				df=DataFile(f, path=path, file_format=file_format)
 				df.loadDate()
+
 				#is_between_date = df.date>=date_min and df.date<=date_max
 				#print "df.date=%s, between [%s %s]?=%r type(df.date)=%s, type(date_min)=%s"%(df.date, date_min, date_max, is_between_date, type(df.date), type(date_min))
+
 				if (date_min == None and date_max == None) or ( (date_min != None and df.date >= date_min) and (date_max != None and df.date <= date_max) ):
 					#print "File added"
 					cfiles.append(df)
@@ -1562,7 +1578,7 @@ class DayIterator(object):
 
 	def next(self):
 		self._idx = self._idx + 1
-		if self._idx > self.len():
+		if self._idx > len(self):
 			raise ValueError("Iterated out of input files")
 		
 class ForcingException(Exception):

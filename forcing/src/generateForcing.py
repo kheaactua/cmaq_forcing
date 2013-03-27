@@ -116,7 +116,8 @@ if args.cli:
 		fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
 		# Mask space
 		fc.maskSpace('SpacialMask.nc', 'USA', 2)
-		conc_files=fc.FindFiles(file_format="CCTM_fwdACONC.YYYYMMDD", path=fc.inputPath, date_min=date_min, date_max=date_max)
+		#conc_files=fc.FindFiles(file_format="CCTM_fwdACONC.YYYYMMDD", path=fc.inputPath, date_min=date_min, date_max=date_max)
+		conc_files=fc.FindFiles(file_format="FWD.MMDD", path=fc.inputPath, date_min=date_min, date_max=date_max)
 
 
 	fc.loadConcentrationFiles(conc_files)

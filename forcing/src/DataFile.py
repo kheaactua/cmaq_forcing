@@ -243,7 +243,6 @@ class DataFile(object):
 			# Sometimes sdate has brackets around it
 			if sdate[0] == "[" and sdate[-1] == "]":
 				sdate=sdate[1:-1]
-			print("sdate = %s"%sdate)
 			year=int(sdate[:4])
 			jday=int(sdate[4:])
 

@@ -3,7 +3,9 @@
 # Colour code things
 class bcolours:
 
-	colours = {'red': 91, 'green': 32, 'blue': 94, 'yellow': 43, 'purple': 35, 'orange': 40, 'cyan': 36, 'clear': 0}
+	# http://nschimme.tripod.com/ansi.htm
+
+	colours = {'red': 91, 'green': 32, 'blue': 94, 'yellow': 33, 'purple': 35, 'orange': 40, 'cyan': 36, 'clear': 0}
 
 	#red="\033[%dm"%_red
 
