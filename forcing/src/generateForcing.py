@@ -47,7 +47,7 @@ def ProgressBarCLI(prog, filename):
 
 if args.cli:
 
-	setup=3
+	setup=5
 
 	if setup==0:
 		fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
@@ -92,6 +92,7 @@ if args.cli:
 	elif setup == 5:
 		fc.beta=0.00052
 		fc.averaging = 'Max 24 hr'
+		date_max = dateE(2007,07,04)
 
 	print "Averaging: %s"%fc.averaging
 
@@ -118,6 +119,7 @@ if args.cli:
 		fc.maskSpace('SpacialMask.nc', 'USA', 2)
 		#conc_files=fc.FindFiles(file_format="CCTM_fwdACONC.YYYYMMDD", path=fc.inputPath, date_min=date_min, date_max=date_max)
 		conc_files=fc.FindFiles(file_format="FWD.MMDD", path=fc.inputPath, date_min=date_min, date_max=date_max)
+		print "Files: %s"%(" ".join(map(str, conc_files)))
 
 
 	fc.loadConcentrationFiles(conc_files)

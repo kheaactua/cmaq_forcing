@@ -512,9 +512,7 @@ class Forcing(object):
 		# Index of concentration file
 		for conc_idx in range(0, len(iterator)):
 
-			print "conc_idx = %d"%conc_idx
-			if conc_idx>1:
-				os._exit(1)
+			#print "conc_idx = %d"%conc_idx
 
 			# Should re-think where this dry-run goes and what it's for
 			if not dryrun:
@@ -526,7 +524,11 @@ class Forcing(object):
 				if debug:
 					Forcing.log("\n")
 					for key,f in outputs.iteritems():
-						Forcing.debug("%s: %s"%(iterator.labels[key], f.basename))
+						if f is not None:
+							bn=f.basename
+						else:
+							bn="None"
+						Forcing.debug("%s: %s"%(iterator.labels[key], bn))
 					Forcing.log("\n")
 
 				# Generate a dict of day vectors, e.g. {-1: yesterday, 0: today, 1: tomorrow]
@@ -563,20 +565,6 @@ class Forcing(object):
 						fvar[:] = sum_fld
 						f.sync()
 						f.close()
-
-						# debug, did it write?
-						f.open()
-						fvar2=f.variables[species]
-						dfld=fvar2[:]
-						cl=c.light('today')
-						cd=c.dark('today')
-						#Forcing.log("Wrote to %s"%f.basename)
-						Forcing.debug("%ssum_fld: %s"%(cl, Forcing.printVec(sum_fld[:24,0,self.debug_j,self.debug_i], c, cl)))
-						Forcing.debug("%sfld:     %s"%(cd, Forcing.printVec(dfld[:24,0,self.debug_j,self.debug_i], c, cd)))
-						print "\n";
-						f.close()
-						#/debug
-						
 
 						inputs[d].close()
 
@@ -917,7 +905,7 @@ class Forcing(object):
 				var = force.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
 				z=np.zeros((self.nt,self.nk_f,self.nj,self.ni), dtype=np.float32)
 				var[:,:,:,:] = z
-				Forcing.debug("Created zero variable %s in %s"%(s, force.basename))
+				#Forcing.debug("Created zero variable %s in %s"%(s, force.basename))
 			except (IOError, ValueError) as ex:
 				print "%sWriting error %s%s when trying to create variable %s (%sTSTEP=%d, LAY=%d, ROW=%d, COL=%d%s)=%s%s%s in today's file.\n"%(c.red, type(ex), c.clear, s, c.blue, self.nt, self.nk_f, self.nj, self.ni, c.clear, c.orange, str(z.shape), c.clear), ex
 				print "Current variable names: %s\n"%(" ".join(map(str, force.variables.keys())))
@@ -1466,6 +1454,9 @@ class DayIterator(object):
 
 	_idx=None
 
+	# List of relative days.  Typically this is the output of recommendDaysToCarry
+	days = []
+
 	def __init__(self, days, forcedays):
 		"""
 
@@ -1479,6 +1470,7 @@ class DayIterator(object):
 		"""
 
 		self.inputs=days
+		Forcing.debug("Setup DayIterator with files: %s"%(" ".join(map(str, self.inputs))))
 		self.outputs=forcedays
 		self._idx=0 # Pointing at the first element
 
@@ -1486,6 +1478,8 @@ class DayIterator(object):
 		""" Determines the range of the timezone, this helps us choose how many files we need, and which files """
 		tz_min = timeZoneFld.min()
 		tz_max = timeZoneFld.max()
+
+		days = []
 
 		if tz_min > 0 or tz_max > 0:
 			raise NotImplementedError( "Positive timezones not yet implemented (min=%d, max=%d)"%(tz_min, tz_max) )
@@ -1503,17 +1497,20 @@ class DayIterator(object):
 					# This is the case this was actually built on.  In this case, yesterday is
 					# never used
 					Forcing.log("Averaging window (%d) is smaller than max time zone shirt (%d).  Using days 0 and 1"%(averaging_window, tz_min))
-					return [0, 1]
+					days = [0, 1]
 				else:
 					# Averaging window is too big when we consider our time shift.  So we'll need an extra day
 
 					Forcing.log("Averaging window (%d) is larger than max time zone shirt (%d).  Using days 0,1,2"%(averaging_window, tz_min))
-					return [0, 1, 2]
+					days = [0, 1, 2]
 			else:
 				raise NotImplementedError( "not yet implemented" )
 		else:
 			raise NotImplementedError( "Positive timezones not yet implemented" )
-				
+
+		self.days=days
+		return days
+
 #	def setWindowRange(self, r):
 #		""" Sets the window range we'll use.  This will likely be the output from the recommendDaysToCarry function.  All this is for is to tell the iterator what days we'll be using, so if we pass any, we know we can safely close them.  This is designed with the iterator only moving forward """
 #		self.earliest_window=math.min(r)
@@ -1545,7 +1542,7 @@ class DayIterator(object):
 
 		for i in sidx:
 			r = i-self._idx
-			if i < 0 or i > len(sidx) + 1:
+			if i < 0 or i > len(sidx):
 				# Outside of range
 				inputs[r]  = None
 				outputs[r] = None
@@ -1574,7 +1571,11 @@ class DayIterator(object):
 		return self._idx == len(self.inputs)-1
 
 	def __len__(self):
-		return len(self.inputs)
+		# This has to tell it how many days we can iterate.
+		# For example, if we're using "the day after next", this will
+		# show one less file that the inputs
+		l = len(self.inputs) - (max(self.days))
+		return l
 
 	def next(self):
 		self._idx = self._idx + 1
