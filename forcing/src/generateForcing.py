@@ -47,36 +47,58 @@ def ProgressBarCLI(prog, filename):
 
 if args.cli:
 
-	setup=1
+	setup=4
 
 	if setup==0:
 		fc = f.ForceOnAverageConcentration(sample_conc='conc.nc')
 		date_min = dateE(1999,07,03)
 		date_max = dateE(1999,07,06)
-		fc.conc_path = os.getcwd() + '/concentrations/'
+		fc.inputPath = os.getcwd() + '/concentrations/'
 	elif setup==1:
 		fc = f.ForceOnAverageConcentration(sample_conc='basic_concentrations/CCTM.20050505')
-		fc.conc_path = os.getcwd() + '/basic_concentrations/'
+		fc.debug_i=2
+		fc.debug_j=2
+		fc.inputPath = os.getcwd() + '/basic_concentrations/'
 		date_min = dateE(2005,05,05)
 		date_max = dateE(2005,05,07)
 	elif setup==2:
 		fc = f.ForceOnAverageConcentration(sample_conc='/mnt/mediasonic/opt/output/base/CCTM_fwdACONC.20070501')
 		date_min = dateE(2007,05,01)
 		date_max = dateE(2007,05,03)
-		fc.conc_path = '/mnt/mediasonic/opt/output/base/'
-	elif setup==3:
-		fc = f.ForceOnMortality(sample_conc='mortality/CCTM_fwdACONC.20070701')
+		fc.inputPath = '/mnt/mediasonic/opt/output/base/'
+	elif setup in (3,4,5):
+		#fc = f.ForceOnMortality(sample_conc='mortality/CCTM_fwdACONC.20070701')
+		fc = f.ForceOnMortality(sample_conc='mortality/FWD.0701')
+		fc.debug_i=69
+		fc.debug_j=69
 		date_min = dateE(2007,07,01)
 		date_max = dateE(2007,07,03)
-		fc.conc_path = os.getcwd() + '/mortality/'
+		fc.inputPath = os.getcwd() + '/mortality/'
 
 		fc.vsl=None
 		fc.SetMortality(fname = os.getcwd() + '/mortality/DOMAIN_POP_BMR', var='BMR')
 		fc.SetPopulation(fname = os.getcwd() + '/mortality/DOMAIN_POP_BMR', var='POP')
 
+
+	fc.averaging = 'Max 8 hr'
+	#fc.averaging = 'Max 24 hr'
+
+	if setup == 3:
+		fc.beta=0.000427
+		fc.averaging = 'Max 8 hr'
+	elif setup == 4:
+		fc.beta=0.000335
+		fc.averaging = 'Max 1 hr'
+	elif setup == 5:
+		fc.beta=0.00052
+		fc.averaging = 'Max 24 hr'
+		date_max = dateE(2007,07,04)
+
+	print "Averaging: %s"%fc.averaging
+
+	if setup in (3,4,5):
 		fc.loadScalarField()
 
-	fc.setAveraging('Max 8 hr')
 
 	fc.maskLayers([1])
 	fc.species=['O3']
@@ -86,16 +108,18 @@ if args.cli:
 	#fc.outputPath=os.getcwd() + 'output/'
 
 	if setup==0:
-		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
+		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.inputPath, date_min=date_min, date_max=date_max)
 
 	elif setup==1:
 		fc.griddedTimeZone = 'basic_concentrations/timezones.nc'
-		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
+		conc_files=fc.FindFiles(file_format="CCTM.YYYYMMDD", path=fc.inputPath, date_min=date_min, date_max=date_max)
 	elif setup>=2:
 		fc.griddedTimeZone = 'GriddedTimeZoneMask.nc'
 		# Mask space
 		fc.maskSpace('SpacialMask.nc', 'USA', 2)
-		conc_files=fc.FindFiles(file_format="CCTM_fwdACONC.YYYYMMDD", path=fc.conc_path, date_min=date_min, date_max=date_max)
+		#conc_files=fc.FindFiles(file_format="CCTM_fwdACONC.YYYYMMDD", path=fc.inputPath, date_min=date_min, date_max=date_max)
+		conc_files=fc.FindFiles(file_format="FWD.MMDD", path=fc.inputPath, date_min=date_min, date_max=date_max)
+		print "Files: %s"%(" ".join(map(str, conc_files)))
 
 
 	fc.loadConcentrationFiles(conc_files)

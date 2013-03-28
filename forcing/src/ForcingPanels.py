@@ -1,6 +1,6 @@
 import wx
 import ForcingFunctions as ff
-from DoForce import Forcing
+from DoForce import Forcing, BadSampleConcException
 from extendedClasses import HelpLink, SingleFileChooser
 
 # Just for debugging
@@ -107,7 +107,12 @@ class ForcingPanel(wx.Panel):
 			   wx.OK | wx.ICON_INFORMATION)
 			return
 		fc.species = top.species
-		fc.maskSpace(top.spacialmask_fname, top.spacialmask_var, top.spacialmask_val)
+		try:
+			spacialmask_val = int(top.spacialmask_val)
+		except ValueError:
+			top.error("Was not able to interpret special mask variable value as an integer.")
+			return
+		fc.maskSpace(top.spacialmask_fname, top.spacialmask_var, spacialmask_val)
 		fc.griddedTimeZone = top.timezone_fname
 
 		# Inputs
@@ -123,6 +128,10 @@ class ForcingPanel(wx.Panel):
 		concs=fc.FindFiles(file_format=inputFormat, path=inputPath,
 		   date_min=top.date_min, date_max=top.date_max)
 
+		# Debug..
+		top.debug("Starting %s with files %s.\nFormat: %s\nTimezones=%s\nSpacial Mask File=%s\nAveraging: %s\nDate Range: %s %s\nInput Path: %s\nInput format: %s\nNo. of files found: %d"%(type(fc), " ".join(map(str, concs)), inputFormat, fc.griddedTimeZone, top.spacialmask_fname, fc.averaging, top.date_min, top.date_max, inputPath, inputFormat, len(concs)))
+
+
 		if len(concs) == 0:
 			mesg="No input files found, check your path and dates?"
 			top.warn(mesg)
@@ -133,9 +142,6 @@ class ForcingPanel(wx.Panel):
 		# Load the input files into our forcing generator
 		fc.loadConcentrationFiles(concs)
 
-		# Debug..
-		top.debug("Starting %s with files %s.\nTimezones=%s\nSpacial Mask File=%s\nAveraging: %s\nDate Range: %s %s\nInput Path: %s\nInput format: %s\nNo. of files found: %d"%(type(fc), " ".join(map(str, concs)), fc.griddedTimeZone, top.spacialmask_fname, fc.averaging, top.date_min, top.date_max, inputPath, inputFormat, len(concs)))
-
 		#
 		# Produce the forcing fields
 		top.info("Processing ....")
@@ -145,6 +151,8 @@ class ForcingPanel(wx.Panel):
 		except IOError as e:
 			top.error("Encountered an I/O Error.\n%s"%str(e))
 			print e
+		except BadSampleConcException as e:
+			self.top.error(e)
 
 	@staticmethod
 	def ProcessCLI():
@@ -214,7 +222,7 @@ class ForcingPanelWithAveraging(ForcingPanel):
 		lblAvg = wx.StaticText(self, label="Averaging Time")
 		rsizer=wx.FlexGridSizer(rows=len(Forcing.avgoptions),cols=2,hgap=5)
 		for at in Forcing.avgoptions:
-			radioinput=wx.RadioButton(self, label=at[1], name="avgtimes")
+			radioinput=wx.RadioButton(self, label=at['label'], name="avgtimes")
 			radioinput.Bind(wx.EVT_RADIOBUTTON, self.chooseAveraging, radioinput)
 			rsizer.Add(radioinput)
 			avghelp = HelpLink(self, label="Help", onClick=self.ShowAvgHelp)
@@ -222,7 +230,7 @@ class ForcingPanelWithAveraging(ForcingPanel):
 
 		# Need to set the default.  Assuming that the first one is the default selected
 		# radiobutton (this isn't a great assumption, fix when I have more time.)
-		self.avgoption = Forcing.avgoptions[0][1]
+		self.avgoption = Forcing.avgoptions[0]['label']
 
 		lbltimes = wx.StaticText(self, label="Use Hours:")
 		# Take times from the top frame (it read them from the sample conc file)
@@ -278,7 +286,7 @@ class ForcingPanelWithAveraging(ForcingPanel):
 
 	def runForce(self, top):
 		# Set the averaging
-		self.forcingClass.setAveraging(self.avgoption)
+		self.forcingClass.averaging = self.avgoption
 
 		# Pass it up
 		super(ForcingPanelWithAveraging, self).runForce(top)
@@ -389,6 +397,7 @@ class ForcingPanelMortality(ForcingPanelWithAveraging):
 	# Whether this should appear in the user selection for forcing functions
 	appearInList=True
 
+	# Not used, but it's conceivable that it will be implemented in the future.
 	threshold = None
 
 	def __init__(self, parent):
@@ -401,6 +410,8 @@ class ForcingPanelMortality(ForcingPanelWithAveraging):
 
 		sizer = wx.FlexGridSizer(rows=2, cols=1)
 		sizerHead = wx.BoxSizer(wx.VERTICAL)
+# Am I just putting a sizer in a sizer for no reason?
+		sizerBody = wx.BoxSizer(wx.VERTICAL)
 		sizerOpts = wx.FlexGridSizer(rows=2, cols=2, vgap=5)
 		sizerFiles = wx.FlexGridSizer(rows=3, cols=3, vgap=5)
 
@@ -431,13 +442,20 @@ class ForcingPanelMortality(ForcingPanelWithAveraging):
 		"""
 
 		# Options
-		sizerOpts.Add(wx.StaticText(self, label="Concentration Response Factor (ppb):"))
-		self.threshold = wx.TextCtrl(self, value="", size=(100,-1))
-		sizerOpts.Add(self.threshold)
+		d = wx.StaticText(self, label="Concentration response factor (beta), is the percent increase in deaths per ppb of concentration increase.", size=(self.top.col2_width, -1))
+		d.Wrap(self.top.col2_width*0.95)
+		sizerBody.Add(d)
+
+		sizerOpts.Add(wx.StaticText(self, label="Concentration Response Factor:"))
+		self.beta = wx.TextCtrl(self, value="", size=(100,-1))
+		sizerOpts.Add(self.beta)
 
 		sizerOpts.Add(wx.StaticText(self, label="Value of statistical life (M$):"))
 		self.statlife = wx.TextCtrl(self, value="", size=(100,-1))
 		sizerOpts.Add(self.statlife)
+
+		sizerBody.AddSpacer(10)
+		sizerBody.Add(sizerOpts)
 
 		# File inputs
 		sizerFiles.Add(wx.StaticText(self, label="Parameter"))
@@ -456,18 +474,21 @@ class ForcingPanelMortality(ForcingPanelWithAveraging):
 		self.pop_var = wx.TextCtrl(self, name="pop_var", size=(50, -1))
 		sizerFiles.Add(self.pop_var)
 
+		sizerBody.AddSpacer(10)
+		sizerBody.Add(sizerFiles)
+
 		"""
 		/User Edit
 		"""
 
+		sizerBody.AddSpacer(10)
+		sizerBody.Add(self.getAveragingControls())
+
 		# Add sizers to main sizer
 		sizer.Add(sizerHead, wx.EXPAND)
 		sizer.AddSpacer(10)
-		sizer.Add(sizerOpts, wx.EXPAND)
-		sizer.AddSpacer(20)
-		sizer.Add(sizerFiles)
-		sizer.AddSpacer(10)
-		sizer.Add(self.getAveragingControls())
+		sizer.Add(sizerBody, wx.EXPAND)
+		
 
 		#self.SetSizer(sizer)
 		self.SetSizerAndFit(sizer)
@@ -477,37 +498,57 @@ class ForcingPanelMortality(ForcingPanelWithAveraging):
 		# Forcing class
 		fc = self.forcingClass
 
+		#
 		# Custom inputs
-		if self.threshold.GetValue() is not None:
+		#
+
+		# Threshold
+		if self.threshold is not None and self.threshold.GetValue() is not None:
 			try:
 				threshold = float(self.threshold.GetValue())
+				fc.threshold = self.threshold.GetValue()
 			except ValueError:
-				ForcingPanel.ErrorDialog("Could not interpret concentration threshold value.", top)
+				ForcingPanel.ErrorDialog("Could not interpret threshold value.", top)
 				return
-				
-		fc.threshold = self.threshold.GetValue()
 
+		# Beta
+		if self.beta.GetValue() is not None:
+			try:
+				beta = float(self.beta.GetValue())
+				fc.beta = beta
+			except ValueError:
+				ForcingPanel.ErrorDialog("Could not interpret concentration response factor (beta) value.", top)
+				return
+
+		# Mortality
 		if self.mortality_fname.path is None or self.mortality_var.GetValue() == None:
 			ForcingPanel.ErrorDialog("Must enter a gridded baseline mortality file and NetCDF Variable", top)
 			return
-		fc.SetMortality(self.mortality_fname.path, self.mortality_var.GetValue())
+		fc.SetMortality(fname=self.mortality_fname.path, var=self.mortality_var.GetValue())
 
-		if self.pop_name.path is None or self.pop_var.GetValue() == None:
+		if self.pop_fname.path is None or self.pop_var.GetValue() == None:
 			ForcingPanel.ErrorDialog("Must enter a gridded population file and NetCDF Variable", top)
 			return
 		fc.SetPop(self.pop_fname.path, self.pop_var.GetValue())
 
 		vsl = self.statlife.GetValue()
-		if vsl is None or vsl == "":
-			ForcingPanel.ErrorDialog("Must enter statistical value of life")
-			return
+		if vsl is not None and vsl != "":
+			try:
+				vsl = float(vsl)
+			except ValueError:
+				ForcingPanel.ErrorDialog("Cannot interpret statistical value of life %s, please enter a numeric value."%self.statlife.GetValue(), top)
 		else:
-			fc.vsl = float(vsl)
+			vsl = None
 
-		ForcingPanel.ErrorDialog("Forcing function not yet implemented (still in testing phase)", top)
+		if vsl is not None:
+			fc.vsl = float(vsl)
+		# else, not required
+
+		# If we got here, tell the object to start doing work.  Fird, load our scalar field
+		fc.loadScalarField()
 
 		# Move up
-		#super(ForcingPanelAverageConcentration, self).runForce(top)
+		super(ForcingPanelMortality, self).runForce(top)
 
 class ForcingPanelDistance(ForcingPanelWithAveraging):
 	# The name of the forcing function

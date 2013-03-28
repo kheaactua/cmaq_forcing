@@ -1,5 +1,6 @@
 from numpy import shape
-from Scientific.IO.NetCDF import NetCDFFile
+#from Scientific.IO.NetCDF import NetCDFFile
+from DataFile import DataFile
 import numpy as np
 import datetime
 
@@ -17,7 +18,7 @@ class ForcingValidator:
 	conc = None
 
 	def __init__(self,filename):
-		self.conc=NetCDFFile(filename, 'r')
+		self.conc=DataFile(filename, mode='r', open=True)
 
 		self.ni = self.conc.dimensions['COL']
 		self.nj = self.conc.dimensions['ROW']
@@ -45,7 +46,7 @@ class ForcingValidator:
 
 	def changeFile(self, newfile):
 		self.conc.close();
-		self.conc=NetCDFFile(newfile, 'r')
+		self.conc=DataFile(newfile, mode='r', open=True)
 
 	def getDate(self):
 		""" Again, not a validator just a getter.  Useful to know the date
@@ -57,22 +58,25 @@ class ForcingValidator:
 		datetime
 		"""
 
-		# Get the sdate, in the format YYYYJJJ
-		if not hasattr(self.conc, 'SDATE'):
-			raise IOError("Sample concentration file does not seem to be a proper I/O Api file.")
+		self.conc.loadDate()
+		return self.conc.date
 
-		sdate=str(getattr(self.conc, 'SDATE'))
-		# Sometimes sdate has brackets around it
-		if sdate[0] == "[" and sdate[-1] == "]":
-			sdate=sdate[1:-1]
-		year=int(sdate[:4])
-		jday=int(sdate[4:])
-
-		date = datetime.date(year, 1, 1)
-		days = datetime.timedelta(days=jday-1) # -1 because we started at day 1
-		date=date+days
-
-		return date
+#		# Get the sdate, in the format YYYYJJJ
+#		if not hasattr(self.conc, 'SDATE'):
+#			raise IOError("Sample concentration file does not seem to be a proper I/O Api file.")
+#
+#		sdate=str(getattr(self.conc, 'SDATE'))
+#		# Sometimes sdate has brackets around it
+#		if sdate[0] == "[" and sdate[-1] == "]":
+#			sdate=sdate[1:-1]
+#		year=int(sdate[:4])
+#		jday=int(sdate[4:])
+#
+#		date = datetime.date(year, 1, 1)
+#		days = datetime.timedelta(days=jday-1) # -1 because we started at day 1
+#		date=date+days
+#
+#		return date
 
 	def getLayers(self):
 		"""Return a list of layers.  This isn't really a validator, but
@@ -139,7 +143,7 @@ class ForcingValidator:
 	# Check to ensure all the chosen species are available 
 	# Species is a string vector
 	def validateSpecies(self, species):
-		"""Validate species against a sample netcdf file variables
+		"""Validate species against a sample datafile variables
 
 		Keyword Arguments:
 		species -- Vector of species names to use
@@ -175,7 +179,7 @@ class ForcingValidator:
 
 
 	def validateLayers(self,layers):
-		"""Validate layers against a sample netcdf file
+		"""Validate layers against a sample datafile file
 
 		Keyword Arguments:
 		layers -- Vector of layers to use
@@ -195,7 +199,7 @@ class ForcingValidator:
 		return True
 
 	def validateTimes(self,times):
-		"""Validate times against a sample netcdf file
+		"""Validate times against a sample datafile file
 
 		Keyword Arguments:
 		times -- Vector of times to use
@@ -211,10 +215,10 @@ class ForcingValidator:
 		return True
 
 	def ValidateDataFileSurface(self, filename):
-		""" Validates a NetCDF file by checking if it's 2D surface domani
+		""" Validates a datafile by checking if it's 2D surface domani
 			(ni,nj) matches the sample file """
 
-		datafile=NetCDFFile(filename, 'r')
+		datafile=DataFile(filename, mode='r', open=True)
 
 		#print "COL %d, self.ni: %d   -  ROW: %d, self.nj: %d"%(datafile.dimensions['COL'], self.ni, datafile.dimensions['ROW'], self.nj)
 		return datafile.dimensions['COL'] == self.ni and datafile.dimensions['ROW'] == self.nj

@@ -1,6 +1,7 @@
-from Scientific.IO.NetCDF import NetCDFFile
-from DoForce import Forcing
+from DataFile import DataFile
+from DoForce import Forcing, ForcingException, ForcingFileDimensionException
 import numpy as np
+import re, os
 
 class ForceWithThreshold(Forcing):
 	# Concentration threshold
@@ -29,13 +30,19 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 	# Time Mask
 	timeMask=range(0,Forcing.dayLen+1)
 
-	def generateForcingFields(self, conc_idx,
- 	   conc_yest,  conc_today,  conc_tom,
-	   force_yest, force_today, force_tom):
+	# Override default outputFormat
+	outputFormat = 'Force.TYPE.AVG.YYYYMMDD'
+
+	def generateForceFileName(self, conc, fmt = None):
+		""" Get averaging in the output file name """
+		fname = super(ForceOnAverageConcentration, self).generateForceFileName(conc, fmt)
+		fname = re.sub(r"AVG", self.averaging, fname)
+		return fname		
+
+
+	def generateForcingFields(self, conc_idx, inputs, outputs):
 		""" UPDATE THIS DESCRIPTION!
-		    Generate a forcing field, for each species, write a
-			field of all 1's (this is a simply case), with respect
-			to all the masks of course.
+		    Generate a forcing field taking spacial masks, timezones, and time averaging into account.
 
 		Keyword Arguments:
 
@@ -43,8 +50,8 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 		  Index of concentration file in self.conc_files.  Done this way
 		  so that it's easy to access yesterday's and tomorrow's files.
 
-		conc_ and force_:*NetCDFFile*
-		   NetCDF files
+		inputs and outputs:*DataFile*
+		   dicts of DataFiles where the key is the relative day (so, -1 is yesterday)
 
 		Returns:
 
@@ -53,7 +60,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 		contain a float32 3D field.
 		"""
 
-		#print "In ForceOnAverageConcentration:generateForcingFields()"
+		Forcing.log("Running %s.generateForcingFields()"%type(self))
 
 		# Some variable used later
 		scalar = None
@@ -72,10 +79,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 		# We doing time averaging?
 		if self.averaging in ['AVG_MAX', 'AVG_MAX8', 'AVG_MAX24']:
 			do_averaging=True
-			averaging_window = 8 # Default
-			averaging_window = 1  if self.averaging == 'AVG_MAX'   else averaging_window
-			averaging_window = 8  if self.averaging == 'AVG_MAX8'  else averaging_window
-			averaging_window = 24 if self.averaging == 'AVG_MAX24' else averaging_window
+			averaging_window = self.averaging_window
 		else:
 			do_averaging=False
 			averaging_window = None
@@ -86,37 +90,27 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 			# If it's the mask, then the timemask should already be set
 
 		# Create zero fields to allocate our arrays
-		fld_empty=np.zeros((len(self.species), self.nt, self.nk, self.nj, self.ni), dtype=np.float32)
+		fld_empty=np.zeros((len(self.species), self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
 
-		flds={'yesterday': fld_empty, 'today': fld_empty.copy(), 'tomorrow': fld_empty.copy()}
-
+		# Get the relative days, so [-1 0 1] for [yesterday, today, tomorrow]
+		rdays = inputs.keys()
+		# Probably an easiesr way to initalize this since we're only writing later, but for now we'll do it.
+		flds={}
+		for d in rdays:
+			flds[d] = fld_empty.copy()
 
 		# This is NOT efficient.  Could probably easily make it
 		# more efficient by implementing some sort of cache though..
 		for idx_s, species in enumerate(self.species):
 			#print "Iteratiing through species %d=%s"%(idx_s, species)
-			if conc_yest == None:
-				# If we're on day 1..
-				# This is inefficient, will upgrade later
-				data_yest = np.zeros((self.nt, self.nk, self.nj, self.ni))
-			else:
-				var_yest  = conc_yest.variables[species]
-				data_yest = var_yest.getValue()
 
-			if conc_tom == None:
-				data_tom   = np.zeros((self.nt, self.nk, self.nj, self.ni))
-			else:
-				#print "Looking for variable %s"%species
-				var_tom   = conc_tom.variables[species]
-				data_tom  = var_tom.getValue()
-
-			var_today  = conc_today.variables[species]
-			data_today = var_today.getValue()
-
-			fld_yest  = np.zeros(data_yest.shape, dtype=np.float32)
-			fld_today = fld_yest.copy()
-			fld_tom   = fld_yest.copy()
-
+			# Initialize the data flds.  Set to zero if there's a day that doesn't exist
+			datas={}
+			for d in rdays:
+				if inputs[d] is None:
+					datas[d] = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
+				else:
+					datas[d] = inputs[d].variables[species][:]
 
 			# Recall, mask is already considered in these vectors
 			for k in self._layers:
@@ -127,9 +121,8 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 						# Spatial mask
 						if not self.space[j,i]:
 							# This is masked out.  Set to zero and go to the next cell
-							fld_yest[0:self.nt,k,j,i]  = np.zeros((self.nt), dtype=np.float32)
-							fld_today[0:self.nt,k,j,i] = np.zeros((self.nt), dtype=np.float32)
-							fld_tom[0:self.nt,k,j,i]   = np.zeros((self.nt), dtype=np.float32)
+							for d in rdays:
+								flds[d][idx_s][0:self.nt,k,j,i] = np.zeros((self.nt), dtype=np.float32)
 							continue
 						#else:
 						#	# TEMP HACK!!
@@ -146,16 +139,20 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 						# cell.  Unfortunately, the data is organized in the 
 						# opposite way as we want (time is the top index..)
 						if do_averaging:
-							vec_yest  = data_yest[:self.nt-1,k,j,i]
-							vec_today = data_today[:self.nt-1,k,j,i]
-							vec_tom   = data_tom[:self.nt-1,k,j,i]
+							vecs={}
+							for d in rdays:
+								vecs[d]  = datas[d][:Forcing.dayLen,k,j,i]
+
+							# REMOVE!
+							#if i==self.debug_i and j==self.debug_j:
+							#	print "vec_today[%d,%d]: "%(self.debug_j, self.debug_i), vec_today
 
 							# Prepares a vector of values with respect to the
 							# direction we're going to calculate the average
 							# (forward/backward), the window size, and time
 							# zone 
 
-							vec = Forcing.prepareTimeVectorForAvg(vec_yest, vec_today, vec_tom, timezone=tz[j][i], winLen=averaging_window)
+							vec = Forcing.prepareTimeVectorForAvg(vecs, timezone=tz[j][i], winLen=averaging_window, debug=False)
 							#print "i=%d,j=%d, preped vec[%d] = %s"%(i,j,len(vec)," ".join(map(str, vec)))
 
 							# Calculate the moving window average
@@ -167,14 +164,13 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 							# today and tomorrow with the forcing terms in them
 
 							if self.timeInvariantScalarMultiplcativeFld is not None:
-								scalar = self.timeInvariantScalarMultiplcativeFld[j][i]
+								scalar = self.timeInvariantScalarMultiplcativeFld[j][i]/averaging_window
 
-							yesterday, today, tomorrow = Forcing.applyForceToAvgTime(avgs, winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar)
+							vecs = Forcing.applyForceToAvgTime(avgs, days=vecs.keys(), winLen=averaging_window, timezone=tz[j][i], min_threshold=self.threshold, forcingValue=scalar)
 
-
-							fld_yest[:self.nt-1,k,j,i]  = yesterday[:self.nt-1]
-							fld_today[:self.nt-1,k,j,i] = today[:self.nt-1]
-							fld_tom[:self.nt-1,k,j,i]   = tomorrow[:self.nt-1]
+# This was done blindly
+							for d in rdays:
+								flds[d][idx_s][:24,k,j,i] = vecs[d]
 
 						elif self.averaging == 'AVG_MASK' or self.averaging == 'AVG_NONE':
 # NOT YET TESTED
@@ -219,13 +215,6 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 				#endfor i
 			#endfor k
 
-			#print "fld_today[t=8] idx_s=%d:\n"%idx_s,fld_today[8,:,:,:]
-
-
-			flds['yesterday'][idx_s] = fld_yest
-			flds['today'][idx_s]     = fld_today
-			flds['tomorrow'][idx_s]  = fld_tom
-
 		#endfor species
 
 		return flds
@@ -245,13 +234,18 @@ class ForceOnMortality(ForceOnAverageConcentration):
 		- Concentration response factor (beta) = percent increase in deaths per ppb
 		- Value of statistical life (in millions of dollars)
 		- Gridded baseline mortality file
-			- BMR units of deaths per 10^6 or 10^5 population per year.  Devide
-			  BMR by 10^6 or 10^5 and divide by 365 to get deaths per day
+			- BMR units of deaths per 10^6 or 10^5 population per year.  Divide
+			  BMR by 10^6 or 10^5 and divide by 365 to get deaths per day.
+	          WARNING:  Leap years are not yet accounted for
 		- Gridded populated mortality file
 
 	This class is extremely similar to ForceOnAverageConcentration.  There are ways
 	to re-use the code above, but for now we'll just duplicate it.
 	"""
+
+	# Conversion for BMR units to be X per year (million per year, etc)
+	# BMR is MULTIPLIED by this
+	mort_scale=pow(10, -3) # Amanda divids by 10^6 (BMR per million) then multiplies by 10^3 (per ppm)
 
 	# Value of statistical life (millions)
 	vsl = None
@@ -262,7 +256,8 @@ class ForceOnMortality(ForceOnAverageConcentration):
 	# Gridded baseline mortality file
 	_mortality_fname = None
 	_mortality_var = None
-	def SetMortality(fname, var):
+
+	def SetMortality(self, fname, var):
 		""" Provide a gridded NetCDF file name and variable name.  This will
 		save the info for later reading. """
 
@@ -272,12 +267,16 @@ class ForceOnMortality(ForceOnAverageConcentration):
 	# Gridded populated mortality file
 	_pop_fname = None
 	_pop_var = None
-	def SetPop(fname, var):
+
+	def SetPop(self, fname, var):
 		""" Provide a gridded NetCDF file name and variable name.  This will
 		save the info for later reading. """
 
 		self._pop_fname = fname
 		self._pop_var = var
+
+	# Does this reference work?
+	SetPopulation=SetPop
 
 	def loadScalarField(self):
 		""" Open up the mortality and population files and read
@@ -295,14 +294,15 @@ class ForceOnMortality(ForceOnAverageConcentration):
 		if self._pop_fname is None or self._pop_var is None:
 			raise ForcingException("Must supply population file")
 
-		if self.vsl is None:
-			raise ForcingException("Must specify statistical value of life (in millions)")
+		# This is optional
+		#if self.vsl is None:
+		#	raise ForcingException("Must specify statistical value of life (in millions)")
 
 		# Open the mortality file
 		try:
-			mortality = NetCDFFile(self._mortality_fname, 'r')
+			mortality = DataFile(self._mortality_fname, mode='r', open=True)
 		except IOError as ex:
-			print "Error!  Cannot open mortality file %s"%(self._mortality_fname)
+			Forcing.error("Error!  Cannot open mortality file %s.  File exists? %r"%(self._mortality_fname, os.path.isfile(self._mortality_fname)))
 			raise
 
 		# Check dimensions
@@ -311,9 +311,13 @@ class ForceOnMortality(ForceOnAverageConcentration):
 
 		# Read the field
 		try:
-			mfld = mortality.variables[self._mortality_var].getValue()[0]
+			# dims are TSTEP, LAY, ROW, COL.. so skip TSTEP and LAY
+			# this should be made more general, or the file should be made better.
+			mfld = mortality.variables[self._mortality_var][0][0]
 		except IOError as e:
 			raise e
+		except IndexError as e:
+			raise ForcingFileDimensionException("Mortality NetCDF file seems to have incompatible dimensions.  Currently require shape (TSTEP, LAY, ROW, COL).  This is marked to be improved, as the data does not vary with time or layer.")
 
 		# Close the file
 		if self._pop_fname != self._pop_fname:
@@ -321,28 +325,39 @@ class ForceOnMortality(ForceOnAverageConcentration):
 
 			# Open the population file
 			try:
-				pop = NetCDFFile(self._pop_fname, 'r')
+				pop = DataFile(self._pop_fname, mode='r', open=True)
 			except IOError as ex:
-				print "Error!  Cannot open population file %s"%(self._pop_fname)
+				Forcing.error("Error!  Cannot open population file %s"%(self._pop_fname))
 				raise
 
 			# Check dimensions
 			if not (pop.dimensions['COL'] == self.ni and pop.dimensions['ROW'] == self.nj):
 				raise ValueError("Error, dimensions in population file %s do not match domain."%self._pop_fname)
+		else:
+			# Same file?
+			pop = mortality
 
 		# Read the field
 		try:
-			pfld = mortality.variables[self._mortality_var].getValue()[0]
+			# dims are TSTEP, LAY, ROW, COL.. so skip TSTEP and LAY
+			pfld = pop.variables[self._pop_var][0][0]
 		except IOError as e:
 			raise e
+		except IndexError as e:
+			raise ForcingFileDimensionException("Population NetCDF file seems to have incompatible dimensions.  Currently require shape (TSTEP, LAY, ROW, COL).  This is marked to be improved, as the data does not vary with time or layer.")
+
+
+		pop.close()
+
+		# Debug, remember, when debugging this against plotted data or fortran
+		# code: values like (70,70) started at index 1 whereas we started at
+		# index 0, so (70,70)=(69,69)
+		#print "[j=%d,i=%d] = mfld * mfld_scale * pfld * self.beta / 365 = %e %e %e %e %e = %e"%(self.debug_j, self.debug_i, mfld[self.debug_j,self.debug_i], (10.**-4), pfld[self.debug_j,self.debug_i], self.beta, 365.0, mfld[self.debug_j,self.debug_i]*(10.**-4)*pfld[self.debug_j,self.debug_i]*self.beta/365.0)
 
 		# (mfld * pfld) is element wise multiplication, not matrix multiplication
 		# Take leap years into account?
-		self.timeInvariantScalarMultiplcativeFld = (mfld/10^6)/365 * pfld * vsl * beta
+		Forcing.debug("[TODO]: Leap years are not yet accounted for.")
+		self.timeInvariantScalarMultiplcativeFld = mfld * self.mort_scale / 365.0 * pfld * self.beta
+		if self.vsl is not None:
+			self.timeInvariantScalarMultiplcativeFld = self.timeInvariantScalarMultiplcativeFld * self.vsl
 
-
-class ForcingException(Exception):
-	pass
-
-class NoSpeciesException(ForcingException):
-	pass

@@ -25,10 +25,10 @@ def printVec(vec, c, cstr):
 #
 # Cell of choice
 
-# Match!
-#i=60
-#j=30
+winLen=8
 
+#debug_i=2
+#debug_j=2
 debug_i=72
 debug_j=19
 
@@ -53,7 +53,7 @@ if len(sys.argv) == 2:
 yesterday=np.zeros((24), dtype=np.float32)
 today    =np.zeros((24), dtype=np.float32)
 tomorrow =np.zeros((24), dtype=np.float32)
-#today[8:16]=1
+#today[7:15]=1
 
 ## From Morteza's files, cell i=60,j=30, 2007 may1-3
 #yesterday=[0.0486, 0.0481, 0.0456, 0.0424, 0.0401, 0.0389, 0.0387, 0.0388, 0.0385, 0.0378, 0.0369, 0.0361, 0.0355, 0.0359, 0.0393, 0.0441, 0.0485, 0.0529, 0.0580, 0.0615, 0.0637, 0.0652, 0.0662, 0.0671]
@@ -61,7 +61,7 @@ tomorrow =np.zeros((24), dtype=np.float32)
 #tomorrow=[0.0564, 0.0566, 0.0565, 0.0551, 0.0541, 0.0532, 0.0522, 0.0513, 0.0505, 0.0499, 0.0497, 0.0496, 0.0496, 0.0498, 0.0509, 0.0536, 0.0560, 0.0577, 0.0572, 0.0567, 0.0565, 0.0559, 0.0552, 0.0545]
 
 # From Morteza's files, cell i=72,j=19, 2007 may1-3
-yesterday[:]=[0.0289, 0.0281, 0.0264, 0.0256, 0.0254, 0.0253, 0.0254, 0.0269, 0.0296, 0.0322, 0.0343, 0.0358, 0.0367, 0.0368, 0.0372, 0.0380, 0.0392, 0.0403, 0.0411, 0.0414, 0.0413, 0.0409, 0.0407, 0.0405]
+#yesterday[:]=[0.0289, 0.0281, 0.0264, 0.0256, 0.0254, 0.0253, 0.0254, 0.0269, 0.0296, 0.0322, 0.0343, 0.0358, 0.0367, 0.0368, 0.0372, 0.0380, 0.0392, 0.0403, 0.0411, 0.0414, 0.0413, 0.0409, 0.0407, 0.0405]
 today[:]=[0.0395, 0.0388, 0.0380, 0.0382, 0.0393, 0.0405, 0.0412, 0.0417, 0.0421, 0.0419, 0.0413, 0.0408, 0.0408, 0.0401, 0.0382, 0.0366, 0.0370, 0.0370, 0.0374, 0.0381, 0.0391, 0.0397, 0.0396, 0.0387]
 tomorrow[:]=[0.0356, 0.0343, 0.0328, 0.0329, 0.0335, 0.0346, 0.0359, 0.0364, 0.0361, 0.0355, 0.0346, 0.0336, 0.0325, 0.0316, 0.0312, 0.0307, 0.0311, 0.0324, 0.0344, 0.0366, 0.0382, 0.0393, 0.0398, 0.0404]
 #day_after_tomorrow=np.zeros((24), dtype=np.float32)
@@ -111,10 +111,11 @@ print "Toda: %s%s%s"%(c.today, ' '.join('%6.5f' % v for v in today), c.clear)
 print "Tomo: %s%s%s"%(c.tomorrow, ' '.join('%6.5f' % v for v in tomorrow), c.clear)
 print "\n"
 
-vec = Forcing.prepareTimeVectorForAvg(yesterday, today, tomorrow, timezone=timezone, debug=True)
+#vecs={-1: yesterday, 0: today, 1: tomorrow}
+vecs={0: today, 1: tomorrow}
+vec = Forcing.prepareTimeVectorForAvg(vecs, winLen=winLen, timezone=timezone, debug=True)
 
-
-avgs = Forcing.calcMovingAverage(vec, debug=True)
+avgs = Forcing.calcMovingAverage(vec, winLen=winLen, debug=True)
 
 
 print ""
@@ -124,9 +125,12 @@ max_idx=avgs.index(max_val)
 
 print "Max: avgs[%d]=%f"%(max_idx, max_val)
 
-fs=Forcing.applyForceToAvgTime(avgs, timezone=timezone)
-print "GMT:  %s"%('  '.join('%3.0d' % v for v in range(1,25)))
-print "Yest: %s%s%s"%(c.yesterday, printVec(fs['yesterday'], c, c.yesterday), c.clear)
-print "Toda: %s%s%s"%(c.today, printVec(fs['today'], c, c.today), c.clear)
-print "Tomo: %s%s%s"%(c.tomorrow, printVec(fs['tomorrow'], c, c.tomorrow), c.clear)
+vecs = Forcing.applyForceToAvgTime(avgs, days=vecs.keys(), winLen=winLen, timezone=timezone)
+
+print "GMT:     %s"%('  '.join('%3.0d' % v for v in range(1,25)))
+for d,vec in vecs.iteritems():
+	print "%s: %s%s%s"%(DayIterator.labels[d], getattr(c, DayIterator.clabels[d]), printVec(vec, c, getattr(c, DayIterator.clabels[d])), c.clear)
+
+#print "Toda: %s%s%s"%(c.today, printVec(today, c, c.today), c.clear)
+#print "Tomo: %s%s%s"%(c.tomorrow, printVec(tomorrow, c, c.tomorrow), c.clear)
 

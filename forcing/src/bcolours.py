@@ -3,7 +3,9 @@
 # Colour code things
 class bcolours:
 
-	colours = {'red': 91, 'green': 32, 'blue': 94, 'yellow': 43, 'purple': 35, 'orange': 40, 'cyan': 36, 'clear': 0}
+	# http://nschimme.tripod.com/ansi.htm
+
+	colours = {'red': 91, 'green': 32, 'blue': 94, 'yellow': 33, 'purple': 35, 'orange': 40, 'cyan': 36, 'clear': 0}
 
 	#red="\033[%dm"%_red
 
@@ -25,14 +27,20 @@ class bcolours:
 	OKGREEN = '\033[92m'
 	FAIL = "\033[1;91m"
 
+	_byesterday = colours['red']
 	_yesterday = colours['green']
 	_today = colours['blue']
 	_tomorrow = colours['purple']
+	_ntomorrow = colours['cyan']
 
 
 	@staticmethod
 	def ansiColour(c):
 		return '\033[%dm'%c
+
+	@property
+	def byesterday(self):
+		return bcolours.ansiColour(bcolours._byesterday)
 
 	@property
 	def yesterday(self):
@@ -45,6 +53,10 @@ class bcolours:
 	@property
 	def tomorrow(self):
 		return bcolours.ansiColour(bcolours._tomorrow)
+
+	@property
+	def ntomorrow(self):
+		return bcolours.ansiColour(bcolours._ntomorrow)
 
 	@property
 	def red(self):
@@ -94,7 +106,7 @@ class bcolours:
 		elif day == "tomorrow":
 			c=bcolours._tomorrow
 		else:
-			c=bcolours._colours['clear']
+			c=bcolours.colours['clear']
 
 		return '\033[1;%d;43m'%c
 
@@ -106,7 +118,7 @@ class bcolours:
 		elif day == "tomorrow":
 			c=bcolours._tomorrow
 		else:
-			c=bcolours._colours['clear']
+			c=bcolours.colours['clear']
 
 		return '\033[1;%d;40m'%c
 
