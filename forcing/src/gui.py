@@ -188,32 +188,32 @@ class ForcingFrame(wx.Frame):
 #!		self.pan_ginputs.species.SetChecked([0])
 
 
-		conc_dir = os.getcwd() + '/mortality/'
-		self.pan_input.inputPathCtrl.SetValue(conc_dir)
-		self.pan_output.outputPathCtrl.SetValue(os.getcwd() + '/output/')
-		sample_conc=conc_dir + 'FWD.0701'
-		self.pan_sample_conc.conc_file.SetValue(sample_conc)
-		self.validator = ForcingValidator(sample_conc)
-		#self.pan_input.inputFormatCtrl.SetValue('CCTM_fwdACONC.YYYYMMDD')
-		self.pan_input.inputFormatCtrl.SetValue('FWD.MMDD')
-		self.pan_dates.updateDate(date(2007,7,1))
-		self.pan_dates.updateDate(date(2007,7,3), True)
-		self.pan_ginputs.timezone_fname.path = os.getcwd() + '/GriddedTimeZoneMask.nc'
-		self.pan_ginputs.spacialmask_fname.path='SpacialMask.nc'
-		self.pan_ginputs.spacialmask_var.SetValue('USA')
-		self.pan_ginputs.spacialmask_val.SetValue(str(2))
-
-		self.pan_input.Enable(True)
-		self.pan_output.Enable(True)
-		self.pan_dates.Enable(True)
-		self.pan_ginputs.Enable(True)
-		self.pan_ginputs.species.SetChecked([0])
-		fp = self.pan_ginputs.setForcingPanel('Mortality/Marginal Damage')
-		fp.beta.SetValue(str(0.000427))
-		fp.mortality_fname.path=conc_dir + '/DOMAIN_POP_BMR'
-		fp.mortality_var.SetValue('BMR')
-		fp.pop_fname.path=fp.mortality_fname.path
-		fp.pop_var.SetValue('POP')
+#		conc_dir = os.getcwd() + '/mortality/'
+#		self.pan_input.inputPathCtrl.SetValue(conc_dir)
+#		self.pan_output.outputPathCtrl.SetValue(os.getcwd() + '/output/')
+#		sample_conc=conc_dir + 'FWD.0701'
+#		self.pan_sample_conc.conc_file.SetValue(sample_conc)
+#		self.validator = ForcingValidator(sample_conc)
+#		#self.pan_input.inputFormatCtrl.SetValue('CCTM_fwdACONC.YYYYMMDD')
+#		self.pan_input.inputFormatCtrl.SetValue('FWD.MMDD')
+#		self.pan_dates.updateDate(date(2007,7,1))
+#		self.pan_dates.updateDate(date(2007,7,3), True)
+#		self.pan_ginputs.timezone_fname.path = os.getcwd() + '/GriddedTimeZoneMask.nc'
+#		self.pan_ginputs.spacialmask_fname.path='SpacialMask.nc'
+#		self.pan_ginputs.spacialmask_var.SetValue('USA')
+#		self.pan_ginputs.spacialmask_val.SetValue(str(2))
+#
+#		self.pan_input.Enable(True)
+#		self.pan_output.Enable(True)
+#		self.pan_dates.Enable(True)
+#		self.pan_ginputs.Enable(True)
+#		self.pan_ginputs.species.SetChecked([0])
+#		fp = self.pan_ginputs.setForcingPanel('Mortality/Marginal Damage')
+#		fp.beta.SetValue(str(0.000427))
+#		fp.mortality_fname.path=conc_dir + '/DOMAIN_POP_BMR'
+#		fp.mortality_var.SetValue('BMR')
+#		fp.pop_fname.path=fp.mortality_fname.path
+#		fp.pop_var.SetValue('POP')
 
 	def onKeyCombo(self, event):
 		self.Close()

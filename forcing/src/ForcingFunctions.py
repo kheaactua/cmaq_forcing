@@ -60,7 +60,7 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 		contain a float32 3D field.
 		"""
 
-		#print "In ForceOnAverageConcentration:generateForcingFields()"
+		Forcing.log("Running %s.generateForcingFields()"%type(self))
 
 		# Some variable used later
 		scalar = None
@@ -111,12 +111,6 @@ class ForceOnAverageConcentration(ForceWithThreshold, ForceWithTimeInvariantScal
 					datas[d] = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
 				else:
 					datas[d] = inputs[d].variables[species][:]
-
-#			# This used to copy data_yest's shape, but now we override some dims (like layers)
-#			fld_yest  = np.zeros((self.nt, self.nk_f, self.nj, self.ni), dtype=np.float32)
-#			fld_today = fld_yest.copy()
-#			fld_tom   = fld_yest.copy()
-
 
 			# Recall, mask is already considered in these vectors
 			for k in self._layers:
@@ -308,7 +302,7 @@ class ForceOnMortality(ForceOnAverageConcentration):
 		try:
 			mortality = DataFile(self._mortality_fname, mode='r', open=True)
 		except IOError as ex:
-			print "Error!  Cannot open mortality file %s.  File exists? %r"%(self._mortality_fname, os.path.isfile(self._mortality_fname))
+			Forcing.error("Error!  Cannot open mortality file %s.  File exists? %r"%(self._mortality_fname, os.path.isfile(self._mortality_fname)))
 			raise
 
 		# Check dimensions
@@ -333,7 +327,7 @@ class ForceOnMortality(ForceOnAverageConcentration):
 			try:
 				pop = DataFile(self._pop_fname, mode='r', open=True)
 			except IOError as ex:
-				print "Error!  Cannot open population file %s"%(self._pop_fname)
+				Forcing.error("Error!  Cannot open population file %s"%(self._pop_fname))
 				raise
 
 			# Check dimensions
@@ -362,6 +356,7 @@ class ForceOnMortality(ForceOnAverageConcentration):
 
 		# (mfld * pfld) is element wise multiplication, not matrix multiplication
 		# Take leap years into account?
+		Forcing.debug("[TODO]: Leap years are not yet accounted for.")
 		self.timeInvariantScalarMultiplcativeFld = mfld * self.mort_scale / 365.0 * pfld * self.beta
 		if self.vsl is not None:
 			self.timeInvariantScalarMultiplcativeFld = self.timeInvariantScalarMultiplcativeFld * self.vsl

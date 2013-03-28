@@ -58,22 +58,25 @@ class ForcingValidator:
 		datetime
 		"""
 
-		# Get the sdate, in the format YYYYJJJ
-		if not hasattr(self.conc, 'SDATE'):
-			raise IOError("Sample concentration file does not seem to be a proper I/O Api file.")
+		self.conc.loadDate()
+		return self.conc.date
 
-		sdate=str(getattr(self.conc, 'SDATE'))
-		# Sometimes sdate has brackets around it
-		if sdate[0] == "[" and sdate[-1] == "]":
-			sdate=sdate[1:-1]
-		year=int(sdate[:4])
-		jday=int(sdate[4:])
-
-		date = datetime.date(year, 1, 1)
-		days = datetime.timedelta(days=jday-1) # -1 because we started at day 1
-		date=date+days
-
-		return date
+#		# Get the sdate, in the format YYYYJJJ
+#		if not hasattr(self.conc, 'SDATE'):
+#			raise IOError("Sample concentration file does not seem to be a proper I/O Api file.")
+#
+#		sdate=str(getattr(self.conc, 'SDATE'))
+#		# Sometimes sdate has brackets around it
+#		if sdate[0] == "[" and sdate[-1] == "]":
+#			sdate=sdate[1:-1]
+#		year=int(sdate[:4])
+#		jday=int(sdate[4:])
+#
+#		date = datetime.date(year, 1, 1)
+#		days = datetime.timedelta(days=jday-1) # -1 because we started at day 1
+#		date=date+days
+#
+#		return date
 
 	def getLayers(self):
 		"""Return a list of layers.  This isn't really a validator, but

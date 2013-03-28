@@ -515,7 +515,7 @@ class ForcingPanelMortality(ForcingPanelWithAveraging):
 		if self.beta.GetValue() is not None:
 			try:
 				beta = float(self.beta.GetValue())
-				fc.beta = self.beta.GetValue()
+				fc.beta = beta
 			except ValueError:
 				ForcingPanel.ErrorDialog("Could not interpret concentration response factor (beta) value.", top)
 				return
@@ -544,7 +544,8 @@ class ForcingPanelMortality(ForcingPanelWithAveraging):
 			fc.vsl = float(vsl)
 		# else, not required
 
-		#ForcingPanel.ErrorDialog("Forcing function not yet implemented (still in testing phase)", top)
+		# If we got here, tell the object to start doing work.  Fird, load our scalar field
+		fc.loadScalarField()
 
 		# Move up
 		super(ForcingPanelMortality, self).runForce(top)
