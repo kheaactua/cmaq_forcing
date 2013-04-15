@@ -1,4 +1,6 @@
-#!/usr/bin/env python
+#!/usr/local/apps/Python/2.7.3/bin/python
+####!/usr/bin/python
+
 
 # Gui
 import wx
@@ -27,7 +29,7 @@ parser = argparse.ArgumentParser(description='Use GUI or CLI?')
 parser.add_argument('--cli', action='store_true', help='Use CLI interface')
 
 args = parser.parse_args()
-#print args
+print args
 
 """
 #
@@ -160,8 +162,7 @@ else:
 	frame = ForcingFrame(None, name="TopFrame")
 	frame.Show()
 
-	#wx.lib.inspection.InspectionTool().Show()
+#	wx.lib.inspection.InspectionTool().Show()
 	app.MainLoop()
-
 
 

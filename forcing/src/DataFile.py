@@ -6,7 +6,7 @@ import os, re
 
 # Which NetCDF library are we using?
 netcdf4=False
-if False:
+if netcdf4 == False:
 	try:
 		# On khea (well, ubuntu 12.10), export LD_LIBRARY_PATH=/usr/lib/TEMP_HACK_MATT
 		from netCDF4 import Dataset
