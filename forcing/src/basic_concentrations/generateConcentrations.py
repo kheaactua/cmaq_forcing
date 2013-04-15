@@ -52,9 +52,10 @@ for d in range(sdate, edate):
 	dts=np.zeros((nt,len(species),2), dtype=np.int32)
 	for h in range(0,25):
 		dts[h]=[d, h*10000]
-	print "dts.shape=", dts.shape
-	var.assignValue(dts)
-        #dts = np.arrange(
+	#print "dts.shape=", dts.shape
+	#var.assignValue(dts)
+        
+        var[:] = dts
 
 	for s in species:
 		fld = np.zeros((nt,nk,nj,ni), dtype=np.float32)
@@ -63,7 +64,7 @@ for d in range(sdate, edate):
 			fld[7:16,0,1:3,1:4] = 8
 
 		var = conc.createVariable(s, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
-		var.assignValue(fld)
+		var[:] = fld # var.assignValue(fld)
 
 	conc.close()
 
@@ -87,6 +88,6 @@ for i in range(ni-1, -1, -1):
 #tzfield[0,0,:,:]=-1
 
 print tzfield
-var.assignValue(tzfield)
+var[:] = tzfield #var.assignValue(tzfield)
 tz.sync()
 tz.close()

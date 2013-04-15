@@ -184,7 +184,7 @@ class ForcingPanelBlank(ForcingPanel):
 
 		txt=wx.StaticText(self, label="Please choose a forcing function on the left panel", size=(self.parent.col2_width, -1))
 
-		sizer = wx.BoxSizer(wx.ALIGN_CENTER_VERTICAL)
+		sizer = wx.BoxSizer(wx.VERTICAL) # (wx.ALIGN_CENTER_VERTICAL)
 		sizer.Add(txt, 0, wx.EXPAND)
 		self.SetSizer(sizer)
 
@@ -217,7 +217,7 @@ class ForcingPanelWithAveraging(ForcingPanel):
 		"""
 
 		sizer = wx.BoxSizer(wx.VERTICAL)
-		sizerCombos = wx.FlexGridSizer(rows=1, cols=2, vgap=10, hgap=10)
+		sizerCombos = wx.FlexGridSizer(rows=2, cols=2, vgap=10, hgap=10)
 
 		lblAvg = wx.StaticText(self, label="Averaging Time")
 		rsizer=wx.FlexGridSizer(rows=len(Forcing.avgoptions),cols=2,hgap=5)

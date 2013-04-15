@@ -602,7 +602,7 @@ class GeneralInputsPanel(wx.Panel):
 
 		sizerMain = wx.BoxSizer(wx.VERTICAL)
 		sizerCombos = wx.FlexGridSizer(rows=2, cols=2, vgap=10, hgap=10)
-		sizerTexts = wx.FlexGridSizer(rows=1, cols=2, vgap=10, hgap=5)
+		sizerTexts = wx.FlexGridSizer(rows=2, cols=2, vgap=10, hgap=5)
 		sizerFormat = wx.FlexGridSizer(rows=1, cols=3, hgap=10)
 		
 		dline=18
